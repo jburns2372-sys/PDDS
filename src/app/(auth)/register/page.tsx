@@ -52,7 +52,7 @@ export default function RegisterPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
             
-            await createUserDocument(firestore, user.uid, {
+            createUserDocument(firestore, user.uid, {
                 uid: user.uid,
                 fullName,
                 email,

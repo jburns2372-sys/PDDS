@@ -9,6 +9,7 @@ export function createUserDocument(
   data: { 
     uid: string;
     fullName: string;
+    email: string;
     role: string;
     level: string;
     locationName: string;

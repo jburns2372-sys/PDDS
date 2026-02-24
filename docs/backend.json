@@ -9,6 +9,11 @@
           "type": "string",
           "description": "The user's unique ID."
         },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
         "fullName": {
           "type": "string",
           "description": "The user's full name."
@@ -53,7 +58,7 @@
           "description": "Whether the user has agreed to the Kartilya."
         }
       },
-      "required": ["uid", "fullName", "role", "level", "kartilyaAgreed"]
+      "required": ["uid", "email", "fullName", "role", "level", "kartilyaAgreed"]
     },
     "chapter": {
       "title": "Chapter",
