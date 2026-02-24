@@ -1,6 +1,3 @@
-import type { LucideIcon } from "lucide-react";
-import { Building2, Gavel, Landmark, Scale, Shield, HeartHandshake } from "lucide-react";
-
 export const mockUser = {
   name: "Juan Dela Cruz",
   role: "Secretary General",
@@ -31,14 +28,14 @@ export const officerRoles = [
 
 export type Agenda = {
   title: string;
-  icon: LucideIcon;
+  icon: string;
   details: string[];
 };
 
 export const agendas: Agenda[] = [
   {
     title: "Constitutional Reform",
-    icon: Building2,
+    icon: "Building2",
     details: [
       "Shift to Federalism",
       "Parliamentary form of government",
@@ -47,7 +44,7 @@ export const agendas: Agenda[] = [
   },
   {
     title: "Politics",
-    icon: Gavel,
+    icon: "Gavel",
     details: [
       "Electoral reforms",
       "Anti-dynasty provisions",
@@ -56,7 +53,7 @@ export const agendas: Agenda[] = [
   },
   {
     title: "Economics",
-    icon: Landmark,
+    icon: "Landmark",
     details: [
       "10% Flat Tax with TABOR",
       "Free Market principles",
@@ -65,7 +62,7 @@ export const agendas: Agenda[] = [
   },
   {
     title: "Civil Government & Security",
-    icon: Shield,
+    icon: "Shield",
     details: [
       "Modernize armed forces",
       "Enhance national police capabilities",
@@ -74,7 +71,7 @@ export const agendas: Agenda[] = [
   },
   {
     title: "Criminal Justice",
-    icon: Scale,
+    icon: "Scale",
     details: [
       "Judicial reform",
       "Focus on rehabilitation",
@@ -83,7 +80,7 @@ export const agendas: Agenda[] = [
   },
   {
     title: "Social Benefits & Welfare",
-    icon: HeartHandshake,
+    icon: "HeartHandshake",
     details: [
       "Universal healthcare access",
       "Affordable housing programs",
