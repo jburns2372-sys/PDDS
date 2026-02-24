@@ -12,26 +12,28 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    function getRole(userId) {
-        return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
     }
     
-    function getLevel(userId) {
-        return get(/databases/$(database)/documents/users/$(userId)).data.level;
+    function isAdministrator() {
+      return isSignedIn() && getUserData(request.auth.uid).role == 'Administrator';
     }
 
     function isNationalAdmin() {
-        let userRole = getRole(request.auth.uid);
-        let userLevel = getLevel(request.auth.uid);
-        return userLevel == 'National' && (userRole == 'Chairman' || userRole == 'President' || userRole == 'Secretary General');
+        let userData = getUserData(request.auth.uid);
+        return userData.level == 'National' && (userData.role == 'Chairman' || userData.role == 'President' || userData.role == 'Secretary General');
     }
 
     // Rules for 'users' collection
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if false; // Generally, users should not be able to delete their own accounts.
+      // Only an Admin can create a new user.
+      allow create: if isAdministrator();
+      // An Admin can update any user, or a user can update their own profile.
+      allow update: if isAdministrator() || isOwner(userId);
+      // Only an Admin can delete users.
+      allow delete: if isAdministrator();
     }
 
     // Rules for 'chapters' collection

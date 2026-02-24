@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockStats, mockUser, mockAnnouncement } from "@/lib/data";
+import { mockStats, mockAnnouncement } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { AnnouncementCard } from "@/components/announcement-card";
 import { useUser, useDoc } from "@/firebase";
@@ -54,7 +54,10 @@ export default function HomePage() {
     if (!userLoading && !user) {
       router.push('/login');
     }
-  }, [user, userLoading, router]);
+    if (!userDataLoading && userData?.passwordIsTemporary) {
+      router.push('/change-password');
+    }
+  }, [user, userLoading, userData, userDataLoading, router]);
 
   if (userLoading || userDataLoading) {
     return <div>Loading...</div>

@@ -1,9 +1,3 @@
-export const mockUser = {
-  name: "Juan Dela Cruz",
-  role: "Secretary General",
-  jurisdiction: "National",
-};
-
 export const mockStats = [
   { title: "Total Verified Members", value: "1,250,321", change: "+12.5%" },
   { title: "Pending Approvals", value: "47", change: "+2" },

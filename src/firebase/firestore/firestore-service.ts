@@ -1,5 +1,5 @@
 "use client";
-import { doc, setDoc, Firestore } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, Firestore } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
@@ -14,10 +14,12 @@ export function createUserDocument(
     level: string;
     locationName: string;
     kartilyaAgreed: boolean;
+    passwordIsTemporary: boolean;
   }
 ) {
     const userRef = doc(db, 'users', userId);
-    setDoc(userRef, data)
+    // Return the promise chain
+    return setDoc(userRef, data)
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
           path: userRef.path,
@@ -25,5 +27,26 @@ export function createUserDocument(
           requestResourceData: data,
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
+        // Re-throw the error to be caught by the calling function
+        throw permissionError;
       });
+}
+
+
+export function updateUserDocument(
+  db: Firestore,
+  userId: string,
+  data: Record<string, any>
+) {
+  const userRef = doc(db, 'users', userId);
+  return updateDoc(userRef, data)
+    .catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: userRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      } satisfies SecurityRuleContext);
+      errorEmitter.emit('permission-error', permissionError);
+      throw permissionError;
+    });
 }

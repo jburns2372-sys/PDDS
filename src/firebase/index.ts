@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { initializeApp, getApps, getApp, FirebaseApp, deleteApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { firebaseConfig } from "./config";
@@ -28,6 +28,16 @@ function initializeFirebase() {
   const firestore = getFirestore(app);
   return { app, auth, firestore };
 }
+
+export const createTemporaryApp = () => {
+    const tempAppName = `temp-auth-app-${new Date().getTime()}-${Math.random()}`;
+    const tempApp = initializeApp(firebaseConfig, tempAppName);
+    return tempApp;
+};
+
+export const deleteTemporaryApp = (app: FirebaseApp) => {
+    return deleteApp(app);
+};
 
 export {
   initializeFirebase,

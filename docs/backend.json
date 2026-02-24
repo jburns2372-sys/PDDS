@@ -22,6 +22,7 @@
           "type": "string",
           "description": "The user's role in the party.",
           "enum": [
+            "Administrator",
             "Chairman",
             "Vice Chairman",
             "President",
@@ -56,6 +57,10 @@
         "kartilyaAgreed": {
           "type": "boolean",
           "description": "Whether the user has agreed to the Kartilya."
+        },
+        "passwordIsTemporary": {
+          "type": "boolean",
+          "description": "Whether the user needs to change their temporary password."
         }
       },
       "required": ["uid", "email", "fullName", "role", "level", "kartilyaAgreed"]

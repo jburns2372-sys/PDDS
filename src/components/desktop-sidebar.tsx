@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -11,10 +11,13 @@ const navItems = [
   { href: "/home", icon: Home, label: "Home" },
   { href: "/directory", icon: Users, label: "Directory" },
   { href: "/agendas", icon: BookText, label: "Agendas" },
-  { href: "/profile", icon: UserCircle, label: "Profile" },
 ];
 
-export function DesktopSidebar() {
+const adminNavItems = [
+    { href: "/admin", icon: Shield, label: "Admin" },
+]
+
+export function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -26,23 +29,53 @@ export function DesktopSidebar() {
         </span>
       </div>
       <Separator />
-      <nav className="flex-1 space-y-2 p-4">
-        {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
+      <nav className="flex flex-col flex-1 justify-between p-4">
+        <div className="space-y-2">
+            {navItems.map((item) => {
+            const isActive = pathname.startsWith(item.href);
+            return (
+                <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground",
+                    isActive && "bg-primary/10 text-primary font-semibold"
+                )}
+                >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+                </Link>
+            );
+            })}
+            {isAdmin && adminNavItems.map((item) => {
+            const isActive = pathname.startsWith(item.href);
+            return (
+                <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground",
+                    isActive && "bg-primary/10 text-primary font-semibold"
+                )}
+                >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+                </Link>
+            );
+            })}
+        </div>
+        <div>
+             <Link
+              href="/profile"
               className={cn(
                 "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground",
-                isActive && "bg-primary/10 text-primary font-semibold"
+                pathname.startsWith('/profile') && "bg-primary/10 text-primary font-semibold"
               )}
             >
-              <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              <UserCircle className="h-5 w-5" />
+              <span>Profile</span>
             </Link>
-          );
-        })}
+        </div>
       </nav>
     </aside>
   );

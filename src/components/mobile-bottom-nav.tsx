@@ -2,23 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/home", icon: Home, label: "Home" },
   { href: "/directory", icon: Users, label: "Directory" },
+  { href: "/admin", icon: Shield, label: "Admin", adminOnly: true },
   { href: "/agendas", icon: BookText, label: "Agendas" },
   { href: "/profile", icon: UserCircle, label: "Profile" },
 ];
 
-export function MobileBottomNav() {
+export function MobileBottomNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
+
+  const visibleNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-sm md:hidden">
-      <div className="grid h-16 grid-cols-4 items-center justify-around">
-        {navItems.map((item) => {
+      <div className={`grid h-16 grid-cols-${visibleNavItems.length} items-center justify-around`}>
+        {visibleNavItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
             <Link
