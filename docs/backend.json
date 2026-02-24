@@ -1,0 +1,109 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "A user of the application.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The user's unique ID."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role in the party.",
+          "enum": [
+            "Chairman",
+            "Vice Chairman",
+            "President",
+            "Vice President",
+            "Secretary General",
+            "Treasurer",
+            "Auditor",
+            "VP Ways & Means",
+            "VP Media Comms",
+            "VP Soc Med Comms",
+            "VP Events",
+            "VP Membership",
+            "VP Legal Affairs",
+            "Member"
+          ]
+        },
+        "level": {
+          "type": "string",
+          "description": "The user's jurisdiction level.",
+          "enum": [
+            "National",
+            "Regional",
+            "Provincial",
+            "City/Municipal",
+            "Barangay"
+          ]
+        },
+        "locationName": {
+          "type": "string",
+          "description": "The name of the user's location (e.g., province, city)."
+        },
+        "kartilyaAgreed": {
+          "type": "boolean",
+          "description": "Whether the user has agreed to the Kartilya."
+        }
+      },
+      "required": ["uid", "fullName", "role", "level", "kartilyaAgreed"]
+    },
+    "chapter": {
+      "title": "Chapter",
+      "description": "An organizational chapter of the party.",
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "string",
+          "description": "The geographical level of the chapter.",
+          "enum": [
+            "National",
+            "Regional",
+            "Provincial",
+            "City/Municipal",
+            "Barangay"
+          ]
+        },
+        "officers": {
+          "type": "object",
+          "properties": {
+            "chairman": { "type": "string", "description": "UID of the Chairman" },
+            "viceChairman": { "type": "string", "description": "UID of the Vice Chairman" },
+            "president": { "type": "string", "description": "UID of the President" },
+            "vicePresident": { "type": "string", "description": "UID of the Vice President" },
+            "secretaryGeneral": { "type": "string", "description": "UID of the Secretary General" },
+            "treasurer": { "type": "string", "description": "UID of the Treasurer" },
+            "auditor": { "type": "string", "description": "UID of the Auditor" },
+            "vpWaysAndMeans": { "type": "string", "description": "UID of the VP Ways & Means" },
+            "vpMediaComms": { "type": "string", "description": "UID of the VP Media Comms" },
+            "vpSocMedComms": { "type": "string", "description": "UID of the VP Soc Med Comms" },
+            "vpEvents": { "type": "string", "description": "UID of the VP Events" },
+            "vpMembership": { "type": "string", "description": "UID of the VP Membership" },
+            "vpLegalAffairs": { "type": "string", "description": "UID of the VP Legal Affairs" }
+          }
+        }
+      },
+      "required": ["level", "officers"]
+    }
+  },
+  "auth": {
+    "providers": ["email-password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/user" },
+      "description": "Stores user profile information."
+    },
+    "/chapters/{chapterId}": {
+      "schema": { "$ref": "#/entities/chapter" },
+      "description": "Stores organizational chapter information and leadership roles."
+    }
+  }
+}

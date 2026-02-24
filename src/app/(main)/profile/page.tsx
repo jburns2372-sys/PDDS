@@ -1,4 +1,20 @@
+"use client";
+
+import { useUser } from "@/firebase";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/firebase";
+import { useRouter } from "next/navigation";
+
 export default function ProfilePage() {
+    const { user } = useUser();
+    const auth = useAuth();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await auth.signOut();
+        router.push("/login");
+    }
+
   return (
     <div className="flex flex-col">
       <div className="bg-card p-6 md:p-8 border-b">
@@ -11,10 +27,13 @@ export default function ProfilePage() {
           </p>
         </div>
       </div>
-      <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-        <div className="flex h-64 items-center justify-center rounded-lg border-2 border-dashed bg-card">
-          <p className="text-muted-foreground">Profile content will be here.</p>
+      <div className="p-4 md:p-8 max-w-7xl mx-auto w-full space-y-4">
+        <div className="bg-card p-4 rounded-lg border">
+            <p><strong>Email:</strong> {user?.email}</p>
         </div>
+        <Button onClick={handleLogout} variant="destructive">
+            Logout
+        </Button>
       </div>
     </div>
   );
