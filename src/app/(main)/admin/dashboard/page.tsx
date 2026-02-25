@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
                 <div className="max-w-7xl mx-auto">
                     <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary flex items-center gap-2">
                         <Shield className="h-8 w-8" />
-                        User & Officer Management
+                        Officer & Role Management
                     </h1>
                     <p className="mt-2 text-muted-foreground">
                         Create new users or edit officer roles and assignments.
