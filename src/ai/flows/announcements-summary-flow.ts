@@ -48,7 +48,10 @@ const announcementsSummaryFlow = ai.defineFlow(
   async input => {
     try {
       const {output} = await announcementsSummaryPrompt(input);
-      return output!;
+      if (!output) {
+        return { summary: "The AI model did not return a summary. This could be due to content safety filters or other issues." };
+      }
+      return output;
     } catch (error) {
         console.error("Error in announcementsSummaryFlow:", error);
         // Return a structured error that matches the output schema
