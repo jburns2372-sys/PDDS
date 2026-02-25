@@ -15,7 +15,7 @@ function UserHeader({userData}: {userData: any}) {
     <div className="bg-card p-6 md:p-8 border-b">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">
-          Welcome, {userData?.role || 'Loading/Failed'}
+          Welcome, {userData?.role || 'Member'}
         </h1>
         <div className="mt-2 flex items-center gap-2">
           <Badge variant="secondary" className="bg-primary/10 text-primary">{userData?.role}</Badge>

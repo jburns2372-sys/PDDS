@@ -5,12 +5,9 @@ import { usePathname } from "next/navigation";
 import { Home, Users, BookText, UserCircle, Shield, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AboutPddsDialog } from "./about-pdds-dialog";
-import { useState, useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { useAuth, useFirestore } from "@/firebase";
+import { useUserData } from "@/context/user-data-context";
 
-const navItems: {
+const baseNavItems: {
     href: string;
     icon: React.ElementType;
     label: string;
@@ -20,50 +17,28 @@ const navItems: {
   { href: "/directory", icon: Users, label: "Directory" },
   { href: "/agendas", icon: BookText, label: "Agendas" },
   { href: "/about", icon: Info, label: "About", isDialog: true },
-  { href: "/admin", icon: Shield, label: "Admin Panel" },
-  { href: "/profile", icon: UserCircle, label: "Profile" },
 ];
+
+const profileNavItem = { href: "/profile", icon: UserCircle, label: "Profile" };
+const adminNavItem = { href: "/admin", icon: Shield, label: "Admin Panel" };
+
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const auth = useAuth();
-  const firestore = useFirestore();
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [isLoadingRole, setIsLoadingRole] = useState(true);
+  const { userData, loading: isLoadingRole } = useUserData();
+  const userRole = userData?.role;
+  
+  const visibleNavItems = [...baseNavItems];
+  if (!isLoadingRole && (userRole === 'President' || userRole === 'Admin' || userRole === 'System Admin')) {
+      visibleNavItems.push(adminNavItem);
+  }
+  visibleNavItems.push(profileNavItem);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log("Current Auth User UID:", user?.uid);
-      if (user) {
-        const docRef = doc(firestore, "users", user.uid);
-        try {
-          const docSnap = await getDoc(docRef);
-          console.log("Firestore Doc Exists?", docSnap.exists());
-          if (docSnap.exists()) {
-            const role = docSnap.data().role;
-            console.log("Fetched Role Data:", role);
-            setUserRole(role);
-          } else {
-            console.log("Fetched Role Data:", undefined);
-            setUserRole(null);
-          }
-        } catch (error) {
-          console.error("Any Errors:", error);
-          setUserRole(null);
-        }
-      } else {
-        setUserRole(null);
-      }
-      setIsLoadingRole(false);
-    });
-
-    return () => unsubscribe();
-  }, [auth, firestore]);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-sm md:hidden">
-      <div style={{gridTemplateColumns: `repeat(${navItems.length}, 1fr)`}} className={`grid h-16 items-center justify-around`}>
-        {navItems.map((item) => {
+      <div style={{gridTemplateColumns: `repeat(${visibleNavItems.length}, 1fr)`}} className={`grid h-16 items-center justify-around`}>
+        {visibleNavItems.map((item) => {
           if (item.isDialog) {
             return (
               <AboutPddsDialog key={item.href}>

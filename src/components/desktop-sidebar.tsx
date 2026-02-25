@@ -7,10 +7,7 @@ import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
 import { AboutPddsDialog } from "./about-pdds-dialog";
-import { useState, useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { useAuth, useFirestore } from "@/firebase";
+import { useUserData } from "@/context/user-data-context";
 import { Button } from "./ui/button";
 
 const navItems = [
@@ -25,41 +22,9 @@ const adminNavItems = [
 
 export function DesktopSidebar() {
   const pathname = usePathname();
-  const auth = useAuth();
-  const firestore = useFirestore();
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [isLoadingRole, setIsLoadingRole] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log("Current Auth User UID:", user?.uid);
-      if (user) {
-        const docRef = doc(firestore, "users", user.uid);
-        try {
-          const docSnap = await getDoc(docRef);
-          console.log("Firestore Doc Exists?", docSnap.exists());
-          if (docSnap.exists()) {
-            const role = docSnap.data().role;
-            console.log("Fetched Role Data:", role);
-            setUserRole(role);
-          } else {
-            console.log("Fetched Role Data:", undefined);
-            setUserRole(null);
-          }
-        } catch (error) {
-          console.error("Any Errors:", error);
-          setUserRole(null);
-        }
-      } else {
-        setUserRole(null);
-      }
-      setIsLoadingRole(false);
-    });
-
-    return () => unsubscribe();
-  }, [auth, firestore]);
-
-
+  const { userData, loading: isLoadingRole } = useUserData();
+  const userRole = userData?.role;
+  
   return (
     <aside className="hidden w-64 flex-shrink-0 flex-col border-r bg-card md:flex">
       <div className="flex h-16 items-center gap-3 px-6">
@@ -97,7 +62,7 @@ export function DesktopSidebar() {
                     <span>About PDDS</span>
                 </button>
             </AboutPddsDialog>
-            {adminNavItems.map((item) => {
+            {!isLoadingRole && (userRole === 'President' || userRole === 'Admin' || userRole === 'System Admin') && adminNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
                 <Link
@@ -116,7 +81,7 @@ export function DesktopSidebar() {
         </div>
         <div>
             <div className="px-4 py-2 text-xs text-muted-foreground">
-                [Current Role: {userRole || 'None'}]
+                [Current Role: {isLoadingRole ? 'Loading...' : userRole || 'None'}]
             </div>
              <Link
               href="/profile"
@@ -128,11 +93,6 @@ export function DesktopSidebar() {
               <UserCircle className="h-5 w-5" />
               <span>Profile</span>
             </Link>
-            <div className="p-2">
-                <Button variant="secondary" size="sm" className="w-full" onClick={() => setUserRole('President')}>
-                    Force Admin Mode
-                </Button>
-            </div>
         </div>
       </nav>
     </aside>
