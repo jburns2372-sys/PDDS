@@ -62,6 +62,11 @@
         "passwordIsTemporary": {
           "type": "boolean",
           "description": "Whether the user needs to change their temporary password."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the user document was created."
         }
       },
       "required": ["uid", "email", "fullName", "role", "level", "kartilyaAgreed"]

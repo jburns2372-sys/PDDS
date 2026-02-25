@@ -1,5 +1,5 @@
 "use client";
-import { doc, setDoc, updateDoc, Firestore } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, Firestore, FieldValue } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
@@ -15,6 +15,7 @@ export function createUserDocument(
     locationName: string;
     kartilyaAgreed: boolean;
     passwordIsTemporary: boolean;
+    createdAt: FieldValue;
   }
 ) {
     const userRef = doc(db, 'users', userId);

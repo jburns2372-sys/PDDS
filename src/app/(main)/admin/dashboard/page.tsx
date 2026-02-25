@@ -13,6 +13,7 @@ import { createUserDocument, updateUserDocument } from "@/firebase/firestore/fir
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { Shield } from "lucide-react";
 import type { UserProfile } from "@/context/user-data-context";
+import { serverTimestamp } from "firebase/firestore";
 
 const roles = [
   "Member", "Admin", "Chairman", "Vice Chairman", "President", "Vice President", 
@@ -126,6 +127,7 @@ export default function AdminDashboard() {
                     locationName,
                     kartilyaAgreed: true, // Admins onboard users
                     passwordIsTemporary: true,
+                    createdAt: serverTimestamp(),
                 });
                 
                 toast({
