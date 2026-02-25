@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   // TEMPORARY: Grant admin privileges to the specified user for demonstration.
-  const isDemoAdmin = userData?.email === 'j.burns2372@gmail.com';
+  const isDemoAdmin = user?.email === 'j.burns2372@gmail.com';
   const isAdmin = isDemoAdmin || userData?.role === 'Admin' || userData?.role === 'President';
 
   useEffect(() => {
