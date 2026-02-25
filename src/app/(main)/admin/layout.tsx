@@ -13,7 +13,7 @@ export default function AdminLayout({
   const { userData, loading } = useUserData();
   const router = useRouter();
 
-  const isAuthorized = userData?.role === 'Admin' || userData?.role === 'President';
+  const isAuthorized = userData?.role === 'Admin' || userData?.role === 'President' || userData?.role === 'System Admin';
 
   useEffect(() => {
     // The auth check for a valid user is already handled by the root AppShell.
