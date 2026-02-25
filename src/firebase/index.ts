@@ -5,7 +5,6 @@ import {
   Firestore,
   initializeFirestore,
   persistentLocalCache,
-  persistentSingleTabManager
 } from "firebase/firestore";
 import { firebaseConfig } from "./config";
 
@@ -28,10 +27,9 @@ function initializeFirebase() {
   const auth = getAuth(app);
   
   if (!firestoreInstance) {
+    // Simplified persistence configuration
     firestoreInstance = initializeFirestore(app, {
-      localCache: persistentLocalCache({
-        tabManager: persistentSingleTabManager({})
-      })
+      localCache: persistentLocalCache({})
     });
   }
   
