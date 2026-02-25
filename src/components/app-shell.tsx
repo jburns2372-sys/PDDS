@@ -61,7 +61,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                  <div className="pt-8">
                     <Skeleton className="h-64 w-full" />
                 </div>
-            </main>
+            </div>
+        </main>
       </div>
     );
   }
