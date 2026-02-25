@@ -34,23 +34,28 @@ export function MobileBottomNav() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            const docRef = doc(firestore, "users", user.uid);
-            try {
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    setUserRole(docSnap.data().role);
-                } else {
-                    setUserRole(null);
-                }
-            } catch (error) {
-                console.error("Error fetching user role:", error);
-                setUserRole(null);
-            }
-        } else {
+      console.log("Current Auth User UID:", user?.uid);
+      if (user) {
+        const docRef = doc(firestore, "users", user.uid);
+        try {
+          const docSnap = await getDoc(docRef);
+          console.log("Firestore Doc Exists?", docSnap.exists());
+          if (docSnap.exists()) {
+            const role = docSnap.data().role;
+            console.log("Fetched Role Data:", role);
+            setUserRole(role);
+          } else {
+            console.log("Fetched Role Data:", undefined);
             setUserRole(null);
+          }
+        } catch (error) {
+          console.error("Any Errors:", error);
+          setUserRole(null);
         }
-        setIsLoadingRole(false);
+      } else {
+        setUserRole(null);
+      }
+      setIsLoadingRole(false);
     });
 
     return () => unsubscribe();

@@ -11,16 +11,7 @@ import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth, useFirestore } from "@/firebase";
-
-const navItems = [
-  { href: "/home", icon: Home, label: "Home" },
-  { href: "/directory", icon: Users, label: "Directory" },
-  { href: "/agendas", icon: BookText, label: "Agendas" },
-];
-
-const adminNavItems = [
-    { href: "/admin", icon: Shield, label: "Admin Panel" },
-];
+import { Button } from "./ui/button";
 
 export function DesktopSidebar() {
   const pathname = usePathname();
@@ -31,23 +22,28 @@ export function DesktopSidebar() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            const docRef = doc(firestore, "users", user.uid);
-            try {
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    setUserRole(docSnap.data().role);
-                } else {
-                    setUserRole(null);
-                }
-            } catch (error) {
-                console.error("Error fetching user role:", error);
-                setUserRole(null);
-            }
-        } else {
+      console.log("Current Auth User UID:", user?.uid);
+      if (user) {
+        const docRef = doc(firestore, "users", user.uid);
+        try {
+          const docSnap = await getDoc(docRef);
+          console.log("Firestore Doc Exists?", docSnap.exists());
+          if (docSnap.exists()) {
+            const role = docSnap.data().role;
+            console.log("Fetched Role Data:", role);
+            setUserRole(role);
+          } else {
+            console.log("Fetched Role Data:", undefined);
             setUserRole(null);
+          }
+        } catch (error) {
+          console.error("Any Errors:", error);
+          setUserRole(null);
         }
-        setIsLoadingRole(false);
+      } else {
+        setUserRole(null);
+      }
+      setIsLoadingRole(false);
     });
 
     return () => unsubscribe();
@@ -109,6 +105,9 @@ export function DesktopSidebar() {
             })}
         </div>
         <div>
+            <div className="px-4 py-2 text-xs text-muted-foreground">
+                [Current Role: {userRole || 'None'}]
+            </div>
              <Link
               href="/profile"
               className={cn(
@@ -119,6 +118,11 @@ export function DesktopSidebar() {
               <UserCircle className="h-5 w-5" />
               <span>Profile</span>
             </Link>
+            <div className="p-2">
+                <Button variant="secondary" size="sm" className="w-full" onClick={() => setUserRole('President')}>
+                    Force Admin Mode
+                </Button>
+            </div>
         </div>
       </nav>
     </aside>
