@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
+import { AboutPddsDialog } from "./about-pdds-dialog";
 
 const navItems = [
   { href: "/home", icon: Home, label: "Home" },
@@ -47,6 +48,16 @@ export function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
                 </Link>
             );
             })}
+             <AboutPddsDialog>
+                <button
+                    className={cn(
+                        "flex w-full items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground"
+                    )}
+                >
+                    <Info className="h-5 w-5" />
+                    <span>About PDDS</span>
+                </button>
+            </AboutPddsDialog>
             {isAdmin && adminNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (

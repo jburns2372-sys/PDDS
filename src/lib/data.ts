@@ -96,3 +96,72 @@ Party Chairman Gen. Hermogenes Esperon led a crucial session on national securit
 
 The conference also served as a platform for recognizing the tireless efforts of its members. The new "Dugong Dakila" award was introduced to honor grassroots leaders who have shown exemplary dedication to community service and party-building. The event concluded with a renewed sense of unity and purpose, as members pledged their full support for the party's candidates and its mission to build a better Philippines. As the party moves forward, the resolutions and strategies adopted at LEADCON 2024 are expected to be the driving force behind its political and social initiatives in the years to come.
 `;
+
+export const pddsInfo = {
+  preamble: [
+    "Kami, mga Kristyanong Makabayan, ay nanampalataya na ang Panginoong Hesus ang Hari at may-ari ng langit at lupa, na siya ring namumuno sa lahat ng bansa. Na ako bilang tao na Kanyang nilikha ay may tungkulin na pangalagaan ang mundo na bigay niya sa atin. Bilang Pilipino mamahalin at poprotektahan ko ang bayan kong Pilipinas.",
+    "Ipaglalaban ko ang aking bayan sa sino mang tao o gobyerno na maghahasik ng karahasan sa aking lipunan at magpapahirap sa aking mga kababayan at lipunan. Itataguyod ko ang batas at katarungan. At naniniwala ako sa parusang kamatayan para sa karumaldumal na krimen, droga, at kasulasulasok na korapsyon na nagpapahirap sa buhay ng bawat Pilipino at nanggagahasa sa inang bayan.",
+    "Mamahalin ko ang aking kapwa gaya ng pagmamahal ko sa aking sarili. Handa akong magsakriprisyo para sa kalayaan. Itataguyod ko ang malusog na sambayanan at malinis na kapaligiran.",
+    "SA PANGINOONG HESUS AKO AY NANANALIG.",
+  ],
+  kartilya: [
+    "Kristyanong makabayan;",
+    "Batas at katarungan;",
+    "Kapakanan ng kapwa bago ang sarili;",
+    "Malayang Bayan, malusog na sambayanan, malinis na kapaligiran;",
+    "Itigil ang korapsyon, droga, at krimen.",
+  ],
+  vision: "A just, free, and prosperous Filipino people and one nation under God.",
+  mission: "Build a Federal system of government that will ensure justice, freedom, and prosperity.",
+  program: [
+    {
+      title: "Constitutional Reform",
+      points: ["Federal Form of Government"],
+    },
+    {
+      title: "Reform Agenda for Politics",
+      points: [
+        "Public Service: Public Trust",
+        "Rule of Law not Mob Rule",
+        "An Equitable Electoral System and Suffrage Parliamentary (Multi-Party System)",
+        "Criteria for Elective Civil Servants - Elected after Qualified",
+      ],
+    },
+    {
+      title: "Reform Agenda for Economics",
+      points: [
+        "Simplified (Flat) Tax with TABOR (Tax Payers Bill of Rights)",
+        "Land, water, and all natural resources must be managed by people, families, and communities and NOT by civil government",
+        "Limited Government Interference in Business",
+        "No Government Borrowings/Guarantees",
+        "No Deficit Spending",
+        "Sound Money - A Return to Basics: Currency versus Fiat Money",
+        "Honest not Fractional Reserve Banking Policies",
+      ],
+    },
+    {
+      title: "Reform Agenda for Civil Government",
+      points: [
+        "Parliament of Inter-Faith / Inter-denominational, Multi-Tribal, and Multi-Racial States in a Democratic yet Republican (Representative) Setting",
+        "Civilian Authority NOT Militarized",
+        "Defense of National Government Citizen's Militia for National Defense",
+      ],
+    },
+    {
+      title: "Reform Agenda for Criminal Justice",
+      points: [
+        "The right to bear arms, for protection and preservation, shall be inviolable",
+        "Capital Punishment: Death for Murderers, Corrupt Officials, and Heinous Crimes",
+        "Jury System",
+        "Rationalized Campaign Against Deliquency and Illegal Drugs",
+      ],
+    },
+    {
+      title: "Reform Agenda for Social Benefits, Security, Investment, and Welfare",
+      points: [
+        "Money should be in the hands of people not civil government",
+        "Community-based Educational System: People vis-à-vis State Control",
+      ],
+    },
+  ],
+};
