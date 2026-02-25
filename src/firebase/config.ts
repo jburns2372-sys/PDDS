@@ -1,10 +1,13 @@
-// Replace this with your actual Firebase project configuration
+// This file now loads your Firebase configuration from environment variables.
+// Make sure to create a .env.local file in the root of your project
+// and add your Firebase project's configuration there.
+
 export const firebaseConfig = {
-  apiKey: "AIzaSyCLfVrwYOKRRhNam0PtRPDwITuw5WjkZwI",
-  authDomain: "pdds-party.firebaseapp.com",
-  projectId: "pdds-party",
-  storageBucket: "pdds-party.firebasestorage.app",
-  messagingSenderId: "291422728961",
-  appId: "1:291422728961:web:fba714f20306fe6985a100",
-  measurementId: "G-LV729BRW3D"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
