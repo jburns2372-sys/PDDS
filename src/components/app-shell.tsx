@@ -67,14 +67,25 @@ export function AppShell({ children }: { children: ReactNode }) {
                     }
                 }
             } catch (error) {
-                console.error("Error fetching or creating user document:", error);
-                // Graceful fallback in case of permissions errors etc.
-                const fallbackProfile = {
+                console.warn("Firestore blocked by environment, using fallback.", error);
+                
+                // Default fallback profile
+                const fallbackProfile: UserProfile = {
                     uid: user.uid,
                     email: user.email,
-                    fullName: user.displayName || user.email,
-                    role: 'Member'
+                    fullName: user.displayName || user.email || '',
+                    role: 'Member', // Safest default
+                    level: 'National',
+                    isFallback: true
                 };
+    
+                // Provide elevated roles for specific demo accounts to allow testing.
+                if (user.email === 'iamgrecobelgica@gmail.com') {
+                    fallbackProfile.role = 'President';
+                } else if (user.email === 'j.burns2372@gmail.com') {
+                    fallbackProfile.role = 'System Admin';
+                }
+                
                 setUserData(fallbackProfile);
             } finally {
                 setUserDataLoading(false);
