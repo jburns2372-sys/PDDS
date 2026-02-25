@@ -19,11 +19,6 @@ import {
 import { FirebaseClientProvider } from "./client-provider";
 
 function initializeFirebase() {
-  // Aggressive Env Var Check
-  if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
-    console.error("FIREBASE FATAL ERROR: NEXT_PUBLIC_FIREBASE_API_KEY is undefined. The .env.local file is not being read by Next.js.");
-  }
-  
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const firestore = getFirestore(app);
