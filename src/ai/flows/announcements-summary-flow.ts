@@ -46,7 +46,15 @@ const announcementsSummaryFlow = ai.defineFlow(
     outputSchema: AnnouncementsSummaryOutputSchema,
   },
   async input => {
-    const {output} = await announcementsSummaryPrompt(input);
-    return output!;
+    try {
+      const {output} = await announcementsSummaryPrompt(input);
+      return output!;
+    } catch (error) {
+        console.error("Error in announcementsSummaryFlow:", error);
+        // Return a structured error that matches the output schema
+        return {
+            summary: "The summary could not be generated at this time due to an API configuration issue."
+        };
+    }
   }
 );
