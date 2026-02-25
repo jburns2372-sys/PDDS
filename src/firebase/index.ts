@@ -1,7 +1,8 @@
 import { initializeApp, getApps, getApp, FirebaseApp, deleteApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import {
-  getFirestore,
+  initializeFirestore,
+  memoryLocalCache,
   Firestore
 } from "firebase/firestore";
 import { firebaseConfig } from "./config";
@@ -21,7 +22,12 @@ import { FirebaseClientProvider } from "./client-provider";
 function initializeFirebase() {
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const firestore = getFirestore(app);
+  
+  // CRITICAL FIX: Bypass IndexedDB and force long-polling for Cloud IDEs
+  const firestore = initializeFirestore(app, {
+    localCache: memoryLocalCache(),
+    experimentalForceLongPolling: true
+  });
 
   return { app, auth, firestore };
 }

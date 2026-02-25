@@ -1,8 +1,8 @@
 export const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "PASTE_YOUR_API_KEY_HERE",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "PASTE_YOUR_AUTH_DOMAIN_HERE",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "PASTE_YOUR_PROJECT_ID_HERE",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "PASTE_YOUR_STORAGE_BUCKET_HERE",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "PASTE_YOUR_SENDER_ID_HERE",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "PASTE_YOUR_APP_ID_HERE"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyCLfVrwYOKRRhNam0PtRPDwITuw5WjkZwI",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "pdds-party.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "pdds-party",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "pdds-party.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "291422728961",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:291422728961:web:fba714f20306fe6985a100"
 };
