@@ -1,3 +1,5 @@
+"use client";
+
 import { initializeApp, getApps, getApp, FirebaseApp, deleteApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import { Firestore, initializeFirestore, memoryLocalCache } from "firebase/firestore";
