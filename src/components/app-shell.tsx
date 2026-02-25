@@ -16,10 +16,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: userData, loading: userDataLoading } = useDoc('users', user?.uid || '---');
   const router = useRouter();
 
-  // TEMPORARY: Grant admin privileges to the specified user for demonstration.
-  const isDemoAdmin = user?.email === 'j.burns2372@gmail.com';
-  const isAdmin = isDemoAdmin || userData?.role === 'Admin' || userData?.role === 'President';
-
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -58,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </div>
                  <div className="pt-8">
                     <Skeleton className="h-64 w-full" />
-                </div>
+                 </div>
             </div>
         </main>
       </div>
@@ -75,7 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <UserDataContext.Provider value={contextValue}>
         <div className="flex min-h-screen w-full">
-        {isMobile ? <MobileBottomNav isAdmin={isAdmin} /> : <DesktopSidebar isAdmin={isAdmin} />}
+        {isMobile ? <MobileBottomNav /> : <DesktopSidebar />}
         <main className="flex-1 bg-background pb-16 md:pb-0">
             {children}
         </main>

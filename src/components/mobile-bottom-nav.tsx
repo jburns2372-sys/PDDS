@@ -5,6 +5,10 @@ import { usePathname } from "next/navigation";
 import { Home, Users, BookText, UserCircle, Shield, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AboutPddsDialog } from "./about-pdds-dialog";
+import { useState, useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { useAuth, useFirestore } from "@/firebase";
 
 const navItems: {
     href: string;
@@ -21,9 +25,38 @@ const navItems: {
   { href: "/profile", icon: UserCircle, label: "Profile" },
 ];
 
-export function MobileBottomNav({ isAdmin }: { isAdmin: boolean }) {
+export function MobileBottomNav() {
   const pathname = usePathname();
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isLoadingRole, setIsLoadingRole] = useState(true);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const docRef = doc(firestore, "users", user.uid);
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    setUserRole(docSnap.data().role);
+                } else {
+                    setUserRole(null);
+                }
+            } catch (error) {
+                console.error("Error fetching user role:", error);
+                setUserRole(null);
+            }
+        } else {
+            setUserRole(null);
+        }
+        setIsLoadingRole(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth, firestore]);
+
+  const isAdmin = !isLoadingRole && (userRole === 'President' || userRole === 'Admin');
   const visibleNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
   return (

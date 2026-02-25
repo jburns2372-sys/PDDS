@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
 import { AboutPddsDialog } from "./about-pdds-dialog";
+import { useState, useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { useAuth, useFirestore } from "@/firebase";
 
 const navItems = [
   { href: "/home", icon: Home, label: "Home" },
@@ -18,8 +22,37 @@ const adminNavItems = [
     { href: "/admin", icon: Shield, label: "Admin Panel" },
 ];
 
-export function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
+export function DesktopSidebar() {
   const pathname = usePathname();
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isLoadingRole, setIsLoadingRole] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const docRef = doc(firestore, "users", user.uid);
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    setUserRole(docSnap.data().role);
+                } else {
+                    setUserRole(null);
+                }
+            } catch (error) {
+                console.error("Error fetching user role:", error);
+                setUserRole(null);
+            }
+        } else {
+            setUserRole(null);
+        }
+        setIsLoadingRole(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth, firestore]);
+
 
   return (
     <aside className="hidden w-64 flex-shrink-0 flex-col border-r bg-card md:flex">
@@ -58,7 +91,7 @@ export function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
                     <span>About PDDS</span>
                 </button>
             </AboutPddsDialog>
-            {isAdmin && adminNavItems.map((item) => {
+            {!isLoadingRole && (userRole === 'President' || userRole === 'Admin') && adminNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
                 <Link
