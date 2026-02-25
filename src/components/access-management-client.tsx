@@ -17,7 +17,7 @@ import { Card } from "./ui/card";
 const roles = [
   "System Admin", "Admin", "Chairman", "Vice Chairman", "President", 
   "Vice President", "Secretary General", "Treasurer", "Auditor", 
-  "VP Ways & Means", "VP Media Comms", "VP Soc Med Comms", "VP Events & Programs", 
+  "VP Ways & Means", "VP Media Comms", "VP Soc Med Comms", "VP Events and Programs", 
   "VP Membership", "VP Legal Affairs", "Member"
 ];
 const levels = ["National", "Regional", "Provincial", "City/Municipal", "Barangay"];
