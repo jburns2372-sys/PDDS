@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser, useDoc } from "@/firebase";
+import { useUserData } from "@/context/user-data-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,24 +10,19 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading: userLoading } = useUser();
-  const { data: userData, loading: userDataLoading } = useDoc('users', user?.uid || '---');
+  const { userData, loading } = useUserData();
   const router = useRouter();
 
   useEffect(() => {
-    if (userLoading || userDataLoading) {
-      return;
-    }
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    if (userData?.role !== 'Administrator') {
+    // The auth check for a valid user is already handled by the root AppShell.
+    // This layout just needs to check for the admin role.
+    if (!loading && userData?.role !== 'Administrator') {
       router.push('/home'); // Or a dedicated 'unauthorized' page
     }
-  }, [user, userData, userLoading, userDataLoading, router]);
+  }, [userData, loading, router]);
 
-  if (userLoading || userDataLoading || !userData || userData.role !== 'Administrator') {
+  // Show a skeleton while loading or if the user is not an administrator
+  if (loading || !userData || userData.role !== 'Administrator') {
     return (
         <div className="p-8">
             <div className="max-w-7xl mx-auto space-y-4">

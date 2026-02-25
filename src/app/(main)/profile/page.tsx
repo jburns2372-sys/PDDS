@@ -1,12 +1,12 @@
 "use client";
 
-import { useUser } from "@/firebase";
+import { useUserData } from "@/context/user-data-context";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
-    const { user } = useUser();
+    const { user } = useUserData();
     const auth = useAuth();
     const router = useRouter();
 

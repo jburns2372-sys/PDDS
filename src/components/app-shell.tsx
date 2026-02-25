@@ -3,23 +3,37 @@
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DesktopSidebar } from "./desktop-sidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
-import { useEffect, useState } from "react";
+import { useEffect, useState, ReactNode } from "react";
 import { Skeleton } from "./ui/skeleton";
 import { useUser, useDoc } from "@/firebase";
+import { UserDataContext, UserDataContextType } from "@/context/user-data-context";
+import { useRouter } from "next/navigation";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const [isClient, setIsClient] = useState(false);
   const { user, loading: userLoading } = useUser();
   const { data: userData, loading: userDataLoading } = useDoc('users', user?.uid || '---');
+  const router = useRouter();
 
   const isAdmin = userData?.role === 'Administrator';
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  const loading = !isClient || userLoading || userDataLoading;
 
-  if (!isClient || userLoading || userDataLoading) {
+  useEffect(() => {
+      // This acts as a guard for all pages under the (main) layout
+      if (!loading && !user) {
+          router.push('/login');
+      }
+  }, [loading, user, router]);
+
+  // While loading or if no user is authenticated, show a full-page skeleton.
+  // This prevents rendering child components that might depend on user data before it's ready.
+  if (loading || !user) {
     return (
       <div className="flex h-screen w-full">
         { !isMobile && <div className="hidden md:block w-64 flex-shrink-0 border-r bg-card">
@@ -48,13 +62,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+  
+  // Once loaded, provide the data to all child components.
+  const contextValue: UserDataContextType = {
+      user,
+      userData,
+      loading
+  };
 
   return (
-    <div className="flex min-h-screen w-full">
-      {isMobile ? <MobileBottomNav isAdmin={isAdmin} /> : <DesktopSidebar isAdmin={isAdmin} />}
-      <main className="flex-1 bg-background pb-16 md:pb-0">
-        {children}
-      </main>
-    </div>
+    <UserDataContext.Provider value={contextValue}>
+        <div className="flex min-h-screen w-full">
+        {isMobile ? <MobileBottomNav isAdmin={isAdmin} /> : <DesktopSidebar isAdmin={isAdmin} />}
+        <main className="flex-1 bg-background pb-16 md:pb-0">
+            {children}
+        </main>
+        </div>
+    </UserDataContext.Provider>
   );
 }

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { mockStats, mockAnnouncement } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { AnnouncementCard } from "@/components/announcement-card";
-import { useUser, useDoc } from "@/firebase";
+import { useUserData } from "@/context/user-data-context";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,20 +47,18 @@ function StatCards() {
 }
 
 export default function HomePage() {
-  const { user, loading: userLoading } = useUser();
   const router = useRouter();
-  const { data: userData, loading: userDataLoading } = useDoc('users', user?.uid || '---');
+  const { userData, loading } = useUserData();
 
   useEffect(() => {
-    if (!userLoading && !user) {
-      router.push('/login');
-    }
-    if (!userDataLoading && userData?.passwordIsTemporary) {
+    if (!loading && userData?.passwordIsTemporary) {
       router.push('/change-password');
     }
-  }, [user, userLoading, userData, userDataLoading, router]);
-
-  if (userLoading || userDataLoading || !user) {
+  }, [userData, loading, router]);
+  
+  // To prevent a flash of content before redirecting, we can show a loader.
+  // The main loading is handled by AppShell, this is just for the redirect.
+  if (loading || userData?.passwordIsTemporary) {
     return (
       <>
         <div className="bg-card p-6 md:p-8 border-b">
