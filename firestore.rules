@@ -29,8 +29,8 @@ service cloud.firestore {
     // Rules for 'users' collection
     match /users/{userId} {
       allow read: if isSignedIn();
-      // Only an Admin can create a new user.
-      allow create: if isAdministrator();
+      // A user can create their own profile, or an Admin can create one for them.
+      allow create: if isAdministrator() || isOwner(userId);
       // An Admin can update any user, or a user can update their own profile.
       allow update: if isAdministrator() || isOwner(userId);
       // Only an Admin can delete users.
