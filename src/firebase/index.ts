@@ -2,10 +2,7 @@ import { initializeApp, getApps, getApp, FirebaseApp, deleteApp } from "firebase
 import { getAuth, Auth } from "firebase/auth";
 import {
   getFirestore,
-  Firestore,
-  initializeFirestore,
-  persistentLocalCache,
-  persistentSingleTabManager,
+  Firestore
 } from "firebase/firestore";
 import { firebaseConfig } from "./config";
 
@@ -21,27 +18,15 @@ import {
 } from "./provider";
 import { FirebaseClientProvider } from "./client-provider";
 
-let firestoreInstance: Firestore | null = null;
-
 function initializeFirebase() {
-  // Temporary debugging code to check environment variables
-  console.log("Firebase Config Check:", {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? "EXISTS" : "MISSING",
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? "EXISTS" : "MISSING",
-  });
-
-  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  
-  if (!firestoreInstance) {
-    firestoreInstance = initializeFirestore(app, {
-      localCache: persistentLocalCache({
-        tabManager: persistentSingleTabManager({})
-      })
-    });
+  // Aggressive Env Var Check
+  if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+    console.error("FIREBASE FATAL ERROR: NEXT_PUBLIC_FIREBASE_API_KEY is undefined. The .env.local file is not being read by Next.js.");
   }
   
-  const firestore = firestoreInstance;
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const firestore = getFirestore(app);
 
   return { app, auth, firestore };
 }
