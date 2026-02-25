@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useCollection, useFirestore, createTemporaryApp, deleteTemporaryApp } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { createUserDocument, updateUserDocument } from "@/firebase/firestore/firestore-service";
+import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { Shield } from "lucide-react";
 import type { UserProfile } from "@/context/user-data-context";
@@ -62,13 +62,26 @@ export default function AdminDashboard() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    const handleRevoke = (user: UserProfile) => {
-        // This would be a delete operation in a real application
-        toast({
-            variant: "destructive",
-            title: "Access Revoked (Simulated)",
-            description: `Access for ${user.fullName} has been revoked.`,
-        });
+    const handleRevoke = async (user: UserProfile) => {
+        if (!confirm(`Are you sure you want to revoke access for ${user.fullName}? This will permanently delete their user record, but their login will remain. This action cannot be undone.`)) {
+            return;
+        }
+        setLoading(true);
+        try {
+            await deleteUserDocument(firestore, user.id);
+            toast({
+                title: "User Record Deleted",
+                description: `Access for ${user.fullName} has been revoked.`,
+            });
+        } catch (error: any) {
+             toast({
+                variant: "destructive",
+                title: "Deletion Failed",
+                description: error.message,
+            });
+        } finally {
+            setLoading(false);
+        }
     }
 
     const handleFormSubmit = async (e: React.FormEvent) => {
@@ -246,8 +259,8 @@ export default function AdminDashboard() {
                                                 <TableCell>{user.level}</TableCell>
                                                 <TableCell>{user.locationName}</TableCell>
                                                 <TableCell className="text-right space-x-2">
-                                                    <Button variant="outline" size="sm" onClick={() => handleEditClick(user)}>Edit</Button>
-                                                    <Button variant="destructive" size="sm" onClick={() => handleRevoke(user)}>Revoke</Button>
+                                                    <Button variant="outline" size="sm" onClick={() => handleEditClick(user)} disabled={loading}>Edit</Button>
+                                                    <Button variant="destructive" size="sm" onClick={() => handleRevoke(user)} disabled={loading}>Revoke</Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
