@@ -7,6 +7,7 @@ import { AnnouncementCard } from "@/components/announcement-card";
 import { useUser, useDoc } from "@/firebase";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 function UserHeader({userData}: {userData: any}) {
@@ -59,8 +60,34 @@ export default function HomePage() {
     }
   }, [user, userLoading, userData, userDataLoading, router]);
 
-  if (userLoading || userDataLoading) {
-    return <div>Loading...</div>
+  if (userLoading || userDataLoading || !user) {
+    return (
+      <>
+        <div className="bg-card p-6 md:p-8 border-b">
+            <div className="max-w-7xl mx-auto">
+                <Skeleton className="h-10 w-1/3" />
+                <div className="mt-4 flex items-center gap-2">
+                      <Skeleton className="h-6 w-24" />
+                      <Skeleton className="h-6 w-24" />
+                </div>
+            </div>
+        </div>
+        <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
+            <section>
+                <h2 className="text-xl font-semibold mb-4 font-headline">Quick Stats</h2>
+                <div className="grid gap-4 md:grid-cols-3">
+                    <Skeleton className="h-32 w-full" />
+                    <Skeleton className="h-32 w-full" />
+                    <Skeleton className="h-32 w-full" />
+                </div>
+            </section>
+            <section>
+                <h2 className="text-xl font-semibold mb-4 font-headline">Recent Announcements</h2>
+                  <Skeleton className="h-64 w-full" />
+            </section>
+        </div>
+      </>
+    )
   }
 
   return (
