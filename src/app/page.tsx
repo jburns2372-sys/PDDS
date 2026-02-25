@@ -33,7 +33,7 @@ export default function OnboardingPage() {
         </div>
       );
   }
-  
+  console.log("Force Rebuild");
   // This will be shown briefly before redirect
   return null;
 }
