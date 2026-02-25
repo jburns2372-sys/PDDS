@@ -17,7 +17,7 @@ const navItems: {
   { href: "/directory", icon: Users, label: "Directory" },
   { href: "/agendas", icon: BookText, label: "Agendas" },
   { href: "/about", icon: Info, label: "About", isDialog: true },
-  { href: "/admin", icon: Shield, label: "Admin Panel", adminOnly: true },
+  { href: "/admin", icon: Shield, label: "Admin Panel" },
   { href: "/profile", icon: UserCircle, label: "Profile" },
 ];
 
@@ -28,7 +28,7 @@ export function MobileBottomNav({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-sm md:hidden">
-      <div style={{gridTemplateColumns: `repeat(${visibleNavItems.length}, 1fr)`}} className={`grid h-16 items-center justify-around`}>
+      <div style={{gridTemplateColumns: `repeat(${visibleNavİtems.length}, 1fr)`}} className={`grid h-16 items-center justify-around`}>
         {visibleNavItems.map((item) => {
           if (item.isDialog) {
             return (
