@@ -1,6 +1,12 @@
 import { initializeApp, getApps, getApp, FirebaseApp, deleteApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import {
+  getFirestore,
+  Firestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentSingleTabManager
+} from "firebase/firestore";
 import { firebaseConfig } from "./config";
 
 import { useUser } from "./auth/use-user";
@@ -15,17 +21,22 @@ import {
 } from "./provider";
 import { FirebaseClientProvider } from "./client-provider";
 
-function initializeFirebase() {
-  if (getApps().length) {
-    const app = getApp();
-    const auth = getAuth(app);
-    const firestore = getFirestore(app);
-    return { app, auth, firestore };
-  }
+let firestoreInstance: Firestore | null = null;
 
-  const app = initializeApp(firebaseConfig);
+function initializeFirebase() {
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const firestore = getFirestore(app);
+  
+  if (!firestoreInstance) {
+    firestoreInstance = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentSingleTabManager({})
+      })
+    });
+  }
+  
+  const firestore = firestoreInstance;
+
   return { app, auth, firestore };
 }
 
