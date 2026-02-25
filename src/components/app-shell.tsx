@@ -16,7 +16,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: userData, loading: userDataLoading } = useDoc('users', user?.uid || '---');
   const router = useRouter();
 
-  const isAdmin = userData?.role === 'Admin' || userData?.role === 'President';
+  // TEMPORARY: Grant admin privileges to the specified user for demonstration.
+  const isDemoAdmin = userData?.email === 'j.burns2372@gmail.com';
+  const isAdmin = isDemoAdmin || userData?.role === 'Admin' || userData?.role === 'President';
 
   useEffect(() => {
     setIsClient(true);
