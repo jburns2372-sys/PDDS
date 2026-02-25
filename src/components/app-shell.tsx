@@ -16,11 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: userData, loading: userDataLoading } = useDoc('users', user?.uid || '---');
   const router = useRouter();
 
-  // TEMPORARY: Grant admin privileges to the specified user for demonstration.
-  const isDemoAdmin = user?.email === 'j.burns2372@gmail.com';
-
-  const isAdmin = isDemoAdmin || userData?.role === 'Admin' || userData?.role === 'President';
-  const isSuperAdmin = isDemoAdmin || (userData?.level === 'National' && (userData.role === 'President' || userData.role === 'System Admin'));
+  const isAdmin = userData?.role === 'Admin' || userData?.role === 'President';
 
   useEffect(() => {
     setIsClient(true);
@@ -77,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <UserDataContext.Provider value={contextValue}>
         <div className="flex min-h-screen w-full">
-        {isMobile ? <MobileBottomNav isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} /> : <DesktopSidebar isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />}
+        {isMobile ? <MobileBottomNav isAdmin={isAdmin} /> : <DesktopSidebar isAdmin={isAdmin} />}
         <main className="flex-1 bg-background pb-16 md:pb-0">
             {children}
         </main>

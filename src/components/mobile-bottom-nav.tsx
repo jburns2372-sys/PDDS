@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, ShieldCheck } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AboutPddsDialog } from "./about-pdds-dialog";
 
@@ -11,7 +11,6 @@ const navItems: {
     icon: React.ElementType;
     label: string;
     adminOnly?: boolean;
-    superAdminOnly?: boolean;
     isDialog?: boolean;
 }[] = [
   { href: "/home", icon: Home, label: "Home" },
@@ -19,14 +18,13 @@ const navItems: {
   { href: "/agendas", icon: BookText, label: "Agendas" },
   { href: "/about", icon: Info, label: "About", isDialog: true },
   { href: "/admin", icon: Shield, label: "Admin Panel", adminOnly: true },
-  { href: "/superadmin", icon: ShieldCheck, label: "Superadmin", superAdminOnly: true },
   { href: "/profile", icon: UserCircle, label: "Profile" },
 ];
 
-export function MobileBottomNav({ isAdmin, isSuperAdmin }: { isAdmin: boolean, isSuperAdmin: boolean }) {
+export function MobileBottomNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
 
-  const visibleNavItems = navItems.filter(item => (!item.adminOnly || isAdmin) && (!item.superAdminOnly || isSuperAdmin));
+  const visibleNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-sm md:hidden">

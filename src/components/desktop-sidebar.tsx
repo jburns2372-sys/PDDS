@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, ShieldCheck } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -18,11 +18,7 @@ const adminNavItems = [
     { href: "/admin", icon: Shield, label: "Admin Panel" },
 ];
 
-const superAdminNavItems = [
-    { href: "/superadmin", icon: ShieldCheck, label: "Superadmin" },
-];
-
-export function DesktopSidebar({ isAdmin, isSuperAdmin }: { isAdmin: boolean, isSuperAdmin: boolean }) {
+export function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -63,22 +59,6 @@ export function DesktopSidebar({ isAdmin, isSuperAdmin }: { isAdmin: boolean, is
                 </button>
             </AboutPddsDialog>
             {isAdmin && adminNavItems.map((item) => {
-            const isActive = pathname.startsWith(item.href);
-            return (
-                <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground",
-                    isActive && "bg-primary/10 text-primary font-semibold"
-                )}
-                >
-                <item.icon className="h-5 w-5" />
-                <span>{item.label}</span>
-                </Link>
-            );
-            })}
-            {isSuperAdmin && superAdminNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
                 <Link
