@@ -23,7 +23,7 @@ function initializeFirebase() {
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(app);
   
-  // CRITICAL FIX: Bypass IndexedDB and force long-polling for Cloud IDEs
+  // CRITICAL WORKSTATION FIX: Bypass blocked WebSockets
   const firestore = initializeFirestore(app, {
     localCache: memoryLocalCache(),
     experimentalForceLongPolling: true
