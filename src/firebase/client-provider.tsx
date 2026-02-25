@@ -4,6 +4,7 @@ import { FirebaseApp } from "firebase/app";
 import { Auth } from "firebase/auth";
 import { Firestore } from "firebase/firestore";
 import { initializeFirebase, FirebaseProvider } from "@/firebase";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type FirebaseClientProviderProps = {
   children: ReactNode;
@@ -19,13 +20,32 @@ export function FirebaseClientProvider({
   } | null>(null);
 
   useEffect(() => {
-    const app = initializeFirebase();
-    setFirebase(app);
+    try {
+      const app = initializeFirebase();
+      setFirebase(app);
+    } catch (error) {
+      console.error("Firebase initialization failed:", error);
+      // You could set an error state here to show a more specific error message
+    }
   }, []);
 
   if (!firebase) {
-    // You can render a loading state here
-    return <div>Loading...</div>;
+    // Render a skeleton loader while Firebase is initializing
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex w-full max-w-md flex-col items-center gap-8">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-16 w-16" />
+            <Skeleton className="h-12 w-48" />
+          </div>
+          <div className="w-full space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full mt-6" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
