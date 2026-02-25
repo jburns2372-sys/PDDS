@@ -13,6 +13,16 @@ import { doc, getDoc } from "firebase/firestore";
 import { useAuth, useFirestore } from "@/firebase";
 import { Button } from "./ui/button";
 
+const navItems = [
+  { href: '/home', label: 'Home', icon: Home },
+  { href: '/directory', label: 'Directory', icon: Users },
+  { href: '/agendas', label: 'Agendas', icon: BookText },
+];
+
+const adminNavItems = [
+    { href: '/admin', label: 'Admin Panel', icon: Shield }
+];
+
 export function DesktopSidebar() {
   const pathname = usePathname();
   const auth = useAuth();
@@ -87,7 +97,7 @@ export function DesktopSidebar() {
                     <span>About PDDS</span>
                 </button>
             </AboutPddsDialog>
-            {!isLoadingRole && (userRole === 'President' || userRole === 'Admin') && adminNavItems.map((item) => {
+            {adminNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
                 <Link

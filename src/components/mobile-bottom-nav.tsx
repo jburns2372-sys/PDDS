@@ -14,14 +14,13 @@ const navItems: {
     href: string;
     icon: React.ElementType;
     label: string;
-    adminOnly?: boolean;
     isDialog?: boolean;
 }[] = [
   { href: "/home", icon: Home, label: "Home" },
   { href: "/directory", icon: Users, label: "Directory" },
   { href: "/agendas", icon: BookText, label: "Agendas" },
   { href: "/about", icon: Info, label: "About", isDialog: true },
-  { href: "/admin", icon: Shield, label: "Admin Panel", adminOnly: true },
+  { href: "/admin", icon: Shield, label: "Admin Panel" },
   { href: "/profile", icon: UserCircle, label: "Profile" },
 ];
 
@@ -61,13 +60,10 @@ export function MobileBottomNav() {
     return () => unsubscribe();
   }, [auth, firestore]);
 
-  const isAdmin = !isLoadingRole && (userRole === 'President' || userRole === 'Admin');
-  const visibleNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
-
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-sm md:hidden">
-      <div style={{gridTemplateColumns: `repeat(${visibleNavItems.length}, 1fr)`}} className={`grid h-16 items-center justify-around`}>
-        {visibleNavItems.map((item) => {
+      <div style={{gridTemplateColumns: `repeat(${navItems.length}, 1fr)`}} className={`grid h-16 items-center justify-around`}>
+        {navItems.map((item) => {
           if (item.isDialog) {
             return (
               <AboutPddsDialog key={item.href}>
