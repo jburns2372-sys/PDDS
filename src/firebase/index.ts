@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp, deleteApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { Firestore, initializeFirestore, memoryLocalCache } from "firebase/firestore";
 import { firebaseConfig } from "./config";
 
 import { useUser } from "./auth/use-user";
@@ -18,7 +18,12 @@ import { FirebaseClientProvider } from "./client-provider";
 function initializeFirebase() {
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const firestore = getFirestore(app);
+  
+  // CRITICAL WORKSTATION FIX: Bypass blocked WebSockets and IndexedDB
+  const firestore = initializeFirestore(app, {
+    localCache: memoryLocalCache(),
+    experimentalForceLongPolling: true
+  });
 
   return { app, auth, firestore };
 }
