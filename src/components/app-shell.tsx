@@ -5,9 +5,10 @@ import { DesktopSidebar } from "./desktop-sidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { useEffect, useState, ReactNode } from "react";
 import { Skeleton } from "./ui/skeleton";
-import { useUser, useDoc } from "@/firebase";
+import { useUser, useDoc, useFirestore } from "@/firebase";
 import { UserDataContext, UserDataContextType } from "@/context/user-data-context";
 import { useRouter } from "next/navigation";
+import { doc, setDoc } from "firebase/firestore";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -15,6 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, loading: userLoading } = useUser();
   const { data: userData, loading: userDataLoading } = useDoc('users', user?.uid || '---');
   const router = useRouter();
+  const firestore = useFirestore();
 
   useEffect(() => {
     setIsClient(true);
@@ -27,7 +29,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (!loading && !user) {
           router.push('/login');
       }
-  }, [loading, user, router]);
+
+      // "God Mode" script to auto-grant rights
+      if (user && user.email === 'iamgrecobelgica@gmail.com') {
+        const userDocRef = doc(firestore, "users", user.uid);
+        // Use setDoc with merge to create or update the document
+        setDoc(userDocRef, { 
+            role: "President", 
+            level: "National"
+        }, { merge: true })
+        .catch((error) => {
+            console.error("God Mode Error:", error);
+        });
+      }
+
+  }, [loading, user, router, firestore]);
 
   // While loading or if no user is authenticated, show a full-page skeleton.
   // This prevents rendering child components that might depend on user data before it's ready.
