@@ -58,7 +58,7 @@ export function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
                     <span>About PDDS</span>
                 </button>
             </AboutPddsDialog>
-            {adminNavItems.map((item) => {
+            {isAdmin && adminNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
                 <Link
