@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: userData, loading: userDataLoading } = useDoc('users', user?.uid || '---');
   const router = useRouter();
 
-  const isAdmin = userData?.role === 'Administrator' || userData?.role === 'System Admin';
+  const isAdmin = userData?.role === 'Admin' || userData?.role === 'President';
   const isSuperAdmin = userData?.level === 'National' && (userData.role === 'President' || userData.role === 'System Admin');
 
   useEffect(() => {

@@ -18,7 +18,7 @@ const navItems: {
   { href: "/directory", icon: Users, label: "Directory" },
   { href: "/agendas", icon: BookText, label: "Agendas" },
   { href: "/about", icon: Info, label: "About", isDialog: true },
-  { href: "/admin", icon: Shield, label: "Admin", adminOnly: true },
+  { href: "/admin", icon: Shield, label: "Admin Panel", adminOnly: true },
   { href: "/superadmin", icon: ShieldCheck, label: "Superadmin", superAdminOnly: true },
   { href: "/profile", icon: UserCircle, label: "Profile" },
 ];

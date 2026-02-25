@@ -15,7 +15,7 @@ const navItems = [
 ];
 
 const adminNavItems = [
-    { href: "/admin", icon: Shield, label: "Admin" },
+    { href: "/admin", icon: Shield, label: "Admin Panel" },
 ];
 
 const superAdminNavItems = [

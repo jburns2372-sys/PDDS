@@ -15,9 +15,9 @@ import { Skeleton } from "./ui/skeleton";
 import { Card } from "./ui/card";
 
 const roles = [
-  "System Admin", "Administrator", "Chairman", "Vice Chairman", "President", 
+  "System Admin", "Admin", "Chairman", "Vice Chairman", "President", 
   "Vice President", "Secretary General", "Treasurer", "Auditor", 
-  "VP Ways & Means", "VP Media Comms", "VP Soc Med Comms", "VP Events", 
+  "VP Ways & Means", "VP Media Comms", "VP Soc Med Comms", "VP Events & Programs", 
   "VP Membership", "VP Legal Affairs", "Member"
 ];
 const levels = ["National", "Regional", "Provincial", "City/Municipal", "Barangay"];

@@ -23,7 +23,7 @@
           "description": "The user's role in the party.",
           "enum": [
             "System Admin",
-            "Administrator",
+            "Admin",
             "Chairman",
             "Vice Chairman",
             "President",
@@ -34,7 +34,7 @@
             "VP Ways & Means",
             "VP Media Comms",
             "VP Soc Med Comms",
-            "VP Events",
+            "VP Events & Programs",
             "VP Membership",
             "VP Legal Affairs",
             "Member"
