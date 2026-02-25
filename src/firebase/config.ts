@@ -1,9 +1,10 @@
 // Replace this with your actual Firebase project configuration
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCLfVrwYOKRRhNam0PtRPDwITuw5WjkZwI",
+  authDomain: "pdds-party.firebaseapp.com",
+  projectId: "pdds-party",
+  storageBucket: "pdds-party.appspot.com",
+  messagingSenderId: "291422728961",
+  appId: "1:291422728961:web:fba714f20306fe6985a100",
+  measurementId: "G-LV729BRW3D"
 };
