@@ -10,10 +10,13 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userData, loading } = useUserData();
+  const { user, userData, loading } = useUserData();
   const router = useRouter();
 
-  const isAuthorized = userData?.role === 'Admin' || userData?.role === 'President';
+  // TEMPORARY: Grant admin privileges to the specified user for demonstration.
+  const isDemoAdmin = user?.email === 'j.burns2372@gmail.com';
+
+  const isAuthorized = isDemoAdmin || userData?.role === 'Admin' || userData?.role === 'President';
 
   useEffect(() => {
     // The auth check for a valid user is already handled by the root AppShell.

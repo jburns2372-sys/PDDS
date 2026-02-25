@@ -16,8 +16,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: userData, loading: userDataLoading } = useDoc('users', user?.uid || '---');
   const router = useRouter();
 
-  const isAdmin = userData?.role === 'Admin' || userData?.role === 'President';
-  const isSuperAdmin = userData?.level === 'National' && (userData.role === 'President' || userData.role === 'System Admin');
+  // TEMPORARY: Grant admin privileges to the specified user for demonstration.
+  const isDemoAdmin = user?.email === 'j.burns2372@gmail.com';
+
+  const isAdmin = isDemoAdmin || userData?.role === 'Admin' || userData?.role === 'President';
+  const isSuperAdmin = isDemoAdmin || (userData?.level === 'National' && (userData.role === 'President' || userData.role === 'System Admin'));
 
   useEffect(() => {
     setIsClient(true);
@@ -58,8 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                  <div className="pt-8">
                     <Skeleton className="h-64 w-full" />
                 </div>
-            </div>
-        </main>
+            </main>
       </div>
     );
   }

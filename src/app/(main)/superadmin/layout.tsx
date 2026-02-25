@@ -10,10 +10,13 @@ export default function SuperAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userData, loading } = useUserData();
+  const { user, userData, loading } = useUserData();
   const router = useRouter();
 
-  const isSuperAdmin = userData?.level === 'National' && (userData.role === 'President' || userData.role === 'System Admin');
+  // TEMPORARY: Grant admin privileges to the specified user for demonstration.
+  const isDemoAdmin = user?.email === 'j.burns2372@gmail.com';
+
+  const isSuperAdmin = isDemoAdmin || (userData?.level === 'National' && (userData.role === 'President' || userData.role === 'System Admin'));
 
   useEffect(() => {
     if (!loading && !isSuperAdmin) {
