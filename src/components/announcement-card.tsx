@@ -1,7 +1,11 @@
+"use client";
+
 import { getAnnouncementsSummary } from "@/ai/flows/announcements-summary-flow";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Skeleton } from "./ui/skeleton";
 
 type AnnouncementCardProps = {
   title: string;
@@ -9,8 +13,25 @@ type AnnouncementCardProps = {
   fullText: string;
 };
 
-export async function AnnouncementCard({ title, date, fullText }: AnnouncementCardProps) {
-  const { summary } = await getAnnouncementsSummary({ text: fullText });
+export function AnnouncementCard({ title, date, fullText }: AnnouncementCardProps) {
+  const [summary, setSummary] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchSummary() {
+      try {
+        setLoading(true);
+        const result = await getAnnouncementsSummary({ text: fullText });
+        setSummary(result.summary);
+      } catch (error) {
+        console.error("Failed to get announcement summary:", error);
+        setSummary("Could not load summary at this time.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchSummary();
+  }, [fullText]);
 
   return (
     <Card className="shadow-sm">
@@ -24,7 +45,15 @@ export async function AnnouncementCard({ title, date, fullText }: AnnouncementCa
         </div>
       </CardHeader>
       <CardContent>
-        <p className="mb-4 text-sm text-foreground/80">{summary}</p>
+        {loading ? (
+            <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+            </div>
+        ) : (
+            <p className="mb-4 text-sm text-foreground/80">{summary}</p>
+        )}
         <Accordion type="single" collapsible>
           <AccordionItem value="item-1">
             <AccordionTrigger className="text-sm text-primary hover:no-underline">
