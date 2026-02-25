@@ -24,6 +24,12 @@ import { FirebaseClientProvider } from "./client-provider";
 let firestoreInstance: Firestore | null = null;
 
 function initializeFirebase() {
+  // Temporary debugging code to check environment variables
+  console.log("Firebase Config Check:", {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? "EXISTS" : "MISSING",
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? "EXISTS" : "MISSING",
+  });
+
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(app);
   
