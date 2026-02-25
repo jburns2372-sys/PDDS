@@ -16,7 +16,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: userData, loading: userDataLoading } = useDoc('users', user?.uid || '---');
   const router = useRouter();
 
-  const isAdmin = userData?.role === 'Administrator';
+  const isAdmin = userData?.role === 'Administrator' || userData?.role === 'System Admin';
+  const isSuperAdmin = userData?.level === 'National' && (userData.role === 'President' || userData.role === 'System Admin');
 
   useEffect(() => {
     setIsClient(true);
@@ -73,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <UserDataContext.Provider value={contextValue}>
         <div className="flex min-h-screen w-full">
-        {isMobile ? <MobileBottomNav isAdmin={isAdmin} /> : <DesktopSidebar isAdmin={isAdmin} />}
+        {isMobile ? <MobileBottomNav isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} /> : <DesktopSidebar isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />}
         <main className="flex-1 bg-background pb-16 md:pb-0">
             {children}
         </main>

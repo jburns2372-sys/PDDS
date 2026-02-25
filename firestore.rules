@@ -17,7 +17,8 @@ service cloud.firestore {
     }
     
     function isAdministrator() {
-      return isSignedIn() && getUserData(request.auth.uid).role == 'Administrator';
+      let userRole = getUserData(request.auth.uid).role;
+      return isSignedIn() && (userRole == 'Administrator' || userRole == 'System Admin');
     }
 
     function isNationalAdmin() {

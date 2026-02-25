@@ -22,6 +22,7 @@
           "type": "string",
           "description": "The user's role in the party.",
           "enum": [
+            "System Admin",
             "Administrator",
             "Chairman",
             "Vice Chairman",
