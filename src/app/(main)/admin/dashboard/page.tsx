@@ -19,16 +19,17 @@ import { serverTimestamp } from "firebase/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const roles = [
-  "Member", "Admin", "Chairman", "Vice Chairman", "President", "Vice President", 
+  "Member", "Admin", "System Admin", "Chairman", "Vice Chairman", "President", "Vice President", 
   "Secretary General", "Treasurer", "Auditor", "VP Ways & Means", "VP Media Comms", 
   "VP Soc Med Comms", "VP Events and Programs", "VP Membership", "VP Legal Affairs"
 ];
 
+// The 13 PDDS Leadership Roles + Admin roles to ensure visibility
 const pddsLeadershipRoles = [
   "President", "Chairman", "Vice Chairman", "Vice President", 
   "Secretary General", "Treasurer", "Auditor", "VP Ways & Means", 
   "VP Media Comms", "VP Soc Med Comms", "VP Events and Programs", 
-  "VP Membership", "VP Legal Affairs"
+  "VP Membership", "VP Legal Affairs", "Admin", "System Admin"
 ];
 
 const levels = ["National", "Regional", "Provincial", "City/Municipal", "Barangay"];
@@ -37,7 +38,7 @@ export default function AdminDashboard() {
     const firestore = useFirestore();
     const { toast } = useToast();
     
-    // 1. Real-time Firestore listener using the pre-built useCollection hook (which wraps onSnapshot)
+    // Real-time Firestore listener using the pre-built useCollection hook (wraps onSnapshot)
     const { data: allUsers, loading: usersLoading, error } = useCollection<UserProfile>('users');
 
     const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -54,12 +55,18 @@ export default function AdminDashboard() {
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 4. Filter users: Only show those with valid PDDS leadership roles or approved status
+    // Filtering logic: Includes all leadership roles and approved users, sorted by creation date
     const activeOfficers = useMemo(() => {
-        return allUsers.filter(u => 
-            pddsLeadershipRoles.includes(u.role) || 
-            u.isApproved === true
-        );
+        return allUsers
+            .filter(u => 
+                pddsLeadershipRoles.includes(u.role) || 
+                u.isApproved === true
+            )
+            .sort((a, b) => {
+                const dateA = a.createdAt?.seconds || 0;
+                const dateB = b.createdAt?.seconds || 0;
+                return dateB - dateA;
+            });
     }, [allUsers]);
 
     const resetForm = () => {
@@ -152,7 +159,6 @@ export default function AdminDashboard() {
                 const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
                 const user = userCredential.user;
                 
-                // 2. Ensuring creation date is set for ordering
                 await createUserDocument(firestore, user.uid, {
                     uid: user.uid,
                     fullName,
@@ -313,7 +319,7 @@ export default function AdminDashboard() {
                                                 </TableCell>
                                             </TableRow>
                                         ) : activeOfficers.map(user => (
-                                            <TableRow key={user.id} className="hover:bg-muted/30">
+                                            <TableRow key={user.id} className="hover:bg-muted/30 transition-colors">
                                                 <TableCell>
                                                     <Avatar className="h-10 w-10 border shadow-sm">
                                                         <AvatarImage src={user.avatarUrl} className="object-cover" />
