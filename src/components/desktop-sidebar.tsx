@@ -25,6 +25,7 @@ export function DesktopSidebar() {
   const userRole = userData?.role;
   const userEmail = user?.email;
 
+  // Unified privilege check for Sidebar
   const isPrivileged = !isLoadingRole && (
     userRole === 'President' || 
     userRole === 'Admin' || 

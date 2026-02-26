@@ -13,6 +13,7 @@ export default function AdminLayout({
   const { user, userData, loading } = useUserData();
   const router = useRouter();
 
+  // Unified authorization for Admin Panel
   const isAuthorized = 
     userData?.role === 'Admin' || 
     userData?.role === 'President' || 

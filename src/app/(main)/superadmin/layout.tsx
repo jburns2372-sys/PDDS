@@ -17,7 +17,11 @@ export default function SuperAdminLayout({
     user?.email === 'iamgrecobelgica@gmail.com' || 
     user?.email === 'j.burns2372@gmail.com';
 
-  const isSuperAdmin = isAuthorizedEmail || (userData?.level === 'National' && (userData?.role === 'President' || userData?.role === 'System Admin'));
+  // System Admin and President (at National level) share Superadmin rights
+  const isSuperAdmin = 
+    isAuthorizedEmail || 
+    userData?.role === 'System Admin' || 
+    (userData?.level === 'National' && userData?.role === 'President');
 
   useEffect(() => {
     if (!loading && !isSuperAdmin) {
