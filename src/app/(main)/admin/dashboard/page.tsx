@@ -13,7 +13,7 @@ import { useCollection, useFirestore, createTemporaryApp, deleteTemporaryApp } f
 import { useToast } from "@/hooks/use-toast";
 import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { Shield, UserPlus, Users, Info, Camera, X, RefreshCw } from "lucide-react";
+import { Shield, UserPlus, Users, Info, Camera, X, RefreshCw, Pencil, Trash2 } from "lucide-react";
 import type { UserProfile } from "@/context/user-data-context";
 import { serverTimestamp } from "firebase/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -164,8 +164,8 @@ export default function AdminDashboard() {
                         <Users className="h-4 w-4 text-primary" />
                         <span className="font-semibold">{users?.length || 0} Records</span>
                     </Badge>
-                    <Button variant="outline" size="icon" onClick={() => window.location.reload()} title="Refresh Data">
-                        <RefreshCw className="h-4 w-4" />
+                    <Button variant="outline" size="icon" onClick={() => window.location.reload()} title="Refresh Data" className="border-primary/20 hover:bg-primary/5">
+                        <RefreshCw className="h-4 w-4 text-primary" />
                     </Button>
                 </div>
             </div>
@@ -237,7 +237,7 @@ export default function AdminDashboard() {
                                 </div>
                             </CardContent>
                             <CardFooter className="flex flex-col gap-2">
-                                <Button type="submit" className="w-full" disabled={loading}>
+                                <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
                                     {loading ? 'Processing...' : isEditMode ? 'Update Officer' : 'Create Registry Record'}
                                 </Button>
                                 {isEditMode && <Button variant="ghost" onClick={resetForm} className="w-full" disabled={loading}>Cancel</Button>}
@@ -305,8 +305,12 @@ export default function AdminDashboard() {
                                                     <div className="text-[10px] text-muted-foreground">{user.locationName}</div>
                                                 </TableCell>
                                                 <TableCell className="text-right space-x-2">
-                                                    <Button variant="outline" size="sm" onClick={() => handleEditClick(user)} disabled={loading}>Edit</Button>
-                                                    <Button variant="destructive" size="sm" onClick={() => handleRevoke(user)} disabled={loading}>Revoke</Button>
+                                                    <Button variant="outline" size="sm" onClick={() => handleEditClick(user)} disabled={loading} className="h-8 w-8 p-0" title="Edit">
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="destructive" size="sm" onClick={() => handleRevoke(user)} disabled={loading} className="h-8 w-8 p-0" title="Revoke">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
