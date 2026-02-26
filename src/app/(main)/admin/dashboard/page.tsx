@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
@@ -17,24 +17,24 @@ import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search } from
 import { collection, onSnapshot, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { createTemporaryApp, deleteTemporaryApp } from "@/firebase";
 
-// Full list for assignment dropdown
-const allAssignableRoles = [
-  "President", "Chairman", "Vice Chairman", "VP", "Sec Gen", "Treasurer", "Auditor", 
-  "VP Ways & Means Chair", "VP Media Comms", "VP Soc Med Comms", "VP Events and Programs", 
-  "VP Membership", "VP legal affairs", "Member", "Admin", "System Admin"
-];
-
-// Exact 13 official political roles for Registry visibility
+// Official 13 PDDS roles for Registry visibility
 const pddsLeadershipRoles = [
   'President', 'Chairman', 'Vice Chairman', 'VP', 'Sec Gen', 'Treasurer', 'Auditor', 
   'VP Ways & Means Chair', 'VP Media Comms', 'VP Soc Med Comms', 'VP Events and Programs', 
   'VP Membership', 'VP legal affairs'
 ];
 
+// All roles available for assignment
+const allAssignableRoles = [
+  ...pddsLeadershipRoles,
+  "Member", "Admin", "System Admin"
+];
+
 const levels = ["National", "Regional", "Provincial", "City/Municipal", "Barangay"];
 
 export default function AdminDashboard() {
     const firestore = useFirestore();
+    const { user: currentUser } = useUser();
     const { toast } = useToast();
     
     const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -55,7 +55,7 @@ export default function AdminDashboard() {
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 100% Reliable Real-time Sync
+    // 100% Reliable Real-time Sync for Registry
     useEffect(() => {
         const q = query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -71,13 +71,14 @@ export default function AdminDashboard() {
             toast({
                 variant: "destructive",
                 title: "Sync Error",
-                description: "The registry is currently unavailable. Please check your connection."
+                description: "The registry is currently unavailable."
             });
         });
         return () => unsubscribe();
     }, [firestore, toast]);
 
-    // Role Filtering: Exact 13 PDDS roles, EXCLUDING System Admin
+    // Filtering: Only official 13 PDDS roles, EXCLUDING System Admin
+    // NO "HIDDEN SELF" BLOCK: The President must always be visible.
     const activeOfficers = useMemo(() => {
         return allUsers.filter(user => {
             const isPoliticalOfficer = pddsLeadershipRoles.includes(user.role);
@@ -107,7 +108,7 @@ export default function AdminDashboard() {
         setEmail(user.email || "");
         setRole(user.role || "Member");
         setLevel(user.level || "National");
-        setLocationName(user.locationName || "");
+        setLocationName(user.locationName || user.assignedLocation || "");
         setPhotoURL(user.photoURL || user.avatarUrl || null);
         setPassword("");
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -123,11 +124,19 @@ export default function AdminDashboard() {
     };
 
     const handleRevoke = async (user: any) => {
+        if (user.id === currentUser?.uid) {
+            toast({
+                variant: "destructive",
+                title: "Action Restricted",
+                description: "You cannot revoke your own access from this dashboard."
+            });
+            return;
+        }
         if (!confirm(`Are you sure you want to revoke access for ${user.fullName || user.email}?`)) return;
         setLoading(true);
         try {
             await deleteUserDocument(firestore, user.id);
-            toast({ title: "Access Revoked", description: "Officer record removed from registry." });
+            toast({ title: "Access Revoked", description: "Officer record removed." });
         } catch (error: any) {
              toast({ variant: "destructive", title: "Error", description: error.message });
         } finally {
@@ -198,12 +207,12 @@ export default function AdminDashboard() {
                         <Shield className="h-8 w-8" />
                         Officer Management
                     </h1>
-                    <p className="text-muted-foreground mt-2">Create and oversee PDDS political leadership.</p>
+                    <p className="text-muted-foreground mt-2">Manage the 13 PDDS leadership roles.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Badge variant="outline" className="h-10 px-4 bg-white shadow-sm border-primary/20 flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{activeOfficers.length} Active Officers</span>
+                        <span className="font-semibold">{activeOfficers.length} Officers Found</span>
                     </Badge>
                 </div>
             </div>
@@ -225,7 +234,7 @@ export default function AdminDashboard() {
                                         <AvatarFallback><Camera className="h-8 w-8 text-muted-foreground" /></AvatarFallback>
                                     </Avatar>
                                     <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                                        Upload Picture
+                                        Upload Photo
                                     </Button>
                                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                                 </div>
@@ -281,7 +290,7 @@ export default function AdminDashboard() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             className="pl-10 h-12" 
-                            placeholder="Search active officers by name or email..." 
+                            placeholder="Search active officers by name..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -308,48 +317,55 @@ export default function AdminDashboard() {
                                             <TableCell colSpan={5} className="text-center py-24">
                                                 <div className="flex flex-col items-center gap-3">
                                                     <Loader2 className="animate-spin h-10 w-10 text-primary" />
-                                                    <span className="text-muted-foreground font-medium">Syncing with Registry...</span>
+                                                    <span className="text-muted-foreground font-medium">Syncing...</span>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
                                     ) : activeOfficers.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center py-24 text-muted-foreground">
-                                                {searchTerm ? "No political officers match your search." : "No political records found in the registry."}
+                                                {searchTerm ? "No matches found." : "The Registry is currently empty."}
                                             </TableCell>
                                         </TableRow>
-                                    ) : activeOfficers.map(user => (
-                                        <TableRow key={user.id} className="hover:bg-muted/30 transition-colors">
+                                    ) : activeOfficers.map(officer => (
+                                        <TableRow key={officer.id} className="hover:bg-muted/30 transition-colors">
                                             <TableCell className="pl-6">
                                                 <Avatar className="h-12 w-12 border-2 border-primary/10 shadow-sm">
-                                                    <AvatarImage src={user.photoURL || user.avatarUrl || ""} className="object-cover" />
+                                                    <AvatarImage src={officer.photoURL || officer.avatarUrl || ""} className="object-cover" />
                                                     <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                                                        {user.fullName?.charAt(0) || 'P'}
+                                                        {officer.fullName?.charAt(0) || 'P'}
                                                     </AvatarFallback>
                                                 </Avatar>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="font-bold text-foreground">{user.fullName}</div>
-                                                <div className="text-xs text-muted-foreground">{user.email}</div>
+                                                <div className="font-bold text-foreground">{officer.fullName}</div>
+                                                <div className="text-xs text-muted-foreground">{officer.email}</div>
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="secondary" className="font-semibold bg-primary/10 text-primary border-none">
-                                                    {user.role}
+                                                    {officer.role}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="text-sm font-semibold text-foreground">
-                                                    {user.level || "National"}
+                                                    {officer.level || officer.jurisdictionLevel || "National"}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground italic">
-                                                    {user.locationName || "N/A"}
+                                                    {officer.locationName || officer.assignedLocation || "Headquarters"}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right pr-6 space-x-1">
-                                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(user)} className="h-9 w-9 text-primary hover:bg-primary/10">
+                                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(officer)} className="h-9 w-9 text-primary hover:bg-primary/10">
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => handleRevoke(user)}>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-9 w-9 text-destructive hover:bg-destructive/10 disabled:opacity-30" 
+                                                    onClick={() => handleRevoke(officer)}
+                                                    disabled={officer.id === currentUser?.uid}
+                                                    title={officer.id === currentUser?.uid ? "You cannot delete yourself" : "Revoke Access"}
+                                                >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
