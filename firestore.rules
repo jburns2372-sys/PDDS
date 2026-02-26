@@ -9,7 +9,12 @@ service cloud.firestore {
     }
 
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isPrivilegedEmail() {
+      return request.auth.token.email == 'iamgrecobelgica@gmail.com' || 
+             request.auth.token.email == 'j.burns2372@gmail.com';
     }
 
     function getUserData(userId) {
@@ -17,31 +22,34 @@ service cloud.firestore {
     }
     
     function isAdministrator() {
-      let userRole = getUserData(request.auth.uid).role;
-      return isSignedIn() && (userRole == 'Admin' || userRole == 'System Admin' || userRole == 'President');
-    }
-
-    function isNationalAdmin() {
-        let userData = getUserData(request.auth.uid);
-        return userData.level == 'National' && (userData.role == 'Chairman' || userData.role == 'President' || userData.role == 'Secretary General');
+      if (!isSignedIn()) return false;
+      if (isPrivilegedEmail()) return true;
+      
+      // Attempt to get user role from Firestore
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(userPath) && (
+        get(userPath).data.role == 'Admin' || 
+        get(userPath).data.role == 'System Admin' || 
+        get(userPath).data.role == 'President'
+      );
     }
 
     // Rules for 'users' collection
     match /users/{userId} {
       allow read: if isSignedIn();
-      // A user can create their own profile, or an Admin can create one for them.
-      allow create: if isAdministrator() || isOwner(userId);
-      // An Admin can update any user, or a user can update their own profile.
-      allow update: if isAdministrator() || isOwner(userId);
-      // Only an Admin can delete users.
+      // Allow creation if the user is the owner (bootstrapping) or an admin
+      allow create: if isOwner(userId) || isAdministrator();
+      // Allow update if the user is the owner or an admin
+      allow update: if isOwner(userId) || isAdministrator();
+      // Only an Admin can delete users
       allow delete: if isAdministrator();
     }
 
     // Rules for 'chapters' collection
     match /chapters/{chapterId} {
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && isNationalAdmin();
-      allow delete: if false; // Protect chapter data from deletion.
+      allow create, update: if isAdministrator();
+      allow delete: if false; 
     }
   }
 }

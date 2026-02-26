@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -39,13 +38,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             const docRef = doc(firestore, "users", user.uid);
             const docSnap = await getDoc(docRef);
 
-            const isPresident = user.email === 'iamgrecobelgica@gmail.com';
+            // Recognized high-level emails
+            const isPresident = user.email === 'iamgrecobelgica@gmail.com' || user.email === 'j.burns2372@gmail.com';
 
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setUserData({ id: docSnap.id, ...data });
                 
-                // Ensure President email always has correct role and permissions
+                // Ensure privileged emails always have correct roles/permissions in the background
                 if (isPresident && (data.role !== 'President' || !data.kartilyaAgreed)) {
                     const update = { 
                         role: 'President', 
@@ -53,16 +53,17 @@ export function AppShell({ children }: { children: ReactNode }) {
                         kartilyaAgreed: true 
                     };
                     await setDoc(docRef, update, { merge: true });
-                    setUserData({ id: docSnap.id, ...data, ...update });
+                    setUserData(prev => prev ? { ...prev, ...update } : null);
                 }
             } else {
+                // Creation flow for first-time login
                 const newUserProfile = {
                     uid: user.uid,
                     email: user.email || '',
-                    fullName: user.displayName || user.email?.split('@')[0] || 'New Member',
+                    fullName: user.displayName || user.email?.split('@')[0] || 'Member',
                     role: isPresident ? 'President' : 'Member',
                     level: 'National',
-                    kartilyaAgreed: isPresident, // President is pre-approved
+                    kartilyaAgreed: isPresident, 
                     passwordIsTemporary: false,
                     locationName: 'National Headquarters',
                     createdAt: serverTimestamp(),
@@ -72,11 +73,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                 setUserData({ id: user.uid, ...newUserProfile });
             }
         } catch (error) {
-            console.error("Error fetching/creating user profile:", error);
+            console.error("Critical error in AppShell profile sync:", error);
+            // Fallback for UI responsiveness
             setUserData({
                 uid: user.uid,
                 email: user.email || '',
-                fullName: user.displayName || 'Member',
+                fullName: 'Authenticated User',
                 role: 'Member',
                 level: 'National',
                 isFallback: true
