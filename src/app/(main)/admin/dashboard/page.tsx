@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useCollection, useFirestore, createTemporaryApp, deleteTemporaryApp } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
@@ -217,7 +218,7 @@ export default function AdminDashboard() {
                                     )}
                                     <div className="space-y-2">
                                         <Label htmlFor="role">Role</Label>
-                                        <Select onValueChange={setRole} value={role} disabled={loading}>
+                                        < Select onValueChange={setRole} value={role} disabled={loading}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>{roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                                         </Select>
