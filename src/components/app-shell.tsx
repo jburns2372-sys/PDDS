@@ -36,24 +36,29 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         setUserDataLoading(true);
         try {
-            // Directly attempt to fetch by UID - this is the most efficient path
             const docRef = doc(firestore, "users", user.uid);
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
-                setUserData({ id: docSnap.id, ...docSnap.data() });
+                const data = docSnap.data();
+                setUserData({ id: docSnap.id, ...data });
+                
+                // Extra check: Ensure President email always has correct role if data is stale
+                if (user.email === 'iamgrecobelgica@gmail.com' && data.role !== 'President') {
+                    await setDoc(docRef, { role: 'President' }, { merge: true });
+                    setUserData({ id: docSnap.id, ...data, role: 'President' });
+                }
             } else {
-                // Not found: Create new profile immediately without searching by email
-                // to save a database round-trip.
+                const isPresident = user.email === 'iamgrecobelgica@gmail.com';
                 const newUserProfile = {
                     uid: user.uid,
-                    email: user.email,
-                    fullName: user.displayName || user.email || '',
-                    role: user.email === 'iamgrecobelgica@gmail.com' ? 'President' : 'Member',
+                    email: user.email || '',
+                    fullName: user.displayName || user.email?.split('@')[0] || 'New Member',
+                    role: isPresident ? 'President' : 'Member',
                     level: 'National',
-                    kartilyaAgreed: false,
+                    kartilyaAgreed: isPresident, // President is pre-approved
                     passwordIsTemporary: false,
-                    locationName: '',
+                    locationName: 'National Headquarters',
                     createdAt: serverTimestamp(),
                 };
 
@@ -61,11 +66,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 setUserData({ id: user.uid, ...newUserProfile });
             }
         } catch (error) {
-            console.warn("Firestore fetch error, using fallback state.", error);
+            console.error("Error fetching/creating user profile:", error);
             setUserData({
                 uid: user.uid,
-                email: user.email,
-                fullName: user.displayName || user.email || '',
+                email: user.email || '',
+                fullName: user.displayName || 'Member',
                 role: 'Member',
                 level: 'National',
                 isFallback: true

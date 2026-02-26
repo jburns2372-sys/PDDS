@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -11,7 +12,7 @@ import { useCollection, useFirestore, createTemporaryApp, deleteTemporaryApp } f
 import { useToast } from "@/hooks/use-toast";
 import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { Shield } from "lucide-react";
+import { Shield, UserPlus, Users } from "lucide-react";
 import type { UserProfile } from "@/context/user-data-context";
 import { serverTimestamp } from "firebase/firestore";
 
@@ -33,7 +34,7 @@ export default function AdminDashboard() {
     
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
-    const [password, setPassword] = useState(""); // Only for new users
+    const [password, setPassword] = useState("");
     const [role, setRole] = useState("Member");
     const [level, setLevel] = useState("National");
     const [locationName, setLocationName] = useState("");
@@ -53,17 +54,17 @@ export default function AdminDashboard() {
     const handleEditClick = (user: UserProfile) => {
         setSelectedUser(user);
         setIsEditMode(true);
-        setFullName(user.fullName);
-        setEmail(user.email);
-        setRole(user.role);
-        setLevel(user.level);
+        setFullName(user.fullName || "");
+        setEmail(user.email || "");
+        setRole(user.role || "Member");
+        setLevel(user.level || "National");
         setLocationName(user.locationName || "");
-        setPassword(""); // Clear password field in edit mode
+        setPassword("");
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     const handleRevoke = async (user: UserProfile) => {
-        if (!confirm(`Are you sure you want to revoke access for ${user.fullName}? This will permanently delete their user record, but their login will remain. This action cannot be undone.`)) {
+        if (!confirm(`Are you sure you want to revoke access for ${user.fullName}? This will permanently delete their user record. This action cannot be undone.`)) {
             return;
         }
         setLoading(true);
@@ -89,7 +90,6 @@ export default function AdminDashboard() {
         setLoading(true);
 
         if (isEditMode && selectedUser) {
-            // Update existing user
             try {
                 await updateUserDocument(firestore, selectedUser.id, {
                     fullName,
@@ -113,7 +113,6 @@ export default function AdminDashboard() {
                 setLoading(false);
             }
         } else {
-            // Create new user
             if (password.length < 6) {
                 toast({
                     variant: "destructive",
@@ -138,7 +137,7 @@ export default function AdminDashboard() {
                     role,
                     level,
                     locationName,
-                    kartilyaAgreed: true, // Admins onboard users
+                    kartilyaAgreed: true,
                     passwordIsTemporary: true,
                     createdAt: serverTimestamp(),
                 });
@@ -166,19 +165,21 @@ export default function AdminDashboard() {
         <div className="p-6 bg-background min-h-screen">
             <div className="mb-8 border-b-2 border-destructive pb-4">
                 <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-                    <Shield className="h-8 w-8" />
+                    <Shield className="h-8 w-8 text-primary" />
                     Admin Panel
                 </h1>
                 <p className="text-muted-foreground mt-2">Manage PDDS Officers and their roles and jurisdictions.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Form Section */}
                 <div className="lg:col-span-1">
                     <Card className="shadow-lg border-t-4 border-accent">
                         <form onSubmit={handleFormSubmit}>
                             <CardHeader>
-                                <CardTitle className="text-xl font-headline">{isEditMode ? `Editing ${selectedUser?.fullName}` : 'Assign Officer Role'}</CardTitle>
+                                <CardTitle className="text-xl font-headline flex items-center gap-2">
+                                    <UserPlus className="h-5 w-5" />
+                                    {isEditMode ? `Editing ${selectedUser?.fullName}` : 'Assign Officer Role'}
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
@@ -219,18 +220,20 @@ export default function AdminDashboard() {
                                     {loading ? 'Saving...' : isEditMode ? 'Save Changes' : 'Save Assignment'}
                                 </Button>
                                 {isEditMode && (
-                                    <Button variant="ghost" onClick={resetForm} className="w-full">Cancel Edit</Button>
+                                    <Button variant="ghost" onClick={resetForm} className="w-full" disabled={loading}>Cancel Edit</Button>
                                 )}
                             </CardFooter>
                         </form>
                     </Card>
                 </div>
 
-                {/* Data Table Section */}
                 <div className="lg:col-span-2">
                     <Card className="shadow-lg border-t-4 border-primary">
-                        <CardHeader>
-                            <CardTitle>Active Officers Registry</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="flex items-center gap-2">
+                                <Users className="h-5 w-5" />
+                                Active Officers Registry
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
@@ -246,16 +249,22 @@ export default function AdminDashboard() {
                                     </TableHeader>
                                     <TableBody>
                                         {usersLoading ? (
-                                            <TableRow><TableCell colSpan={5} className="text-center">Loading users...</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={5} className="text-center py-10">Loading officers...</TableCell></TableRow>
                                         ) : error ? (
-                                            <TableRow><TableCell colSpan={5} className="text-center text-destructive">{error.message}</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={5} className="text-center py-10 text-destructive">{error.message}</TableCell></TableRow>
+                                        ) : users.length === 0 ? (
+                                            <TableRow><TableCell colSpan={5} className="text-center py-10 text-muted-foreground">No officers found in the registry.</TableCell></TableRow>
                                         ) : users.map(user => (
                                             <TableRow key={user.id}>
                                                 <TableCell>
                                                     <div className="font-medium">{user.fullName}</div>
                                                     <div className="text-xs text-muted-foreground">{user.email}</div>
                                                 </TableCell>
-                                                <TableCell>{user.role}</TableCell>
+                                                <TableCell>
+                                                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                                                        {user.role}
+                                                    </span>
+                                                </TableCell>
                                                 <TableCell>{user.level}</TableCell>
                                                 <TableCell>{user.locationName}</TableCell>
                                                 <TableCell className="text-right space-x-2">
