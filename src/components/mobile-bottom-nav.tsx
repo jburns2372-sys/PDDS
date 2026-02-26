@@ -20,20 +20,26 @@ const baseNavItems: {
 ];
 
 const profileNavItem = { href: "/profile", icon: UserCircle, label: "Profile" };
-const adminNavItem = { href: "/admin", icon: Shield, label: "Admin Panel" };
-
+const adminNavItem = { href: "/admin", icon: Shield, label: "Admin" };
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const { userData, loading: isLoadingRole } = useUserData();
+  const { user, userData, loading: isLoadingRole } = useUserData();
   const userRole = userData?.role;
+  const userEmail = user?.email;
+
+  const isPrivileged = !isLoadingRole && (
+    userRole === 'President' || 
+    userRole === 'Admin' || 
+    userRole === 'System Admin' ||
+    userEmail === 'iamgrecobelgica@gmail.com'
+  );
   
   const visibleNavItems = [...baseNavItems];
-  if (!isLoadingRole && (userRole === 'President' || userRole === 'Admin' || userRole === 'System Admin')) {
+  if (isPrivileged) {
       visibleNavItems.push(adminNavItem);
   }
   visibleNavItems.push(profileNavItem);
-
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-sm md:hidden">
@@ -46,7 +52,7 @@ export function MobileBottomNav() {
                   "flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors hover:text-primary"
                 )}>
                   <item.icon className="h-6 w-6" />
-                  <span className="text-xs font-medium">{item.label}</span>
+                  <span className="text-[10px] font-medium">{item.label}</span>
                 </button>
               </AboutPddsDialog>
             );
@@ -63,7 +69,7 @@ export function MobileBottomNav() {
               )}
             >
               <item.icon className="h-6 w-6" />
-              <span className="text-xs font-medium">{item.label}</span>
+              <span className="text-[10px] font-medium">{item.label}</span>
             </Link>
           );
         })}

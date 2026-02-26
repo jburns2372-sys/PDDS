@@ -8,7 +8,6 @@ import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
 import { AboutPddsDialog } from "./about-pdds-dialog";
 import { useUserData } from "@/context/user-data-context";
-import { Button } from "./ui/button";
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
@@ -22,8 +21,16 @@ const adminNavItems = [
 
 export function DesktopSidebar() {
   const pathname = usePathname();
-  const { userData, loading: isLoadingRole } = useUserData();
+  const { user, userData, loading: isLoadingRole } = useUserData();
   const userRole = userData?.role;
+  const userEmail = user?.email;
+
+  const isPrivileged = !isLoadingRole && (
+    userRole === 'President' || 
+    userRole === 'Admin' || 
+    userRole === 'System Admin' ||
+    userEmail === 'iamgrecobelgica@gmail.com'
+  );
   
   return (
     <aside className="hidden w-64 flex-shrink-0 flex-col border-r bg-card md:flex">
@@ -62,7 +69,7 @@ export function DesktopSidebar() {
                     <span>About PDDS</span>
                 </button>
             </AboutPddsDialog>
-            {!isLoadingRole && (userRole === 'President' || userRole === 'Admin' || userRole === 'System Admin') && adminNavItems.map((item) => {
+            {isPrivileged && adminNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
                 <Link
@@ -81,7 +88,7 @@ export function DesktopSidebar() {
         </div>
         <div>
             <div className="px-4 py-2 text-xs text-muted-foreground">
-                [Current Role: {isLoadingRole ? 'Loading...' : userRole || 'None'}]
+                [Role: {isLoadingRole ? 'Loading...' : userRole || 'Member'}]
             </div>
              <Link
               href="/profile"

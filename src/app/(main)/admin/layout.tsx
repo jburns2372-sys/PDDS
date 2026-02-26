@@ -10,20 +10,21 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userData, loading } = useUserData();
+  const { user, userData, loading } = useUserData();
   const router = useRouter();
 
-  const isAuthorized = userData?.role === 'Admin' || userData?.role === 'President' || userData?.role === 'System Admin';
+  const isAuthorized = 
+    userData?.role === 'Admin' || 
+    userData?.role === 'President' || 
+    userData?.role === 'System Admin' || 
+    user?.email === 'iamgrecobelgica@gmail.com';
 
   useEffect(() => {
-    // The auth check for a valid user is already handled by the root AppShell.
-    // This layout just needs to check for the admin role.
     if (!loading && !isAuthorized) {
-      router.push('/home'); // Or a dedicated 'unauthorized' page
+      router.push('/home');
     }
-  }, [userData, loading, router, isAuthorized]);
+  }, [isAuthorized, loading, router]);
 
-  // Show a skeleton while loading or if the user is not an administrator
   if (loading || !isAuthorized) {
     return (
         <div className="p-8">
