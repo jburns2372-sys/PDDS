@@ -15,6 +15,7 @@ export function createUserDocument(
     locationName: string;
     avatarUrl?: string;
     kartilyaAgreed: boolean;
+    isApproved?: boolean;
     passwordIsTemporary: boolean;
     createdAt: FieldValue;
   }

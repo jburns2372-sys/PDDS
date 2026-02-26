@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { useCollection, useFirestore, createTemporaryApp, deleteTemporaryApp } f
 import { useToast } from "@/hooks/use-toast";
 import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { Shield, UserPlus, Users, Info, Camera, X, RefreshCw, Pencil, Trash2 } from "lucide-react";
+import { Shield, UserPlus, Users, Info, Camera, RefreshCw, Pencil, Trash2 } from "lucide-react";
 import type { UserProfile } from "@/context/user-data-context";
 import { serverTimestamp } from "firebase/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -28,7 +28,9 @@ const levels = ["National", "Regional", "Provincial", "City/Municipal", "Baranga
 export default function AdminDashboard() {
     const firestore = useFirestore();
     const { toast } = useToast();
-    const { data: users, loading: usersLoading, error } = useCollection<UserProfile>('users');
+    
+    // Real-time Firestore listener using the pre-built useCollection hook (wraps onSnapshot)
+    const { data: allUsers, loading: usersLoading, error } = useCollection<UserProfile>('users');
 
     const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -43,6 +45,15 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Filter users: Only show those with an officer role (not just Member) or who are specifically approved
+    const activeOfficers = useMemo(() => {
+        return allUsers.filter(u => 
+            (u.role && u.role !== "Member") || 
+            u.kartilyaAgreed === true || 
+            u.isApproved === true
+        );
+    }, [allUsers]);
 
     const resetForm = () => {
         setSelectedUser(null);
@@ -99,7 +110,16 @@ export default function AdminDashboard() {
         e.preventDefault();
         setLoading(true);
 
-        const dataPayload = { fullName, email, role, level, locationName, avatarUrl: avatarUrl || null };
+        const dataPayload = { 
+            fullName, 
+            email, 
+            role, 
+            level, 
+            locationName, 
+            avatarUrl: avatarUrl || null,
+            isApproved: true, // Officers created by admin are auto-approved
+            kartilyaAgreed: true
+        };
 
         if (isEditMode && selectedUser) {
             try {
@@ -133,6 +153,7 @@ export default function AdminDashboard() {
                     level,
                     locationName,
                     avatarUrl: avatarUrl || undefined,
+                    isApproved: true,
                     kartilyaAgreed: true,
                     passwordIsTemporary: true,
                     createdAt: serverTimestamp(),
@@ -157,14 +178,14 @@ export default function AdminDashboard() {
                         <Shield className="h-8 w-8 text-primary" />
                         Admin Registry
                     </h1>
-                    <p className="text-muted-foreground mt-2">Central hub for managing party leadership and permissions.</p>
+                    <p className="text-muted-foreground mt-2">Manage PDDS leadership and organizational structure in real-time.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Badge variant="outline" className="h-10 px-4 bg-white shadow-sm border-primary/20 flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{users?.length || 0} Records</span>
+                        <span className="font-semibold">{activeOfficers.length} Active Officers</span>
                     </Badge>
-                    <Button variant="outline" size="icon" onClick={() => window.location.reload()} title="Refresh Data" className="border-primary/20 hover:bg-primary/5">
+                    <Button variant="outline" size="icon" onClick={() => window.location.reload()} title="Refresh Page" className="border-primary/20 hover:bg-primary/5">
                         <RefreshCw className="h-4 w-4 text-primary" />
                     </Button>
                 </div>
@@ -203,36 +224,36 @@ export default function AdminDashboard() {
 
                                 <div className="grid gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="email">Email</Label>
-                                        <Input id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} disabled={isEditMode || loading} />
+                                        <Label htmlFor="email">Email Address</Label>
+                                        <Input id="email" type="email" required placeholder="name@example.com" value={email} onChange={e => setEmail(e.target.value)} disabled={isEditMode || loading} />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="fullName">Full Name</Label>
-                                        <Input id="fullName" required value={fullName} onChange={e => setFullName(e.target.value)} disabled={loading} />
+                                        <Label htmlFor="fullName">Officer Full Name</Label>
+                                        <Input id="fullName" required placeholder="Juan Dela Cruz" value={fullName} onChange={e => setFullName(e.target.value)} disabled={loading} />
                                     </div>
                                     {!isEditMode && (
                                         <div className="space-y-2">
                                             <Label htmlFor="password">Temporary Password</Label>
-                                            <Input id="password" required value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
+                                            <Input id="password" required type="password" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
                                         </div>
                                     )}
                                     <div className="space-y-2">
-                                        <Label htmlFor="role">Role</Label>
-                                        < Select onValueChange={setRole} value={role} disabled={loading}>
+                                        <Label htmlFor="role">Assign Role</Label>
+                                        <Select onValueChange={setRole} value={role} disabled={loading}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>{roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="level">Jurisdiction</Label>
+                                        <Label htmlFor="level">Jurisdiction Level</Label>
                                         <Select onValueChange={setLevel} value={level} disabled={loading}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>{levels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="locationName">Location Detail</Label>
-                                        <Input id="locationName" placeholder="e.g. Metro Manila" required value={locationName} onChange={e => setLocationName(e.target.value)} disabled={loading} />
+                                        <Label htmlFor="locationName">Assigned Location</Label>
+                                        <Input id="locationName" placeholder="e.g. Quezon City" required value={locationName} onChange={e => setLocationName(e.target.value)} disabled={loading} />
                                     </div>
                                 </div>
                             </CardContent>
@@ -251,7 +272,7 @@ export default function AdminDashboard() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Users className="h-5 w-5" />
-                                Active Officers
+                                Active Officers Registry
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -268,27 +289,27 @@ export default function AdminDashboard() {
                                     </TableHeader>
                                     <TableBody>
                                         {usersLoading ? (
-                                            <TableRow><TableCell colSpan={5} className="text-center py-20 text-muted-foreground">Connecting to registry...</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={5} className="text-center py-20 text-muted-foreground">Syncing with PDDS database...</TableCell></TableRow>
                                         ) : error ? (
                                             <TableRow><TableCell colSpan={5} className="text-center py-20 text-destructive">{error.message}</TableCell></TableRow>
-                                        ) : !users || users.length === 0 ? (
+                                        ) : activeOfficers.length === 0 ? (
                                             <TableRow>
                                                 <TableCell colSpan={5} className="py-20 px-6">
                                                     <Alert>
                                                         <Info className="h-4 w-4" />
-                                                        <AlertTitle>No Records Found</AlertTitle>
+                                                        <AlertTitle>Registry Empty</AlertTitle>
                                                         <AlertDescription>
-                                                            The registry is currently empty. If you just logged in as an administrator, your record is being synchronized. Please wait a moment or click refresh.
+                                                            No officer records match the filter. Start by creating a record in the sidebar.
                                                         </AlertDescription>
                                                     </Alert>
                                                 </TableCell>
                                             </TableRow>
-                                        ) : users.map(user => (
+                                        ) : activeOfficers.map(user => (
                                             <TableRow key={user.id} className="hover:bg-muted/30">
                                                 <TableCell>
-                                                    <Avatar className="h-10 w-10 border">
+                                                    <Avatar className="h-10 w-10 border shadow-sm">
                                                         <AvatarImage src={user.avatarUrl} className="object-cover" />
-                                                        <AvatarFallback>{user.fullName?.charAt(0) || '?'}</AvatarFallback>
+                                                        <AvatarFallback className="bg-primary/10 text-primary font-bold">{user.fullName?.charAt(0) || '?'}</AvatarFallback>
                                                     </Avatar>
                                                 </TableCell>
                                                 <TableCell>
@@ -305,10 +326,10 @@ export default function AdminDashboard() {
                                                     <div className="text-[10px] text-muted-foreground">{user.locationName}</div>
                                                 </TableCell>
                                                 <TableCell className="text-right space-x-2">
-                                                    <Button variant="outline" size="sm" onClick={() => handleEditClick(user)} disabled={loading} className="h-8 w-8 p-0" title="Edit">
+                                                    <Button variant="outline" size="sm" onClick={() => handleEditClick(user)} disabled={loading} className="h-8 w-8 p-0" title="Edit Profile">
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>
-                                                    <Button variant="destructive" size="sm" onClick={() => handleRevoke(user)} disabled={loading} className="h-8 w-8 p-0" title="Revoke">
+                                                    <Button variant="destructive" size="sm" onClick={() => handleRevoke(user)} disabled={loading} className="h-8 w-8 p-0" title="Revoke Access">
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </TableCell>
