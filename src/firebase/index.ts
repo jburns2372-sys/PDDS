@@ -19,7 +19,7 @@ import { FirebaseClientProvider } from "./client-provider";
 
 /**
  * Standardizing initialization for Cloud Workstations.
- * Uses Long Polling to bypass potential WebSocket blocks.
+ * Uses Long Polling to bypass WebSocket blocks which cause ChunkLoadErrors and Offline errors.
  */
 export function initializeFirebase() {
   let app;
@@ -31,13 +31,11 @@ export function initializeFirebase() {
 
   let firestore;
   try {
-    // initializeFirestore can only be called once per app instance.
     firestore = initializeFirestore(app, {
       localCache: memoryLocalCache(),
       experimentalForceLongPolling: true, // Crucial for stability in Cloud Workstations
     });
   } catch (e) {
-    // If already initialized, fallback to getFirestore
     firestore = getFirestore(app);
   }
 

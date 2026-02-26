@@ -17,14 +17,14 @@ import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search } from
 import { collection, onSnapshot, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { createTemporaryApp, deleteTemporaryApp } from "@/firebase";
 
-// List of roles available for assignment in the dropdown
+// Full list for assignment dropdown
 const allAssignableRoles = [
   "President", "Chairman", "Vice Chairman", "VP", "Sec Gen", "Treasurer", "Auditor", 
   "VP Ways & Means Chair", "VP Media Comms", "VP Soc Med Comms", "VP Events and Programs", 
   "VP Membership", "VP legal affairs", "Member", "Admin", "System Admin"
 ];
 
-// The 13 official political leadership roles for the Registry Table
+// Exact 13 official political roles for Registry visibility
 const pddsLeadershipRoles = [
   'President', 'Chairman', 'Vice Chairman', 'VP', 'Sec Gen', 'Treasurer', 'Auditor', 
   'VP Ways & Means Chair', 'VP Media Comms', 'VP Soc Med Comms', 'VP Events and Programs', 
@@ -46,8 +46,8 @@ export default function AdminDashboard() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [role, setRole] = useState("Member");
-    const [jurisdictionLevel, setJurisdictionLevel] = useState("National");
-    const [assignedLocation, setAssignedLocation] = useState("");
+    const [level, setLevel] = useState("National");
+    const [locationName, setLocationName] = useState("");
     const [photoURL, setPhotoURL] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -55,7 +55,7 @@ export default function AdminDashboard() {
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 1. Real-time Firestore listener with onSnapshot for 100% reliable sync
+    // 100% Reliable Real-time Sync
     useEffect(() => {
         const q = query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -66,25 +66,25 @@ export default function AdminDashboard() {
             setAllUsers(users);
             setUsersLoading(false);
         }, (err) => {
-            console.error("Registry sync error:", err);
+            console.error("Registry Sync Error:", err);
             setUsersLoading(false);
             toast({
                 variant: "destructive",
                 title: "Sync Error",
-                description: "Failed to connect to the officer registry."
+                description: "The registry is currently unavailable. Please check your connection."
             });
         });
         return () => unsubscribe();
     }, [firestore, toast]);
 
-    // 2. Filter logic for Active Officers Registry (The 13 political roles only)
+    // Role Filtering: Exact 13 PDDS roles, EXCLUDING System Admin
     const activeOfficers = useMemo(() => {
         return allUsers.filter(user => {
-            const hasPoliticalRole = pddsLeadershipRoles.includes(user.role);
+            const isPoliticalOfficer = pddsLeadershipRoles.includes(user.role);
             const matchesSearch = 
                 (user.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (user.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-            return hasPoliticalRole && matchesSearch;
+            return isPoliticalOfficer && matchesSearch;
         });
     }, [allUsers, searchTerm]);
 
@@ -95,8 +95,8 @@ export default function AdminDashboard() {
         setEmail("");
         setPassword("");
         setRole("Member");
-        setJurisdictionLevel("National");
-        setAssignedLocation("");
+        setLevel("National");
+        setLocationName("");
         setPhotoURL(null);
     };
 
@@ -106,8 +106,8 @@ export default function AdminDashboard() {
         setFullName(user.fullName || "");
         setEmail(user.email || "");
         setRole(user.role || "Member");
-        setJurisdictionLevel(user.jurisdictionLevel || user.level || "National");
-        setAssignedLocation(user.assignedLocation || user.locationName || "");
+        setLevel(user.level || "National");
+        setLocationName(user.locationName || "");
         setPhotoURL(user.photoURL || user.avatarUrl || null);
         setPassword("");
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -127,7 +127,7 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             await deleteUserDocument(firestore, user.id);
-            toast({ title: "Access Revoked", description: "Record deleted from registry." });
+            toast({ title: "Access Revoked", description: "Officer record removed from registry." });
         } catch (error: any) {
              toast({ variant: "destructive", title: "Error", description: error.message });
         } finally {
@@ -143,9 +143,10 @@ export default function AdminDashboard() {
             fullName, 
             email, 
             role, 
-            jurisdictionLevel, 
-            assignedLocation, 
+            level, 
+            locationName, 
             photoURL: photoURL || null,
+            avatarUrl: photoURL || null,
             isApproved: true,
             kartilyaAgreed: true
         };
@@ -153,10 +154,10 @@ export default function AdminDashboard() {
         if (isEditMode && selectedUser) {
             try {
                 await updateUserDocument(firestore, selectedUser.id, dataPayload);
-                toast({ title: "Updated", description: "Officer record synced successfully." });
+                toast({ title: "Updated", description: "Officer record updated successfully." });
                 resetForm();
             } catch (error: any) {
-                toast({ variant: "destructive", title: "Error", description: error.message });
+                toast({ variant: "destructive", title: "Update Error", description: error.message });
             } finally {
                 setLoading(false);
             }
@@ -170,18 +171,15 @@ export default function AdminDashboard() {
                     fullName,
                     email,
                     role,
-                    level: jurisdictionLevel, // Schema support
-                    locationName: assignedLocation, // Schema support
-                    jurisdictionLevel, // Request Mapping support
-                    assignedLocation, // Request Mapping support
+                    level,
+                    locationName,
                     avatarUrl: photoURL || undefined,
-                    photoURL: photoURL || null,
                     kartilyaAgreed: true,
                     isApproved: true,
                     passwordIsTemporary: true,
                     createdAt: serverTimestamp(),
                 });
-                toast({ title: "Success", description: "Officer registered in registry." });
+                toast({ title: "Success", description: "New officer registered." });
                 resetForm();
             } catch (error: any) {
                 toast({ variant: "destructive", title: "Registration Error", description: error.message });
@@ -198,14 +196,14 @@ export default function AdminDashboard() {
                 <div>
                     <h1 className="text-3xl font-bold text-primary flex items-center gap-2 font-headline">
                         <Shield className="h-8 w-8" />
-                        Management Registry
+                        Officer Management
                     </h1>
-                    <p className="text-muted-foreground mt-2">Oversee PDDS leadership and administrative access.</p>
+                    <p className="text-muted-foreground mt-2">Create and oversee PDDS political leadership.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Badge variant="outline" className="h-10 px-4 bg-white shadow-sm border-primary/20 flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{activeOfficers.length} Political Officers</span>
+                        <span className="font-semibold">{activeOfficers.length} Active Officers</span>
                     </Badge>
                 </div>
             </div>
@@ -217,23 +215,23 @@ export default function AdminDashboard() {
                             <CardHeader>
                                 <CardTitle className="text-xl font-headline flex items-center gap-2">
                                     <UserPlus className="h-5 w-5" />
-                                    {isEditMode ? `Update Officer` : 'Assign Officer Role'}
+                                    {isEditMode ? `Edit Officer` : 'Register Officer'}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex flex-col items-center gap-4">
-                                    <Avatar className="h-20 w-20 border-4 border-accent">
+                                    <Avatar className="h-24 w-24 border-4 border-accent shadow-md">
                                         <AvatarImage src={photoURL || ""} className="object-cover" />
-                                        <AvatarFallback><Camera className="h-6 w-6 text-muted-foreground" /></AvatarFallback>
+                                        <AvatarFallback><Camera className="h-8 w-8 text-muted-foreground" /></AvatarFallback>
                                     </Avatar>
                                     <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                                        Upload Profile Picture
+                                        Upload Picture
                                     </Button>
                                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Full Name</Label>
-                                    <Input required value={fullName} onChange={e => setFullName(e.target.value)} placeholder="e.g. Juan dela Cruz" />
+                                    <Input required value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Juan dela Cruz" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Email</Label>
@@ -255,8 +253,8 @@ export default function AdminDashboard() {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Level</Label>
-                                    <Select onValueChange={setJurisdictionLevel} value={jurisdictionLevel}>
+                                    <Label>Jurisdiction Level</Label>
+                                    <Select onValueChange={setLevel} value={level}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             {levels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
@@ -264,15 +262,15 @@ export default function AdminDashboard() {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Location</Label>
-                                    <Input required placeholder="City, Province or Region" value={assignedLocation} onChange={e => setAssignedLocation(e.target.value)} />
+                                    <Label>Location Name</Label>
+                                    <Input required placeholder="Province, City, or Barangay" value={locationName} onChange={e => setLocationName(e.target.value)} />
                                 </div>
                             </CardContent>
                             <CardFooter className="flex flex-col gap-2">
                                 <Button type="submit" className="w-full" disabled={loading}>
-                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isEditMode ? 'Save Changes' : 'Create Registry Record')}
+                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isEditMode ? 'Update Record' : 'Create Registry Record')}
                                 </Button>
-                                {isEditMode && <Button variant="ghost" onClick={resetForm} className="w-full">Cancel Edit</Button>}
+                                {isEditMode && <Button variant="ghost" onClick={resetForm} className="w-full">Cancel</Button>}
                             </CardFooter>
                         </form>
                     </Card>
@@ -282,7 +280,7 @@ export default function AdminDashboard() {
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
-                            className="pl-10" 
+                            className="pl-10 h-12" 
                             placeholder="Search active officers by name or email..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -290,42 +288,42 @@ export default function AdminDashboard() {
                     </div>
                     
                     <Card className="shadow-lg">
-                        <CardHeader>
+                        <CardHeader className="bg-primary/5">
                             <CardTitle className="text-lg">Active Officers Registry</CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-0">
                             <Table>
                                 <TableHeader>
                                     <TableRow className="bg-muted/50">
-                                        <TableHead className="w-[80px]">Photo</TableHead>
+                                        <TableHead className="w-[80px] pl-6">Photo</TableHead>
                                         <TableHead>Officer</TableHead>
                                         <TableHead>Role</TableHead>
                                         <TableHead>Jurisdiction</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                        <TableHead className="text-right pr-6">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {usersLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-20">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <Loader2 className="animate-spin h-8 w-8 text-primary" />
-                                                    <span className="text-muted-foreground">Syncing with Registry...</span>
+                                            <TableCell colSpan={5} className="text-center py-24">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <Loader2 className="animate-spin h-10 w-10 text-primary" />
+                                                    <span className="text-muted-foreground font-medium">Syncing with Registry...</span>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
                                     ) : activeOfficers.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
-                                                No political officers found matching your criteria.
+                                            <TableCell colSpan={5} className="text-center py-24 text-muted-foreground">
+                                                {searchTerm ? "No political officers match your search." : "No political records found in the registry."}
                                             </TableCell>
                                         </TableRow>
                                     ) : activeOfficers.map(user => (
                                         <TableRow key={user.id} className="hover:bg-muted/30 transition-colors">
-                                            <TableCell>
-                                                <Avatar className="h-10 w-10 border shadow-sm">
+                                            <TableCell className="pl-6">
+                                                <Avatar className="h-12 w-12 border-2 border-primary/10 shadow-sm">
                                                     <AvatarImage src={user.photoURL || user.avatarUrl || ""} className="object-cover" />
-                                                    <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
+                                                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                                                         {user.fullName?.charAt(0) || 'P'}
                                                     </AvatarFallback>
                                                 </Avatar>
@@ -335,23 +333,23 @@ export default function AdminDashboard() {
                                                 <div className="text-xs text-muted-foreground">{user.email}</div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="secondary" className="font-medium">
+                                                <Badge variant="secondary" className="font-semibold bg-primary/10 text-primary border-none">
                                                     {user.role}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="text-sm font-semibold">
-                                                    {user.jurisdictionLevel || user.level || "National"}
+                                                <div className="text-sm font-semibold text-foreground">
+                                                    {user.level || "National"}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {user.assignedLocation || user.locationName || "N/A"}
+                                                <div className="text-xs text-muted-foreground italic">
+                                                    {user.locationName || "N/A"}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-right space-x-1">
-                                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(user)} className="h-8 w-8 text-primary">
+                                            <TableCell className="text-right pr-6 space-x-1">
+                                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(user)} className="h-9 w-9 text-primary hover:bg-primary/10">
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRevoke(user)}>
+                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => handleRevoke(user)}>
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>

@@ -13,7 +13,7 @@ export default function AdminLayout({
   const { user, userData, loading } = useUserData();
   const router = useRouter();
 
-  // Unified authorization for Admin Panel
+  // System Admin shares identical administrative privileges with President and Admin roles
   const isAuthorized = 
     userData?.role === 'Admin' || 
     userData?.role === 'President' || 

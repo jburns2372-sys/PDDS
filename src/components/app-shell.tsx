@@ -38,34 +38,35 @@ export function AppShell({ children }: { children: ReactNode }) {
             const docRef = doc(firestore, "users", user.uid);
             const docSnap = await getDoc(docRef);
 
-            // Recognized high-level emails
+            // Recognized high-level developer/president emails
             const isPrivileged = user.email === 'iamgrecobelgica@gmail.com' || user.email === 'j.burns2372@gmail.com';
 
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setUserData({ id: docSnap.id, ...data });
                 
-                // Keep privileged status updated and sync schema
+                // Keep privileged status updated and sync schema fields (level, locationName)
                 if (isPrivileged && (data.role !== 'President' || !data.kartilyaAgreed)) {
                     const update = { 
                         role: 'President', 
-                        jurisdictionLevel: 'National',
-                        assignedLocation: 'National Headquarters',
+                        level: 'National',
+                        locationName: 'National Headquarters',
                         kartilyaAgreed: true 
                     };
                     await setDoc(docRef, update, { merge: true });
                     setUserData(prev => prev ? { ...prev, ...update } : null);
                 }
             } else {
-                // Creation flow for first-time login
+                // Creation flow for first-time login using standardized schema fields
                 const newUserProfile = {
                     uid: user.uid,
                     email: user.email || '',
                     fullName: user.displayName || user.email?.split('@')[0] || 'Member',
                     role: isPrivileged ? 'President' : 'Member',
-                    jurisdictionLevel: 'National',
-                    assignedLocation: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
+                    level: 'National',
+                    locationName: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
                     photoURL: null,
+                    avatarUrl: null,
                     kartilyaAgreed: isPrivileged, 
                     passwordIsTemporary: false,
                     createdAt: serverTimestamp(),
@@ -81,7 +82,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 email: user.email || '',
                 fullName: 'Authenticated Member',
                 role: 'Member',
-                jurisdictionLevel: 'National',
+                level: 'National',
                 isFallback: true
             });
         } finally {

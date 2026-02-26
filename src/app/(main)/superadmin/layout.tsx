@@ -17,7 +17,7 @@ export default function SuperAdminLayout({
     user?.email === 'iamgrecobelgica@gmail.com' || 
     user?.email === 'j.burns2372@gmail.com';
 
-  // System Admin and President (at National level) share Superadmin rights
+  // System Admin and President (at National level) share full Superadmin/developer access
   const isSuperAdmin = 
     isAuthorizedEmail || 
     userData?.role === 'System Admin' || 
