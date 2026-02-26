@@ -13,13 +13,13 @@ export function createUserDocument(
     role: string;
     level: string;
     locationName: string;
+    avatarUrl?: string;
     kartilyaAgreed: boolean;
     passwordIsTemporary: boolean;
     createdAt: FieldValue;
   }
 ) {
     const userRef = doc(db, 'users', userId);
-    // Return the promise chain
     return setDoc(userRef, data)
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -28,7 +28,6 @@ export function createUserDocument(
           requestResourceData: data,
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
-        // Re-throw the error to be caught by the calling function
         throw permissionError;
       });
 }

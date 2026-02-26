@@ -1,18 +1,18 @@
-
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useCollection, useFirestore, createTemporaryApp, deleteTemporaryApp } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { Shield, UserPlus, Users, Info } from "lucide-react";
+import { Shield, UserPlus, Users, Info, Camera, X } from "lucide-react";
 import type { UserProfile } from "@/context/user-data-context";
 import { serverTimestamp } from "firebase/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -38,7 +38,10 @@ export default function AdminDashboard() {
     const [role, setRole] = useState("Member");
     const [level, setLevel] = useState("National");
     const [locationName, setLocationName] = useState("");
+    const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(false);
+    
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const resetForm = () => {
         setSelectedUser(null);
@@ -49,6 +52,7 @@ export default function AdminDashboard() {
         setRole("Member");
         setLevel("National");
         setLocationName("");
+        setAvatarUrl(undefined);
     }
 
     const handleEditClick = (user: UserProfile) => {
@@ -59,8 +63,28 @@ export default function AdminDashboard() {
         setRole(user.role || "Member");
         setLevel(user.level || "National");
         setLocationName(user.locationName || "");
+        setAvatarUrl(user.avatarUrl);
         setPassword("");
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 1024 * 1024) { // 1MB limit for base64
+                toast({
+                    variant: "destructive",
+                    title: "File too large",
+                    description: "Please select an image smaller than 1MB.",
+                });
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setAvatarUrl(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
     }
 
     const handleRevoke = async (user: UserProfile) => {
@@ -89,15 +113,18 @@ export default function AdminDashboard() {
         e.preventDefault();
         setLoading(true);
 
+        const dataPayload = {
+            fullName,
+            email,
+            role,
+            level,
+            locationName,
+            avatarUrl: avatarUrl || null
+        };
+
         if (isEditMode && selectedUser) {
             try {
-                await updateUserDocument(firestore, selectedUser.id, {
-                    fullName,
-                    email,
-                    role,
-                    level,
-                    locationName,
-                });
+                await updateUserDocument(firestore, selectedUser.id, dataPayload);
                 toast({
                     title: "User Updated",
                     description: `${fullName}'s details have been updated.`,
@@ -137,6 +164,7 @@ export default function AdminDashboard() {
                     role,
                     level,
                     locationName,
+                    avatarUrl: avatarUrl || undefined,
                     kartilyaAgreed: true,
                     passwordIsTemporary: true,
                     createdAt: serverTimestamp(),
@@ -182,6 +210,51 @@ export default function AdminDashboard() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                <div className="flex flex-col items-center gap-4 py-4">
+                                    <Label className="text-sm font-medium">Profile Picture</Label>
+                                    <div className="relative group">
+                                        <Avatar className="h-24 w-24 border-2 border-accent">
+                                            {avatarUrl ? (
+                                                <AvatarImage src={avatarUrl} alt="Preview" className="object-cover" />
+                                            ) : (
+                                                <AvatarFallback className="bg-muted">
+                                                    <Camera className="h-8 w-8 text-muted-foreground" />
+                                                </AvatarFallback>
+                                            )}
+                                        </Avatar>
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button 
+                                                type="button" 
+                                                variant="secondary" 
+                                                size="sm" 
+                                                className="h-8 w-8 rounded-full p-0 shadow-md"
+                                                onClick={() => fileInputRef.current?.click()}
+                                            >
+                                                <Camera className="h-4 w-4" />
+                                            </Button>
+                                            {avatarUrl && (
+                                                <Button 
+                                                    type="button" 
+                                                    variant="destructive" 
+                                                    size="sm" 
+                                                    className="h-8 w-8 rounded-full p-0 shadow-md absolute -top-1 -right-1"
+                                                    onClick={() => setAvatarUrl(undefined)}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        className="hidden" 
+                                        accept="image/*" 
+                                        onChange={handleFileChange} 
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">Max size: 1MB</p>
+                                </div>
+
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email Address</Label>
                                     <Input id="email" type="email" placeholder="user@example.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={isEditMode} />
@@ -240,6 +313,7 @@ export default function AdminDashboard() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            <TableHead className="w-[80px]">Photo</TableHead>
                                             <TableHead>Name</TableHead>
                                             <TableHead>Role</TableHead>
                                             <TableHead>Level</TableHead>
@@ -249,23 +323,29 @@ export default function AdminDashboard() {
                                     </TableHeader>
                                     <TableBody>
                                         {usersLoading ? (
-                                            <TableRow><TableCell colSpan={5} className="text-center py-10">Loading officers...</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={6} className="text-center py-10">Loading officers...</TableCell></TableRow>
                                         ) : error ? (
-                                            <TableRow><TableCell colSpan={5} className="text-center py-10 text-destructive">{error.message}</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={6} className="text-center py-10 text-destructive">{error.message}</TableCell></TableRow>
                                         ) : users.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={5} className="py-10">
+                                                <TableCell colSpan={6} className="py-10">
                                                     <Alert>
                                                         <Info className="h-4 w-4" />
                                                         <AlertTitle>No Records Found</AlertTitle>
                                                         <AlertDescription>
-                                                            The Firestore 'users' collection is currently empty or records haven't been created yet. Note: Users added in the Firebase Console Auth tab will not appear here until their Firestore profile is created (either by logging in or via the form on the left).
+                                                            The Firestore 'users' collection is currently empty.
                                                         </AlertDescription>
                                                     </Alert>
                                                 </TableCell>
                                             </TableRow>
                                         ) : users.map(user => (
                                             <TableRow key={user.id}>
+                                                <TableCell>
+                                                    <Avatar className="h-10 w-10 border border-muted">
+                                                        <AvatarImage src={user.avatarUrl} className="object-cover" />
+                                                        <AvatarFallback className="text-[10px]">{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
+                                                    </Avatar>
+                                                </TableCell>
                                                 <TableCell>
                                                     <div className="font-medium">{user.fullName || 'Anonymous Member'}</div>
                                                     <div className="text-xs text-muted-foreground">{user.email}</div>
