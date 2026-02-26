@@ -1,9 +1,8 @@
-
 "use client";
 
 import { initializeApp, getApps, getApp, FirebaseApp, deleteApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
-import { Firestore, getFirestore, initializeFirestore, memoryLocalCache } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { initializeFirestore, memoryLocalCache, getFirestore } from "firebase/firestore";
 import { firebaseConfig } from "./config";
 
 import { useUser } from "./auth/use-user";
@@ -18,27 +17,33 @@ import {
 } from "./provider";
 import { FirebaseClientProvider } from "./client-provider";
 
-function initializeFirebase() {
+/**
+ * Standardizing initialization for Cloud Workstations.
+ * Uses Long Polling to bypass potential WebSocket blocks.
+ */
+export function initializeFirebase() {
   let app;
-  let firestore;
-
   if (!getApps().length) {
-    // First time load: Initialize App and Firestore with workstation-compatible settings
     app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
+
+  let firestore;
+  try {
+    // initializeFirestore can only be called once per app instance.
     firestore = initializeFirestore(app, {
       localCache: memoryLocalCache(),
-      experimentalForceLongPolling: true // Required for stable connectivity in some cloud environments
+      experimentalForceLongPolling: true, // Crucial for stability in Cloud Workstations
     });
-  } else {
-    // Hot reload: Use existing App and existing Firestore instance
-    app = getApp();
+  } catch (e) {
+    // If already initialized, fallback to getFirestore
     firestore = getFirestore(app);
   }
 
   const auth = getAuth(app);
   return { app, auth, firestore };
 }
-
 
 export const createTemporaryApp = () => {
     const tempAppName = `temp-auth-app-${new Date().getTime()}-${Math.random()}`;
@@ -51,7 +56,6 @@ export const deleteTemporaryApp = (app: FirebaseApp) => {
 };
 
 export {
-  initializeFirebase,
   FirebaseProvider,
   FirebaseClientProvider,
   useUser,
