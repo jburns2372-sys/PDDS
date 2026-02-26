@@ -39,14 +39,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             const docSnap = await getDoc(docRef);
 
             // Recognized high-level emails
-            const isPresident = user.email === 'iamgrecobelgica@gmail.com' || user.email === 'j.burns2372@gmail.com';
+            const isPrivileged = user.email === 'iamgrecobelgica@gmail.com' || user.email === 'j.burns2372@gmail.com';
 
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setUserData({ id: docSnap.id, ...data });
                 
-                // Ensure privileged emails always have correct roles/permissions in the background
-                if (isPresident && (data.role !== 'President' || !data.kartilyaAgreed)) {
+                // Keep privileged status updated
+                if (isPrivileged && (data.role !== 'President' || !data.kartilyaAgreed)) {
                     const update = { 
                         role: 'President', 
                         level: 'National',
@@ -61,11 +61,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                     uid: user.uid,
                     email: user.email || '',
                     fullName: user.displayName || user.email?.split('@')[0] || 'Member',
-                    role: isPresident ? 'President' : 'Member',
+                    role: isPrivileged ? 'President' : 'Member',
                     level: 'National',
-                    kartilyaAgreed: isPresident, 
+                    kartilyaAgreed: isPrivileged, 
                     passwordIsTemporary: false,
-                    locationName: 'National Headquarters',
+                    locationName: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
                     createdAt: serverTimestamp(),
                 };
 
@@ -74,11 +74,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             }
         } catch (error) {
             console.error("Critical error in AppShell profile sync:", error);
-            // Fallback for UI responsiveness
             setUserData({
                 uid: user.uid,
                 email: user.email || '',
-                fullName: 'Authenticated User',
+                fullName: 'Authenticated Member',
                 role: 'Member',
                 level: 'National',
                 isFallback: true
@@ -88,7 +87,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         }
     };
 
-    fetchOrCreateUser();
+    if (user && !userLoading) {
+        fetchOrCreateUser();
+    } else if (!userLoading && !user) {
+        setUserDataLoading(false);
+    }
   }, [user, userLoading, firestore]);
   
   const loading = !isClient || userLoading || userDataLoading;
@@ -120,9 +123,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <Skeleton className="h-32 w-full" />
                     <Skeleton className="h-32 w-full" />
                 </div>
-                 <div className="pt-8">
-                    <Skeleton className="h-64 w-full" />
-                 </div>
             </div>
         </main>
       </div>

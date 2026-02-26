@@ -12,7 +12,7 @@ import { useCollection, useFirestore, createTemporaryApp, deleteTemporaryApp } f
 import { useToast } from "@/hooks/use-toast";
 import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { Shield, UserPlus, Users, Info, Camera, X } from "lucide-react";
+import { Shield, UserPlus, Users, Info, Camera, X, RefreshCw } from "lucide-react";
 import type { UserProfile } from "@/context/user-data-context";
 import { serverTimestamp } from "firebase/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -72,38 +72,23 @@ export default function AdminDashboard() {
         const file = e.target.files?.[0];
         if (file) {
             if (file.size > 1024 * 1024) { 
-                toast({
-                    variant: "destructive",
-                    title: "File too large",
-                    description: "Please select an image smaller than 1MB.",
-                });
+                toast({ variant: "destructive", title: "File too large", description: "Please select an image smaller than 1MB." });
                 return;
             }
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setAvatarUrl(reader.result as string);
-            };
+            reader.onloadend = () => setAvatarUrl(reader.result as string);
             reader.readAsDataURL(file);
         }
     }
 
     const handleRevoke = async (user: UserProfile) => {
-        if (!confirm(`Are you sure you want to revoke access for ${user.fullName || user.email}?`)) {
-            return;
-        }
+        if (!confirm(`Are you sure you want to revoke access for ${user.fullName || user.email}?`)) return;
         setLoading(true);
         try {
             await deleteUserDocument(firestore, user.id);
-            toast({
-                title: "User Record Deleted",
-                description: `Access for ${user.fullName || user.email} has been revoked.`,
-            });
+            toast({ title: "Access Revoked", description: `Record for ${user.fullName || user.email} deleted.` });
         } catch (error: any) {
-             toast({
-                variant: "destructive",
-                title: "Deletion Failed",
-                description: error.message,
-            });
+             toast({ variant: "destructive", title: "Action Failed", description: error.message });
         } finally {
             setLoading(false);
         }
@@ -113,39 +98,21 @@ export default function AdminDashboard() {
         e.preventDefault();
         setLoading(true);
 
-        const dataPayload = {
-            fullName,
-            email,
-            role,
-            level,
-            locationName,
-            avatarUrl: avatarUrl || null
-        };
+        const dataPayload = { fullName, email, role, level, locationName, avatarUrl: avatarUrl || null };
 
         if (isEditMode && selectedUser) {
             try {
                 await updateUserDocument(firestore, selectedUser.id, dataPayload);
-                toast({
-                    title: "User Updated",
-                    description: `${fullName}'s details have been updated.`,
-                });
+                toast({ title: "User Updated", description: `${fullName} has been updated.` });
                 resetForm();
             } catch (error: any) {
-                toast({
-                    variant: "destructive",
-                    title: "Update Failed",
-                    description: error.message,
-                });
+                toast({ variant: "destructive", title: "Update Failed", description: error.message });
             } finally {
                 setLoading(false);
             }
         } else {
             if (password.length < 6) {
-                toast({
-                    variant: "destructive",
-                    title: "Creation Failed",
-                    description: "Password must be at least 6 characters long.",
-                });
+                toast({ variant: "destructive", title: "Error", description: "Password must be at least 6 chars." });
                 setLoading(false);
                 return;
             }
@@ -170,18 +137,10 @@ export default function AdminDashboard() {
                     createdAt: serverTimestamp(),
                 });
                 
-                toast({
-                    title: "User Created",
-                    description: `${fullName} has been added to the registry.`,
-                });
+                toast({ title: "User Created", description: `${fullName} added to registry.` });
                 resetForm();
-
             } catch (error: any) {
-                toast({
-                    variant: "destructive",
-                    title: "Creation Failed",
-                    description: error.message,
-                });
+                toast({ variant: "destructive", title: "Creation Failed", description: error.message });
             } finally {
                 await deleteTemporaryApp(tempApp);
                 setLoading(false);
@@ -191,29 +150,39 @@ export default function AdminDashboard() {
 
     return (
         <div className="p-6 bg-background min-h-screen">
-            <div className="mb-8 border-b-2 border-destructive pb-4">
-                <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-                    <Shield className="h-8 w-8 text-primary" />
-                    Admin Panel
-                </h1>
-                <p className="text-muted-foreground mt-2">Manage PDDS Officers and their roles across jurisdictions.</p>
+            <div className="mb-8 border-b-2 border-primary pb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-primary flex items-center gap-2 font-headline">
+                        <Shield className="h-8 w-8 text-primary" />
+                        Admin Registry
+                    </h1>
+                    <p className="text-muted-foreground mt-2">Central hub for managing party leadership and permissions.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="h-10 px-4 bg-white shadow-sm border-primary/20 flex items-center gap-2">
+                        <Users className="h-4 w-4 text-primary" />
+                        <span className="font-semibold">{users?.length || 0} Records</span>
+                    </Badge>
+                    <Button variant="outline" size="icon" onClick={() => window.location.reload()} title="Refresh Data">
+                        <RefreshCw className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1">
-                    <Card className="shadow-lg border-t-4 border-accent">
+                    <Card className="shadow-lg border-t-4 border-accent h-fit">
                         <form onSubmit={handleFormSubmit}>
                             <CardHeader>
                                 <CardTitle className="text-xl font-headline flex items-center gap-2">
                                     <UserPlus className="h-5 w-5" />
-                                    {isEditMode ? `Editing Officer` : 'Assign Officer Role'}
+                                    {isEditMode ? `Edit Profile` : 'Register Officer'}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex flex-col items-center gap-4 py-4">
-                                    <Label className="text-sm font-medium">Profile Photo</Label>
                                     <div className="relative group">
-                                        <Avatar className="h-24 w-24 border-2 border-accent">
+                                        <Avatar className="h-24 w-24 border-4 border-accent shadow-md">
                                             {avatarUrl ? (
                                                 <AvatarImage src={avatarUrl} alt="Preview" className="object-cover" />
                                             ) : (
@@ -222,80 +191,55 @@ export default function AdminDashboard() {
                                                 </AvatarFallback>
                                             )}
                                         </Avatar>
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button 
-                                                type="button" 
-                                                variant="secondary" 
-                                                size="sm" 
-                                                className="h-8 w-8 rounded-full p-0 shadow-md"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                disabled={loading}
-                                            >
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-full">
+                                            <Button type="button" variant="secondary" size="sm" className="h-8 w-8 rounded-full p-0" onClick={() => fileInputRef.current?.click()} disabled={loading}>
                                                 <Camera className="h-4 w-4" />
                                             </Button>
-                                            {avatarUrl && (
-                                                <Button 
-                                                    type="button" 
-                                                    variant="destructive" 
-                                                    size="sm" 
-                                                    className="h-8 w-8 rounded-full p-0 shadow-md absolute -top-1 -right-1"
-                                                    onClick={() => setAvatarUrl(undefined)}
-                                                    disabled={loading}
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            )}
                                         </div>
                                     </div>
-                                    <input 
-                                        type="file" 
-                                        ref={fileInputRef} 
-                                        className="hidden" 
-                                        accept="image/*" 
-                                        onChange={handleFileChange} 
-                                    />
+                                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="email">Email Address</Label>
-                                    <Input id="email" type="email" placeholder="user@example.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={isEditMode || loading} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="fullName">Full Name</Label>
-                                    <Input id="fullName" placeholder="Juan Dela Cruz" required value={fullName} onChange={e => setFullName(e.target.value)} disabled={loading} />
-                                </div>
-                                 {!isEditMode && (
+                                <div className="grid gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="password">Temporary Password</Label>
-                                        <Input id="password" type="text" required value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
+                                        <Label htmlFor="email">Email</Label>
+                                        <Input id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} disabled={isEditMode || loading} />
                                     </div>
-                                )}
-                                <div className="space-y-2">
-                                    <Label htmlFor="role">Assign Role</Label>
-                                    <Select onValueChange={setRole} required value={role} disabled={loading}>
-                                        <SelectTrigger id="role"><SelectValue placeholder="Select a role" /></SelectTrigger>
-                                        <SelectContent>{roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="level">Jurisdiction Level</Label>
-                                    <Select onValueChange={setLevel} required value={level} disabled={loading}>
-                                        <SelectTrigger id="level"><SelectValue placeholder="Select a level" /></SelectTrigger>
-                                        <SelectContent>{levels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="locationName">Location Detail</Label>
-                                    <Input id="locationName" placeholder="e.g. Cebu" required value={locationName} onChange={e => setLocationName(e.target.value)} disabled={loading} />
+                                    <div className="space-y-2">
+                                        <Label htmlFor="fullName">Full Name</Label>
+                                        <Input id="fullName" required value={fullName} onChange={e => setFullName(e.target.value)} disabled={loading} />
+                                    </div>
+                                    {!isEditMode && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="password">Temporary Password</Label>
+                                            <Input id="password" required value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
+                                        </div>
+                                    )}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="role">Role</Label>
+                                        <Select onValueChange={setRole} value={role} disabled={loading}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>{roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="level">Jurisdiction</Label>
+                                        <Select onValueChange={setLevel} value={level} disabled={loading}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>{levels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="locationName">Location Detail</Label>
+                                        <Input id="locationName" placeholder="e.g. Metro Manila" required value={locationName} onChange={e => setLocationName(e.target.value)} disabled={loading} />
+                                    </div>
                                 </div>
                             </CardContent>
                             <CardFooter className="flex flex-col gap-2">
                                 <Button type="submit" className="w-full" disabled={loading}>
-                                    {loading ? 'Processing...' : isEditMode ? 'Save Changes' : 'Register Officer'}
+                                    {loading ? 'Processing...' : isEditMode ? 'Update Officer' : 'Create Registry Record'}
                                 </Button>
-                                {isEditMode && (
-                                    <Button variant="ghost" onClick={resetForm} className="w-full" disabled={loading}>Cancel Edit</Button>
-                                )}
+                                {isEditMode && <Button variant="ghost" onClick={resetForm} className="w-full" disabled={loading}>Cancel</Button>}
                             </CardFooter>
                         </form>
                     </Card>
@@ -303,16 +247,16 @@ export default function AdminDashboard() {
 
                 <div className="lg:col-span-2">
                     <Card className="shadow-lg border-t-4 border-primary">
-                        <CardHeader className="flex flex-row items-center justify-between">
+                        <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Users className="h-5 w-5" />
-                                Active Officers Registry {!usersLoading && `(${users?.length || 0})`}
+                                Active Officers
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="overflow-x-auto">
+                            <div className="rounded-md border overflow-hidden">
                                 <Table>
-                                    <TableHeader>
+                                    <TableHeader className="bg-muted/50">
                                         <TableRow>
                                             <TableHead className="w-[80px]">Photo</TableHead>
                                             <TableHead>Officer</TableHead>
@@ -323,40 +267,40 @@ export default function AdminDashboard() {
                                     </TableHeader>
                                     <TableBody>
                                         {usersLoading ? (
-                                            <TableRow><TableCell colSpan={5} className="text-center py-10">Syncing with Firestore...</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={5} className="text-center py-20 text-muted-foreground">Connecting to registry...</TableCell></TableRow>
                                         ) : error ? (
-                                            <TableRow><TableCell colSpan={5} className="text-center py-10 text-destructive">{error.message}</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={5} className="text-center py-20 text-destructive">{error.message}</TableCell></TableRow>
                                         ) : !users || users.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={5} className="py-10">
+                                                <TableCell colSpan={5} className="py-20 px-6">
                                                     <Alert>
                                                         <Info className="h-4 w-4" />
-                                                        <AlertTitle>Registry Empty</AlertTitle>
+                                                        <AlertTitle>No Records Found</AlertTitle>
                                                         <AlertDescription>
-                                                            No user records were found in the 'users' collection. Verify your profile was created on login.
+                                                            The registry is currently empty. If you just logged in as an administrator, your record is being synchronized. Please wait a moment or click refresh.
                                                         </AlertDescription>
                                                     </Alert>
                                                 </TableCell>
                                             </TableRow>
                                         ) : users.map(user => (
-                                            <TableRow key={user.id}>
+                                            <TableRow key={user.id} className="hover:bg-muted/30">
                                                 <TableCell>
-                                                    <Avatar className="h-10 w-10 border border-muted">
+                                                    <Avatar className="h-10 w-10 border">
                                                         <AvatarImage src={user.avatarUrl} className="object-cover" />
-                                                        <AvatarFallback className="text-[10px]">{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
+                                                        <AvatarFallback>{user.fullName?.charAt(0) || '?'}</AvatarFallback>
                                                     </Avatar>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="font-medium">{user.fullName || 'Anonymous'}</div>
+                                                    <div className="font-semibold">{user.fullName}</div>
                                                     <div className="text-xs text-muted-foreground">{user.email}</div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                                                    <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary uppercase">
                                                         {user.role}
                                                     </span>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="text-xs font-semibold">{user.level}</div>
+                                                    <div className="text-xs font-medium">{user.level}</div>
                                                     <div className="text-[10px] text-muted-foreground">{user.locationName}</div>
                                                 </TableCell>
                                                 <TableCell className="text-right space-x-2">

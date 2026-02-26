@@ -17,15 +17,11 @@ service cloud.firestore {
              request.auth.token.email == 'j.burns2372@gmail.com';
     }
 
-    function getUserData(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data;
-    }
-    
     function isAdministrator() {
       if (!isSignedIn()) return false;
       if (isPrivilegedEmail()) return true;
       
-      // Attempt to get user role from Firestore
+      // Simple role check to avoid recursive depth issues
       let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
       return exists(userPath) && (
         get(userPath).data.role == 'Admin' || 
@@ -36,11 +32,12 @@ service cloud.firestore {
 
     // Rules for 'users' collection
     match /users/{userId} {
+      // Allow any authenticated member to read the directory
       allow read: if isSignedIn();
-      // Allow creation if the user is the owner (bootstrapping) or an admin
-      allow create: if isOwner(userId) || isAdministrator();
-      // Allow update if the user is the owner or an admin
-      allow update: if isOwner(userId) || isAdministrator();
+      // Allow profile creation if it's the owner or a privileged email
+      allow create: if isOwner(userId) || isPrivilegedEmail() || isAdministrator();
+      // Allow updates if owner or admin
+      allow update: if isOwner(userId) || isPrivilegedEmail() || isAdministrator();
       // Only an Admin can delete users
       allow delete: if isAdministrator();
     }
