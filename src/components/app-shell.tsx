@@ -25,74 +25,73 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const fetchOrCreateUser = async () => {
-        if (user) {
-            setUserDataLoading(true);
-            try {
-                // "God Mode" script to auto-grant rights before fetching
-                if (user.email === 'iamgrecobelgica@gmail.com') {
-                    const userDocRefGod = doc(firestore, "users", user.uid);
-                    await setDoc(userDocRefGod, { role: "President", level: "National" }, { merge: true });
-                }
-
-                // 1. Try to fetch by UID
-                const docRef = doc(firestore, "users", user.uid);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    setUserData({ id: docSnap.id, ...docSnap.data() });
-                } else {
-                    // 2. Not found by UID, try by email
-                    const q = query(collection(firestore, 'users'), where('email', '==', user.email));
-                    const querySnapshot = await getDocs(q);
-
-                    if (!querySnapshot.empty) {
-                        // Found by email - this is an edge case. For now, use its data.
-                        const userDoc = querySnapshot.docs[0];
-                        setUserData({ id: userDoc.id, ...userDoc.data() });
-                    } else {
-                        // 3. CRITICAL FALLBACK: Create profile
-                        const newUserProfile = {
-                            uid: user.uid,
-                            email: user.email,
-                            fullName: user.displayName || user.email || '',
-                            role: 'Member',
-                            level: 'National',
-                            kartilyaAgreed: false,
-                            passwordIsTemporary: false,
-                            locationName: '',
-                            createdAt: serverTimestamp(),
-                        };
-                        await setDoc(doc(firestore, "users", user.uid), newUserProfile);
-                        setUserData({ id: user.uid, ...newUserProfile });
-                    }
-                }
-            } catch (error) {
-                console.warn("Firestore blocked by environment, using fallback.", error);
-                
-                // Default fallback profile
-                const fallbackProfile: UserProfile = {
-                    uid: user.uid,
-                    email: user.email,
-                    fullName: user.displayName || user.email || '',
-                    role: 'Member', // Safest default
-                    level: 'National',
-                    isFallback: true
-                };
-    
-                // Provide elevated roles for specific demo accounts to allow testing.
-                if (user.email === 'iamgrecobelgica@gmail.com') {
-                    fallbackProfile.role = 'President';
-                } else if (user.email === 'j.burns2372@gmail.com') {
-                    fallbackProfile.role = 'System Admin';
-                }
-                
-                setUserData(fallbackProfile);
-            } finally {
+        if (!user) {
+            if (!userLoading) {
+                setUserData(null);
                 setUserDataLoading(false);
             }
-        } else if (!userLoading) {
-            // No user is logged in
-            setUserData(null);
+            return;
+        }
+
+        setUserDataLoading(true);
+        try {
+            // 1. Try to fetch by UID directly (Fastest path)
+            const docRef = doc(firestore, "users", user.uid);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setUserData({ id: docSnap.id, ...data });
+                
+                // One-time update for President role if needed, but only if not already set
+                if (user.email === 'iamgrecobelgica@gmail.com' && data.role !== 'President') {
+                    await setDoc(docRef, { role: "President", level: "National" }, { merge: true });
+                    setUserData(prev => prev ? { ...prev, role: "President", level: "National" } : null);
+                }
+            } else {
+                // 2. Not found by UID, try by email to link legacy records
+                const q = query(collection(firestore, 'users'), where('email', '==', user.email));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const userDoc = querySnapshot.docs[0];
+                    setUserData({ id: userDoc.id, ...userDoc.data() });
+                } else {
+                    // 3. Fallback: Create new profile
+                    const newUserProfile = {
+                        uid: user.uid,
+                        email: user.email,
+                        fullName: user.displayName || user.email || '',
+                        role: 'Member',
+                        level: 'National',
+                        kartilyaAgreed: false,
+                        passwordIsTemporary: false,
+                        locationName: '',
+                        createdAt: serverTimestamp(),
+                    };
+                    
+                    if (user.email === 'iamgrecobelgica@gmail.com') {
+                        newUserProfile.role = 'President';
+                    }
+
+                    await setDoc(doc(firestore, "users", user.uid), newUserProfile);
+                    setUserData({ id: user.uid, ...newUserProfile });
+                }
+            }
+        } catch (error) {
+            console.warn("Firestore fetch error, using fallback state.", error);
+            
+            const fallbackProfile: UserProfile = {
+                uid: user.uid,
+                email: user.email,
+                fullName: user.displayName || user.email || '',
+                role: user.email === 'iamgrecobelgica@gmail.com' ? 'President' : 
+                      user.email === 'j.burns2372@gmail.com' ? 'System Admin' : 'Member',
+                level: 'National',
+                isFallback: true
+            };
+            setUserData(fallbackProfile);
+        } finally {
             setUserDataLoading(false);
         }
     };
@@ -103,13 +102,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const loading = !isClient || userLoading || userDataLoading;
 
   useEffect(() => {
-      // This acts as a guard for all pages under the (main) layout
       if (!loading && !user) {
           router.push('/login');
       }
   }, [loading, user, router]);
 
-  // While loading or if no user is authenticated, show a full-page skeleton.
   if (loading || !user) {
     return (
       <div className="flex h-screen w-full">
@@ -140,7 +137,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
   
-  // Once loaded, provide the data to all child components.
   const contextValue: UserDataContextType = {
       user,
       userData,
