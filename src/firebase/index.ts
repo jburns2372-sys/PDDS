@@ -23,10 +23,11 @@ function initializeFirebase() {
   let firestore;
 
   if (!getApps().length) {
-    // First time load: Initialize App and Firestore with standard defaults for speed
+    // First time load: Initialize App and Firestore with workstation-compatible settings
     app = initializeApp(firebaseConfig);
     firestore = initializeFirestore(app, {
-      localCache: memoryLocalCache()
+      localCache: memoryLocalCache(),
+      experimentalForceLongPolling: true // Required for stable connectivity in some cloud environments
     });
   } else {
     // Hot reload: Use existing App and existing Firestore instance

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -69,10 +70,11 @@ export function useCollection<T extends DocumentData>(
         );
         setData(docs);
         setLoading(false);
+        setError(null);
       },
       async (err) => {
         const permissionError = new FirestorePermissionError({
-          path: (memoizedQuery as any)._path.segments.join('/'),
+          path: path,
           operation: 'list',
         } satisfies SecurityRuleContext);
 
@@ -83,7 +85,7 @@ export function useCollection<T extends DocumentData>(
     );
 
     return () => unsubscribe();
-  }, [memoizedQuery]);
+  }, [memoizedQuery, path]);
 
   return { data, loading, error };
 }
