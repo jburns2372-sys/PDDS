@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -8,7 +9,7 @@ import { Skeleton } from "./ui/skeleton";
 import { useUser, useFirestore } from "@/firebase";
 import { UserDataContext, UserDataContextType, UserProfile } from "@/context/user-data-context";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -35,62 +36,40 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         setUserDataLoading(true);
         try {
-            // 1. Try to fetch by UID directly (Fastest path)
+            // Directly attempt to fetch by UID - this is the most efficient path
             const docRef = doc(firestore, "users", user.uid);
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
-                const data = docSnap.data();
-                setUserData({ id: docSnap.id, ...data });
-                
-                // One-time update for President role if needed, but only if not already set
-                if (user.email === 'iamgrecobelgica@gmail.com' && data.role !== 'President') {
-                    await setDoc(docRef, { role: "President", level: "National" }, { merge: true });
-                    setUserData(prev => prev ? { ...prev, role: "President", level: "National" } : null);
-                }
+                setUserData({ id: docSnap.id, ...docSnap.data() });
             } else {
-                // 2. Not found by UID, try by email to link legacy records
-                const q = query(collection(firestore, 'users'), where('email', '==', user.email));
-                const querySnapshot = await getDocs(q);
+                // Not found: Create new profile immediately without searching by email
+                // to save a database round-trip.
+                const newUserProfile = {
+                    uid: user.uid,
+                    email: user.email,
+                    fullName: user.displayName || user.email || '',
+                    role: user.email === 'iamgrecobelgica@gmail.com' ? 'President' : 'Member',
+                    level: 'National',
+                    kartilyaAgreed: false,
+                    passwordIsTemporary: false,
+                    locationName: '',
+                    createdAt: serverTimestamp(),
+                };
 
-                if (!querySnapshot.empty) {
-                    const userDoc = querySnapshot.docs[0];
-                    setUserData({ id: userDoc.id, ...userDoc.data() });
-                } else {
-                    // 3. Fallback: Create new profile
-                    const newUserProfile = {
-                        uid: user.uid,
-                        email: user.email,
-                        fullName: user.displayName || user.email || '',
-                        role: 'Member',
-                        level: 'National',
-                        kartilyaAgreed: false,
-                        passwordIsTemporary: false,
-                        locationName: '',
-                        createdAt: serverTimestamp(),
-                    };
-                    
-                    if (user.email === 'iamgrecobelgica@gmail.com') {
-                        newUserProfile.role = 'President';
-                    }
-
-                    await setDoc(doc(firestore, "users", user.uid), newUserProfile);
-                    setUserData({ id: user.uid, ...newUserProfile });
-                }
+                await setDoc(docRef, newUserProfile);
+                setUserData({ id: user.uid, ...newUserProfile });
             }
         } catch (error) {
             console.warn("Firestore fetch error, using fallback state.", error);
-            
-            const fallbackProfile: UserProfile = {
+            setUserData({
                 uid: user.uid,
                 email: user.email,
                 fullName: user.displayName || user.email || '',
-                role: user.email === 'iamgrecobelgica@gmail.com' ? 'President' : 
-                      user.email === 'j.burns2372@gmail.com' ? 'System Admin' : 'Member',
+                role: 'Member',
                 level: 'National',
                 isFallback: true
-            };
-            setUserData(fallbackProfile);
+            });
         } finally {
             setUserDataLoading(false);
         }

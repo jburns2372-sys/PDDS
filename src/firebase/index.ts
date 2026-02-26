@@ -1,3 +1,4 @@
+
 "use client";
 
 import { initializeApp, getApps, getApp, FirebaseApp, deleteApp } from "firebase/app";
@@ -22,11 +23,10 @@ function initializeFirebase() {
   let firestore;
 
   if (!getApps().length) {
-    // First time load: Initialize App and Firestore with custom Workstation rules
+    // First time load: Initialize App and Firestore with standard defaults for speed
     app = initializeApp(firebaseConfig);
     firestore = initializeFirestore(app, {
-      localCache: memoryLocalCache(),
-      experimentalForceLongPolling: true
+      localCache: memoryLocalCache()
     });
   } else {
     // Hot reload: Use existing App and existing Firestore instance
