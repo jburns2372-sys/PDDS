@@ -23,13 +23,21 @@ const roles = [
   "Secretary General", "Treasurer", "Auditor", "VP Ways & Means", "VP Media Comms", 
   "VP Soc Med Comms", "VP Events and Programs", "VP Membership", "VP Legal Affairs"
 ];
+
+const pddsLeadershipRoles = [
+  "President", "Chairman", "Vice Chairman", "Vice President", 
+  "Secretary General", "Treasurer", "Auditor", "VP Ways & Means", 
+  "VP Media Comms", "VP Soc Med Comms", "VP Events and Programs", 
+  "VP Membership", "VP Legal Affairs"
+];
+
 const levels = ["National", "Regional", "Provincial", "City/Municipal", "Barangay"];
 
 export default function AdminDashboard() {
     const firestore = useFirestore();
     const { toast } = useToast();
     
-    // Real-time Firestore listener using the pre-built useCollection hook (wraps onSnapshot)
+    // 1. Real-time Firestore listener using the pre-built useCollection hook (which wraps onSnapshot)
     const { data: allUsers, loading: usersLoading, error } = useCollection<UserProfile>('users');
 
     const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -46,11 +54,10 @@ export default function AdminDashboard() {
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Filter users: Only show those with an officer role (not just Member) or who are specifically approved
+    // 4. Filter users: Only show those with valid PDDS leadership roles or approved status
     const activeOfficers = useMemo(() => {
         return allUsers.filter(u => 
-            (u.role && u.role !== "Member") || 
-            u.kartilyaAgreed === true || 
+            pddsLeadershipRoles.includes(u.role) || 
             u.isApproved === true
         );
     }, [allUsers]);
@@ -117,7 +124,7 @@ export default function AdminDashboard() {
             level, 
             locationName, 
             avatarUrl: avatarUrl || null,
-            isApproved: true, // Officers created by admin are auto-approved
+            isApproved: true,
             kartilyaAgreed: true
         };
 
@@ -145,6 +152,7 @@ export default function AdminDashboard() {
                 const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
                 const user = userCredential.user;
                 
+                // 2. Ensuring creation date is set for ordering
                 await createUserDocument(firestore, user.uid, {
                     uid: user.uid,
                     fullName,
