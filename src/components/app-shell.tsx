@@ -39,17 +39,23 @@ export function AppShell({ children }: { children: ReactNode }) {
             const docRef = doc(firestore, "users", user.uid);
             const docSnap = await getDoc(docRef);
 
+            const isPresident = user.email === 'iamgrecobelgica@gmail.com';
+
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setUserData({ id: docSnap.id, ...data });
                 
-                // Extra check: Ensure President email always has correct role if data is stale
-                if (user.email === 'iamgrecobelgica@gmail.com' && data.role !== 'President') {
-                    await setDoc(docRef, { role: 'President' }, { merge: true });
-                    setUserData({ id: docSnap.id, ...data, role: 'President' });
+                // Ensure President email always has correct role and permissions
+                if (isPresident && (data.role !== 'President' || !data.kartilyaAgreed)) {
+                    const update = { 
+                        role: 'President', 
+                        level: 'National',
+                        kartilyaAgreed: true 
+                    };
+                    await setDoc(docRef, update, { merge: true });
+                    setUserData({ id: docSnap.id, ...data, ...update });
                 }
             } else {
-                const isPresident = user.email === 'iamgrecobelgica@gmail.com';
                 const newUserProfile = {
                     uid: user.uid,
                     email: user.email || '',

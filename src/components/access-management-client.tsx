@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -37,7 +38,7 @@ function UserRow({ user, onSave, onRevoke }: { user: UserProfile, onSave: (u: Us
   return (
     <TableRow>
       <TableCell>
-        <div className="font-medium">{user.fullName}</div>
+        <div className="font-medium">{user.fullName || 'Anonymous'}</div>
         <div className="text-sm text-muted-foreground">{user.email}</div>
       </TableCell>
       <TableCell>
@@ -86,8 +87,8 @@ export function AccessManagementClient() {
 
   const filteredUsers = useMemo(() => {
     return users.filter(user =>
-      user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      (user.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [users, searchTerm]);
 
@@ -95,17 +96,15 @@ export function AccessManagementClient() {
     try {
       const { id, ...dataToUpdate } = userToSave;
       await updateUserDocument(firestore, id, dataToUpdate);
-      toast({ title: "User Updated", description: `${userToSave.fullName}'s profile has been updated.` });
+      toast({ title: "User Updated", description: `${userToSave.fullName || userToSave.email}'s profile has been updated.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Update Failed", description: e.message });
     }
   };
 
   const handleRevokeAccess = async (userToRevoke: UserProfile) => {
-    // In a real app, this would likely involve disabling the user in Firebase Auth
-    // and/or deleting their user document. For now, we'll just show a toast.
     console.log("Revoking access for", userToRevoke);
-    toast({ variant: "destructive", title: "Access Revoked (Simulated)", description: `Access for ${userToRevoke.fullName} has been revoked.` });
+    toast({ variant: "destructive", title: "Access Revoked (Simulated)", description: `Access for ${userToRevoke.fullName || userToRevoke.email} has been revoked.` });
   };
   
   if (loading) {
@@ -125,15 +124,20 @@ export function AccessManagementClient() {
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search members by name or email..."
-          className="pl-8 w-full md:w-1/3"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="flex items-center justify-between">
+          <div className="relative w-full md:w-1/3">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search members by name or email..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="text-sm font-medium text-muted-foreground">
+            Total Members: {users.length}
+          </div>
       </div>
       <Card>
         <Table>
@@ -148,7 +152,13 @@ export function AccessManagementClient() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.map(user => (
+            {filteredUsers.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                        No members found.
+                    </TableCell>
+                </TableRow>
+            ) : filteredUsers.map(user => (
               <UserRow key={user.id} user={user} onSave={handleSaveUser} onRevoke={handleRevokeAccess} />
             ))}
           </TableBody>

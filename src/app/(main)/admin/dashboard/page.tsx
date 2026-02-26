@@ -12,9 +12,10 @@ import { useCollection, useFirestore, createTemporaryApp, deleteTemporaryApp } f
 import { useToast } from "@/hooks/use-toast";
 import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { Shield, UserPlus, Users } from "lucide-react";
+import { Shield, UserPlus, Users, Info } from "lucide-react";
 import type { UserProfile } from "@/context/user-data-context";
 import { serverTimestamp } from "firebase/firestore";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const roles = [
   "Member", "Admin", "Chairman", "Vice Chairman", "President", "Vice President", 
@@ -22,7 +23,6 @@ const roles = [
   "VP Soc Med Comms", "VP Events and Programs", "VP Membership", "VP Legal Affairs"
 ];
 const levels = ["National", "Regional", "Provincial", "City/Municipal", "Barangay"];
-
 
 export default function AdminDashboard() {
     const firestore = useFirestore();
@@ -64,7 +64,7 @@ export default function AdminDashboard() {
     }
 
     const handleRevoke = async (user: UserProfile) => {
-        if (!confirm(`Are you sure you want to revoke access for ${user.fullName}? This will permanently delete their user record. This action cannot be undone.`)) {
+        if (!confirm(`Are you sure you want to revoke access for ${user.fullName || user.email}? This will permanently delete their user record. This action cannot be undone.`)) {
             return;
         }
         setLoading(true);
@@ -72,7 +72,7 @@ export default function AdminDashboard() {
             await deleteUserDocument(firestore, user.id);
             toast({
                 title: "User Record Deleted",
-                description: `Access for ${user.fullName} has been revoked.`,
+                description: `Access for ${user.fullName || user.email} has been revoked.`,
             });
         } catch (error: any) {
              toast({
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle className="flex items-center gap-2">
                                 <Users className="h-5 w-5" />
-                                Active Officers Registry
+                                Active Officers Registry {!usersLoading && `(${users.length})`}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -253,11 +253,21 @@ export default function AdminDashboard() {
                                         ) : error ? (
                                             <TableRow><TableCell colSpan={5} className="text-center py-10 text-destructive">{error.message}</TableCell></TableRow>
                                         ) : users.length === 0 ? (
-                                            <TableRow><TableCell colSpan={5} className="text-center py-10 text-muted-foreground">No officers found in the registry.</TableCell></TableRow>
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="py-10">
+                                                    <Alert>
+                                                        <Info className="h-4 w-4" />
+                                                        <AlertTitle>No Records Found</AlertTitle>
+                                                        <AlertDescription>
+                                                            The Firestore 'users' collection is currently empty or records haven't been created yet. Note: Users added in the Firebase Console Auth tab will not appear here until their Firestore profile is created (either by logging in or via the form on the left).
+                                                        </AlertDescription>
+                                                    </Alert>
+                                                </TableCell>
+                                            </TableRow>
                                         ) : users.map(user => (
                                             <TableRow key={user.id}>
                                                 <TableCell>
-                                                    <div className="font-medium">{user.fullName}</div>
+                                                    <div className="font-medium">{user.fullName || 'Anonymous Member'}</div>
                                                     <div className="text-xs text-muted-foreground">{user.email}</div>
                                                 </TableCell>
                                                 <TableCell>
