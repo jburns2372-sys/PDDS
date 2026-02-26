@@ -29,7 +29,8 @@ export function DesktopSidebar() {
     userRole === 'President' || 
     userRole === 'Admin' || 
     userRole === 'System Admin' ||
-    userEmail === 'iamgrecobelgica@gmail.com'
+    userEmail === 'iamgrecobelgica@gmail.com' ||
+    userEmail === 'j.burns2372@gmail.com'
   );
   
   return (

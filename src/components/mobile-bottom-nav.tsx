@@ -32,7 +32,8 @@ export function MobileBottomNav() {
     userRole === 'President' || 
     userRole === 'Admin' || 
     userRole === 'System Admin' ||
-    userEmail === 'iamgrecobelgica@gmail.com'
+    userEmail === 'iamgrecobelgica@gmail.com' ||
+    userEmail === 'j.burns2372@gmail.com'
   );
   
   const visibleNavItems = [...baseNavItems];

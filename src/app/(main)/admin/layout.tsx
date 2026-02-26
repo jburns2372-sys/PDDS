@@ -17,7 +17,8 @@ export default function AdminLayout({
     userData?.role === 'Admin' || 
     userData?.role === 'President' || 
     userData?.role === 'System Admin' || 
-    user?.email === 'iamgrecobelgica@gmail.com';
+    user?.email === 'iamgrecobelgica@gmail.com' ||
+    user?.email === 'j.burns2372@gmail.com';
 
   useEffect(() => {
     if (!loading && !isAuthorized) {

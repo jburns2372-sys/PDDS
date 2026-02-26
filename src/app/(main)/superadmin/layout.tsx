@@ -13,7 +13,9 @@ export default function SuperAdminLayout({
   const { user, userData, loading } = useUserData();
   const router = useRouter();
 
-  const isAuthorizedEmail = user?.email === 'iamgrecobelgica@gmail.com' || user?.email === 'j.burns2372@gmail.com';
+  const isAuthorizedEmail = 
+    user?.email === 'iamgrecobelgica@gmail.com' || 
+    user?.email === 'j.burns2372@gmail.com';
 
   const isSuperAdmin = isAuthorizedEmail || (userData?.level === 'National' && (userData?.role === 'President' || userData?.role === 'System Admin'));
 
