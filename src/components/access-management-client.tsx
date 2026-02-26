@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -10,28 +9,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import type { UserProfile } from "@/context/user-data-context";
 import { Skeleton } from "./ui/skeleton";
 import { Card } from "./ui/card";
 
 const roles = [
-  "System Admin", "Admin", "Chairman", "Vice Chairman", "President", 
-  "Vice President", "Secretary General", "Treasurer", "Auditor", 
-  "VP Ways & Means", "VP Media Comms", "VP Soc Med Comms", "VP Events and Programs", 
-  "VP Membership", "VP Legal Affairs", "Member"
+  "President", "Chairman", "Vice Chairman", "VP", "Sec Gen", "Treasurer", "Auditor", 
+  "VP Ways & Means Chair", "VP Media Comms", "VP Soc Med Comms", "VP Events and Programs", 
+  "VP Membership", "VP legal affairs", "Member", "Admin", "System Admin"
 ];
 const levels = ["National", "Regional", "Provincial", "City/Municipal", "Barangay"];
 
 function UserRow({ user, onSave, onRevoke }: { user: UserProfile, onSave: (u: UserProfile) => void, onRevoke: (u: UserProfile) => void }) {
   const [role, setRole] = useState(user.role);
-  const [level, setLevel] = useState(user.level);
-  const [locationName, setLocationName] = useState(user.locationName);
+  const [jurisdictionLevel, setJurisdictionLevel] = useState(user.jurisdictionLevel || "National");
+  const [assignedLocation, setAssignedLocation] = useState(user.assignedLocation || "");
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
     setIsSaving(true);
-    await onSave({ ...user, role, level, locationName });
+    await onSave({ ...user, role, jurisdictionLevel, assignedLocation });
     setIsSaving(false);
   };
   
@@ -57,7 +55,7 @@ function UserRow({ user, onSave, onRevoke }: { user: UserProfile, onSave: (u: Us
         </Select>
       </TableCell>
       <TableCell>
-        <Select value={level} onValueChange={setLevel}>
+        <Select value={jurisdictionLevel} onValueChange={setJurisdictionLevel}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Select level" />
           </SelectTrigger>
@@ -67,11 +65,11 @@ function UserRow({ user, onSave, onRevoke }: { user: UserProfile, onSave: (u: Us
         </Select>
       </TableCell>
       <TableCell>
-        <Input value={locationName || ''} onChange={(e) => setLocationName(e.target.value)} className="w-48" />
+        <Input value={assignedLocation} onChange={(e) => setAssignedLocation(e.target.value)} className="w-48" />
       </TableCell>
       <TableCell className="space-x-2">
         <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save"}
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
         </Button>
         <Button variant="destructive" onClick={() => onRevoke(user)}>Revoke</Button>
       </TableCell>
@@ -86,7 +84,7 @@ export function AccessManagementClient() {
   const { toast } = useToast();
 
   const filteredUsers = useMemo(() => {
-    return users.filter(user =>
+    return (users || []).filter(user =>
       (user.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -136,7 +134,7 @@ export function AccessManagementClient() {
             />
           </div>
           <div className="text-sm font-medium text-muted-foreground">
-            Total Members: {users.length}
+            Total Members: {users?.length || 0}
           </div>
       </div>
       <Card>

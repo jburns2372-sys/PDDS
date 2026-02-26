@@ -45,11 +45,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                 const data = docSnap.data();
                 setUserData({ id: docSnap.id, ...data });
                 
-                // Keep privileged status updated
+                // Keep privileged status updated and sync schema
                 if (isPrivileged && (data.role !== 'President' || !data.kartilyaAgreed)) {
                     const update = { 
                         role: 'President', 
-                        level: 'National',
+                        jurisdictionLevel: 'National',
+                        assignedLocation: 'National Headquarters',
                         kartilyaAgreed: true 
                     };
                     await setDoc(docRef, update, { merge: true });
@@ -62,10 +63,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                     email: user.email || '',
                     fullName: user.displayName || user.email?.split('@')[0] || 'Member',
                     role: isPrivileged ? 'President' : 'Member',
-                    level: 'National',
+                    jurisdictionLevel: 'National',
+                    assignedLocation: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
+                    photoURL: null,
                     kartilyaAgreed: isPrivileged, 
                     passwordIsTemporary: false,
-                    locationName: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
                     createdAt: serverTimestamp(),
                 };
 
@@ -79,7 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 email: user.email || '',
                 fullName: 'Authenticated Member',
                 role: 'Member',
-                level: 'National',
+                jurisdictionLevel: 'National',
                 isFallback: true
             });
         } finally {

@@ -13,23 +13,21 @@ import { useCollection, useFirestore, createTemporaryApp, deleteTemporaryApp } f
 import { useToast } from "@/hooks/use-toast";
 import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { Shield, UserPlus, Users, Info, Camera, RefreshCw, Pencil, Trash2 } from "lucide-react";
+import { Shield, UserPlus, Users, Info, Camera, RefreshCw, Pencil, Trash2, Loader2 } from "lucide-react";
 import type { UserProfile } from "@/context/user-data-context";
 import { serverTimestamp } from "firebase/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const roles = [
-  "Member", "Admin", "System Admin", "Chairman", "Vice Chairman", "President", "Vice President", 
-  "Secretary General", "Treasurer", "Auditor", "VP Ways & Means", "VP Media Comms", 
-  "VP Soc Med Comms", "VP Events and Programs", "VP Membership", "VP Legal Affairs"
+  "President", "Chairman", "Vice Chairman", "VP", "Sec Gen", "Treasurer", "Auditor", 
+  "VP Ways & Means Chair", "VP Media Comms", "VP Soc Med Comms", "VP Events and Programs", 
+  "VP Membership", "VP legal affairs", "Member", "Admin", "System Admin"
 ];
 
-// The 13 PDDS Leadership Roles + Admin roles to ensure visibility
 const pddsLeadershipRoles = [
-  "President", "Chairman", "Vice Chairman", "Vice President", 
-  "Secretary General", "Treasurer", "Auditor", "VP Ways & Means", 
-  "VP Media Comms", "VP Soc Med Comms", "VP Events and Programs", 
-  "VP Membership", "VP Legal Affairs", "Admin", "System Admin"
+  'President', 'Chairman', 'Vice Chairman', 'VP', 'Sec Gen', 'Treasurer', 'Auditor', 
+  'VP Ways & Means Chair', 'VP Media Comms', 'VP Soc Med Comms', 'VP Events and Programs', 
+  'VP Membership', 'VP legal affairs', 'Admin', 'System Admin'
 ];
 
 const levels = ["National", "Regional", "Provincial", "City/Municipal", "Barangay"];
@@ -38,7 +36,7 @@ export default function AdminDashboard() {
     const firestore = useFirestore();
     const { toast } = useToast();
     
-    // Real-time Firestore listener using the pre-built useCollection hook (wraps onSnapshot)
+    // Real-time Firestore listener (wraps onSnapshot)
     const { data: allUsers, loading: usersLoading, error } = useCollection<UserProfile>('users');
 
     const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -48,20 +46,18 @@ export default function AdminDashboard() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [role, setRole] = useState("Member");
-    const [level, setLevel] = useState("National");
-    const [locationName, setLocationName] = useState("");
-    const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+    const [jurisdictionLevel, setJurisdictionLevel] = useState("National");
+    const [assignedLocation, setAssignedLocation] = useState("");
+    const [photoURL, setPhotoURL] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Filtering logic: Includes all leadership roles and approved users, sorted by creation date
+    // Filter: Include all PDDS leadership roles
     const activeOfficers = useMemo(() => {
+        if (!allUsers) return [];
         return allUsers
-            .filter(u => 
-                pddsLeadershipRoles.includes(u.role) || 
-                u.isApproved === true
-            )
+            .filter(u => pddsLeadershipRoles.includes(u.role))
             .sort((a, b) => {
                 const dateA = a.createdAt?.seconds || 0;
                 const dateB = b.createdAt?.seconds || 0;
@@ -76,9 +72,9 @@ export default function AdminDashboard() {
         setEmail("");
         setPassword("");
         setRole("Member");
-        setLevel("National");
-        setLocationName("");
-        setAvatarUrl(undefined);
+        setJurisdictionLevel("National");
+        setAssignedLocation("");
+        setPhotoURL(null);
     }
 
     const handleEditClick = (user: UserProfile) => {
@@ -87,9 +83,9 @@ export default function AdminDashboard() {
         setFullName(user.fullName || "");
         setEmail(user.email || "");
         setRole(user.role || "Member");
-        setLevel(user.level || "National");
-        setLocationName(user.locationName || "");
-        setAvatarUrl(user.avatarUrl);
+        setJurisdictionLevel(user.jurisdictionLevel || "National");
+        setAssignedLocation(user.assignedLocation || "");
+        setPhotoURL(user.photoURL || null);
         setPassword("");
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -102,7 +98,7 @@ export default function AdminDashboard() {
                 return;
             }
             const reader = new FileReader();
-            reader.onloadend = () => setAvatarUrl(reader.result as string);
+            reader.onloadend = () => setPhotoURL(reader.result as string);
             reader.readAsDataURL(file);
         }
     }
@@ -128,9 +124,9 @@ export default function AdminDashboard() {
             fullName, 
             email, 
             role, 
-            level, 
-            locationName, 
-            avatarUrl: avatarUrl || null,
+            jurisdictionLevel, 
+            assignedLocation, 
+            photoURL: photoURL || null,
             isApproved: true,
             kartilyaAgreed: true
         };
@@ -164,9 +160,9 @@ export default function AdminDashboard() {
                     fullName,
                     email,
                     role,
-                    level,
-                    locationName,
-                    avatarUrl: avatarUrl || undefined,
+                    jurisdictionLevel,
+                    assignedLocation,
+                    photoURL: photoURL || undefined,
                     isApproved: true,
                     kartilyaAgreed: true,
                     passwordIsTemporary: true,
@@ -197,7 +193,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-2">
                     <Badge variant="outline" className="h-10 px-4 bg-white shadow-sm border-primary/20 flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{activeOfficers.length} Active Officers</span>
+                        <span className="font-semibold">{activeOfficers.length} Records</span>
                     </Badge>
                     <Button variant="outline" size="icon" onClick={() => window.location.reload()} title="Refresh Page" className="border-primary/20 hover:bg-primary/5">
                         <RefreshCw className="h-4 w-4 text-primary" />
@@ -219,8 +215,8 @@ export default function AdminDashboard() {
                                 <div className="flex flex-col items-center gap-4 py-4">
                                     <div className="relative group">
                                         <Avatar className="h-24 w-24 border-4 border-accent shadow-md">
-                                            {avatarUrl ? (
-                                                <AvatarImage src={avatarUrl} alt="Preview" className="object-cover" />
+                                            {photoURL ? (
+                                                <AvatarImage src={photoURL} alt="Preview" className="object-cover" />
                                             ) : (
                                                 <AvatarFallback className="bg-muted">
                                                     <Camera className="h-8 w-8 text-muted-foreground" />
@@ -259,15 +255,15 @@ export default function AdminDashboard() {
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="level">Jurisdiction Level</Label>
-                                        <Select onValueChange={setLevel} value={level} disabled={loading}>
+                                        <Label htmlFor="jurisdictionLevel">Jurisdiction Level</Label>
+                                        <Select onValueChange={setJurisdictionLevel} value={jurisdictionLevel} disabled={loading}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>{levels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="locationName">Assigned Location</Label>
-                                        <Input id="locationName" placeholder="e.g. Quezon City" required value={locationName} onChange={e => setLocationName(e.target.value)} disabled={loading} />
+                                        <Label htmlFor="assignedLocation">Assigned Location</Label>
+                                        <Input id="assignedLocation" placeholder="e.g. Quezon City" required value={assignedLocation} onChange={e => setAssignedLocation(e.target.value)} disabled={loading} />
                                     </div>
                                 </div>
                             </CardContent>
@@ -303,17 +299,22 @@ export default function AdminDashboard() {
                                     </TableHeader>
                                     <TableBody>
                                         {usersLoading ? (
-                                            <TableRow><TableCell colSpan={5} className="text-center py-20 text-muted-foreground">Syncing with PDDS database...</TableCell></TableRow>
-                                        ) : error ? (
-                                            <TableRow><TableCell colSpan={5} className="text-center py-20 text-destructive">{error.message}</TableCell></TableRow>
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                                        <span>Syncing Registry...</span>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
                                         ) : activeOfficers.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={5} className="py-20 px-6">
-                                                    <Alert>
+                                                <TableCell colSpan={5} className="py-20 px-6 text-center">
+                                                    <Alert className="max-w-md mx-auto">
                                                         <Info className="h-4 w-4" />
                                                         <AlertTitle>Registry Empty</AlertTitle>
                                                         <AlertDescription>
-                                                            No officer records match the filter. Start by creating a record in the sidebar.
+                                                            No records match the leadership filter.
                                                         </AlertDescription>
                                                     </Alert>
                                                 </TableCell>
@@ -322,12 +323,12 @@ export default function AdminDashboard() {
                                             <TableRow key={user.id} className="hover:bg-muted/30 transition-colors">
                                                 <TableCell>
                                                     <Avatar className="h-10 w-10 border shadow-sm">
-                                                        <AvatarImage src={user.avatarUrl} className="object-cover" />
+                                                        <AvatarImage src={user.photoURL} className="object-cover" />
                                                         <AvatarFallback className="bg-primary/10 text-primary font-bold">{user.fullName?.charAt(0) || '?'}</AvatarFallback>
                                                     </Avatar>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="font-semibold">{user.fullName}</div>
+                                                    <div className="font-semibold">{user.fullName || 'Unknown Officer'}</div>
                                                     <div className="text-xs text-muted-foreground">{user.email}</div>
                                                 </TableCell>
                                                 <TableCell>
@@ -336,8 +337,8 @@ export default function AdminDashboard() {
                                                     </span>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="text-xs font-medium">{user.level}</div>
-                                                    <div className="text-[10px] text-muted-foreground">{user.locationName}</div>
+                                                    <div className="text-xs font-medium">{user.jurisdictionLevel || 'National'}</div>
+                                                    <div className="text-[10px] text-muted-foreground">{user.assignedLocation || 'N/A'}</div>
                                                 </TableCell>
                                                 <TableCell className="text-right space-x-2">
                                                     <Button variant="outline" size="sm" onClick={() => handleEditClick(user)} disabled={loading} className="h-8 w-8 p-0" title="Edit Profile">
