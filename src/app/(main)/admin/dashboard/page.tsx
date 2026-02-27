@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -9,32 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useFirestore, useUser } from "@/firebase";
+import { useFirestore, useUser, createTemporaryApp, deleteTemporaryApp } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
+import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
 import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search } from "lucide-react";
-import { collection, onSnapshot, query, serverTimestamp } from "firebase/firestore";
-import { createTemporaryApp, deleteTemporaryApp } from "@/firebase";
+import { collection, onSnapshot, query, serverTimestamp, doc, setDoc } from "firebase/firestore";
 
-// Official 13 PDDS roles for Registry visibility (Standardized strings)
+// Strict role list as requested
 const pddsLeadershipRoles = [
-  'President', 
-  'Vice President',
-  'Chairman', 
-  'Vice Chairman', 
-  'Secretary General', 
-  'Treasurer', 
-  'Auditor', 
-  'VP Ways & Means', 
-  'VP Media Comms', 
-  'VP Soc Med Comms', 
-  'VP Events and Programs', 
-  'VP Membership', 
-  'VP Legal Affairs'
+  'President', 'Chairman', 'Vice Chairman', 'VP', 'Sec Gen', 'Treasurer', 'Auditor', 
+  'VP Ways & Means Chair', 'VP Media Comms', 'VP Soc Med Comms', 'VP Events and Programs', 
+  'VP Membership', 'VP legal affairs'
 ];
 
-// All roles available for assignment
 const allAssignableRoles = [
   ...pddsLeadershipRoles,
   "Member", "Admin", "System Admin"
@@ -66,10 +55,13 @@ export default function AdminDashboard() {
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Initial Sync & Real-time Listener
+    // Initial Sync & Real-time Listener (Simplified as requested)
     useEffect(() => {
-        const q = query(collection(firestore, 'users'));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        setUsersLoading(true);
+        const usersCollection = collection(firestore, 'users');
+        
+        // Listen to the entire collection to ensure 100% sync
+        const unsubscribe = onSnapshot(usersCollection, (snapshot) => {
             const users = snapshot.docs.map(doc => ({ 
                 id: doc.id, 
                 ...doc.data() 
@@ -80,17 +72,18 @@ export default function AdminDashboard() {
             console.error("Registry Sync Error:", err);
             setUsersLoading(false);
         });
+
         return () => unsubscribe();
     }, [firestore]);
 
-    // Filtering: Only official 13 PDDS roles.
+    // Filtering: Only requested roles. Admin/President are NOT hidden.
     const activeOfficers = useMemo(() => {
         return allUsers.filter(user => {
-            const isPoliticalOfficer = pddsLeadershipRoles.includes(user.role);
+            const hasPddsRole = pddsLeadershipRoles.includes(user.role);
             const matchesSearch = 
                 (user.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (user.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-            return isPoliticalOfficer && matchesSearch;
+            return hasPddsRole && matchesSearch;
         });
     }, [allUsers, searchTerm]);
 
@@ -99,12 +92,12 @@ export default function AdminDashboard() {
         setIsEditMode(false);
         setFullName("");
         setEmail("");
-        setPassword("");
-        setConfirmPassword("");
         setRole("Member");
         setLevel("National");
         setLocationName("");
         setPhotoURL(null);
+        setPassword("");
+        setConfirmPassword("");
     };
 
     const handleEditClick = (user: any) => {
@@ -154,13 +147,8 @@ export default function AdminDashboard() {
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Password matching validation
         if (password !== confirmPassword) {
-            toast({
-                variant: "destructive",
-                title: "Password Mismatch",
-                description: "The passwords you entered do not match."
-            });
+            toast({ variant: "destructive", title: "Password Mismatch", description: "Passwords do not match." });
             return;
         }
 
@@ -179,15 +167,11 @@ export default function AdminDashboard() {
 
         if (isEditMode && selectedUser) {
             try {
-                // If password is provided, we indicate it was changed
                 if (password) {
                     dataPayload.passwordIsTemporary = true;
-                    // Actual Auth update is limited to current user on client
                     if (selectedUser.id === currentUser?.uid) {
                         const auth = getAuth();
-                        if (auth.currentUser) {
-                            await updatePassword(auth.currentUser, password);
-                        }
+                        if (auth.currentUser) await updatePassword(auth.currentUser, password);
                     }
                 }
                 await updateUserDocument(firestore, selectedUser.id, dataPayload);
@@ -203,20 +187,24 @@ export default function AdminDashboard() {
             const tempAuth = getAuth(tempApp);
             try {
                 const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
-                await createUserDocument(firestore, userCredential.user.uid, {
-                    uid: userCredential.user.uid,
+                const uid = userCredential.user.uid;
+                
+                // CRITICAL: Writing to Firestore immediately after Auth creation
+                await setDoc(doc(firestore, 'users', uid), {
+                    uid: uid,
                     fullName,
                     email,
                     role,
                     level,
                     locationName,
-                    avatarUrl: photoURL || undefined,
+                    avatarUrl: photoURL || null,
                     kartilyaAgreed: true,
                     isApproved: true,
                     passwordIsTemporary: true,
                     createdAt: serverTimestamp(),
                 });
-                toast({ title: "Success", description: "New officer registered." });
+
+                toast({ title: "Success", description: "New officer registered in Auth and Firestore." });
                 resetForm();
             } catch (error: any) {
                 toast({ variant: "destructive", title: "Registration Error", description: error.message });
@@ -240,7 +228,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-2">
                     <Badge variant="outline" className="h-10 px-4 bg-white shadow-sm border-primary/20 flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{activeOfficers.length} Officers in Registry</span>
+                        <span className="font-semibold">{activeOfficers.length} Officers Online</span>
                     </Badge>
                 </div>
             </div>
@@ -375,7 +363,7 @@ export default function AdminDashboard() {
                                         <TableRow key={officer.id} className="hover:bg-muted/30 transition-colors">
                                             <TableCell className="pl-6">
                                                 <Avatar className="h-12 w-12 border-2 border-primary/10 shadow-sm">
-                                                    <AvatarImage src={officer.photoURL || officer.avatarUrl || ""} className="object-cover" />
+                                                    <AvatarImage src={officer.avatarUrl || officer.photoURL || ""} className="object-cover" />
                                                     <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                                                         {officer.fullName?.charAt(0) || 'P'}
                                                     </AvatarFallback>
@@ -392,10 +380,10 @@ export default function AdminDashboard() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="text-sm font-semibold text-foreground">
-                                                    {officer.level || "National"}
+                                                    {officer.level}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground italic">
-                                                    {officer.locationName || "Headquarters"}
+                                                    {officer.locationName}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right pr-6 space-x-1">
@@ -408,7 +396,7 @@ export default function AdminDashboard() {
                                                     className="h-9 w-9 text-destructive hover:bg-destructive/10 disabled:opacity-30" 
                                                     onClick={() => handleRevoke(officer)}
                                                     disabled={officer.id === currentUser?.uid}
-                                                    title={officer.id === currentUser?.uid ? "You cannot delete yourself" : "Revoke Access"}
+                                                    title={officer.id === currentUser?.uid ? "Self-Revoke Disabled" : "Revoke Access"}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>

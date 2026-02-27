@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             const docRef = doc(firestore, "users", user.uid);
             const docSnap = await getDoc(docRef);
 
-            // Recognized high-level developer/president emails
+            // Recognized high-level developer/admin emails
             const isPresidentEmail = user.email === 'iamgrecobelgica@gmail.com';
             const isAdminEmail = user.email === 'j.burns2372@gmail.com' || user.email === 'j.burns.2372@gmail.com';
             const isPrivileged = isPresidentEmail || isAdminEmail;
@@ -47,15 +48,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                 const data = docSnap.data();
                 setUserData({ id: docSnap.id, ...data });
                 
-                // Keep privileged status updated and sync schema fields
+                // Keep privileged status updated
                 if (isPrivileged) {
                     const targetRole = isPresidentEmail ? 'President' : 'Admin';
-                    if (data.role !== targetRole || !data.kartilyaAgreed) {
+                    if (data.role !== targetRole || !data.isApproved) {
                         const update = { 
                             role: targetRole, 
                             level: 'National',
                             locationName: 'National Headquarters',
-                            kartilyaAgreed: true 
+                            kartilyaAgreed: true,
+                            isApproved: true
                         };
                         await setDoc(docRef, update, { merge: true });
                         setUserData(prev => prev ? { ...prev, ...update } : null);
@@ -71,9 +73,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                     role: targetRole,
                     level: 'National',
                     locationName: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
-                    photoURL: null,
                     avatarUrl: null,
                     kartilyaAgreed: isPrivileged, 
+                    isApproved: true,
                     passwordIsTemporary: false,
                     createdAt: serverTimestamp(),
                 };
@@ -89,6 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 fullName: 'Authenticated Member',
                 role: 'Member',
                 level: 'National',
+                isApproved: true,
                 isFallback: true
             });
         } finally {
