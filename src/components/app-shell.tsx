@@ -39,30 +39,36 @@ export function AppShell({ children }: { children: ReactNode }) {
             const docSnap = await getDoc(docRef);
 
             // Recognized high-level developer/president emails
-            const isPrivileged = user.email === 'iamgrecobelgica@gmail.com' || user.email === 'j.burns2372@gmail.com';
+            const isPresidentEmail = user.email === 'iamgrecobelgica@gmail.com';
+            const isAdminEmail = user.email === 'j.burns2372@gmail.com' || user.email === 'j.burns.2372@gmail.com';
+            const isPrivileged = isPresidentEmail || isAdminEmail;
 
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setUserData({ id: docSnap.id, ...data });
                 
                 // Keep privileged status updated and sync schema fields (level, locationName)
-                if (isPrivileged && (data.role !== 'President' || !data.kartilyaAgreed)) {
-                    const update = { 
-                        role: 'President', 
-                        level: 'National',
-                        locationName: 'National Headquarters',
-                        kartilyaAgreed: true 
-                    };
-                    await setDoc(docRef, update, { merge: true });
-                    setUserData(prev => prev ? { ...prev, ...update } : null);
+                if (isPrivileged) {
+                    const targetRole = isPresidentEmail ? 'President' : 'Admin';
+                    if (data.role !== targetRole || !data.kartilyaAgreed) {
+                        const update = { 
+                            role: targetRole, 
+                            level: 'National',
+                            locationName: 'National Headquarters',
+                            kartilyaAgreed: true 
+                        };
+                        await setDoc(docRef, update, { merge: true });
+                        setUserData(prev => prev ? { ...prev, ...update } : null);
+                    }
                 }
             } else {
                 // Creation flow for first-time login using standardized schema fields
+                const targetRole = isPresidentEmail ? 'President' : (isAdminEmail ? 'Admin' : 'Member');
                 const newUserProfile = {
                     uid: user.uid,
                     email: user.email || '',
                     fullName: user.displayName || user.email?.split('@')[0] || 'Member',
-                    role: isPrivileged ? 'President' : 'Member',
+                    role: targetRole,
                     level: 'National',
                     locationName: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
                     photoURL: null,
