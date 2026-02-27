@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useFirestore, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
 import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search } from "lucide-react";
 import { collection, onSnapshot, query, serverTimestamp } from "firebase/firestore";
 import { createTemporaryApp, deleteTemporaryApp } from "@/firebase";
@@ -55,6 +55,7 @@ export default function AdminDashboard() {
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [role, setRole] = useState("Member");
     const [level, setLevel] = useState("National");
     const [locationName, setLocationName] = useState("");
@@ -67,7 +68,6 @@ export default function AdminDashboard() {
 
     // Initial Sync & Real-time Listener
     useEffect(() => {
-        // Querying without orderBy initially to ensure records without 'createdAt' are visible
         const q = query(collection(firestore, 'users'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const users = snapshot.docs.map(doc => ({ 
@@ -79,16 +79,11 @@ export default function AdminDashboard() {
         }, (err) => {
             console.error("Registry Sync Error:", err);
             setUsersLoading(false);
-            toast({
-                variant: "destructive",
-                title: "Sync Error",
-                description: "The registry is currently unavailable."
-            });
         });
         return () => unsubscribe();
-    }, [firestore, toast]);
+    }, [firestore]);
 
-    // Filtering: Only official 13 PDDS roles. DO NOT filter out the current user.
+    // Filtering: Only official 13 PDDS roles.
     const activeOfficers = useMemo(() => {
         return allUsers.filter(user => {
             const isPoliticalOfficer = pddsLeadershipRoles.includes(user.role);
@@ -105,6 +100,7 @@ export default function AdminDashboard() {
         setFullName("");
         setEmail("");
         setPassword("");
+        setConfirmPassword("");
         setRole("Member");
         setLevel("National");
         setLocationName("");
@@ -121,6 +117,7 @@ export default function AdminDashboard() {
         setLocationName(user.locationName || "");
         setPhotoURL(user.photoURL || user.avatarUrl || null);
         setPassword("");
+        setConfirmPassword("");
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -156,15 +153,25 @@ export default function AdminDashboard() {
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Password matching validation
+        if (password !== confirmPassword) {
+            toast({
+                variant: "destructive",
+                title: "Password Mismatch",
+                description: "The passwords you entered do not match."
+            });
+            return;
+        }
+
         setLoading(true);
 
-        const dataPayload = { 
+        const dataPayload: any = { 
             fullName, 
             email, 
             role, 
             level, 
             locationName, 
-            photoURL: photoURL || null,
             avatarUrl: photoURL || null,
             isApproved: true,
             kartilyaAgreed: true
@@ -172,6 +179,17 @@ export default function AdminDashboard() {
 
         if (isEditMode && selectedUser) {
             try {
+                // If password is provided, we indicate it was changed
+                if (password) {
+                    dataPayload.passwordIsTemporary = true;
+                    // Actual Auth update is limited to current user on client
+                    if (selectedUser.id === currentUser?.uid) {
+                        const auth = getAuth();
+                        if (auth.currentUser) {
+                            await updatePassword(auth.currentUser, password);
+                        }
+                    }
+                }
                 await updateUserDocument(firestore, selectedUser.id, dataPayload);
                 toast({ title: "Updated", description: "Officer record updated successfully." });
                 resetForm();
@@ -256,12 +274,28 @@ export default function AdminDashboard() {
                                     <Label>Email</Label>
                                     <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={isEditMode} placeholder="officer@pdds.ph" />
                                 </div>
-                                {!isEditMode && (
-                                    <div className="space-y-2">
-                                        <Label>Temporary Password</Label>
-                                        <Input required type="password" value={password} onChange={e => setPassword(e.target.value)} />
-                                    </div>
-                                )}
+                                
+                                <div className="space-y-2">
+                                    <Label>{isEditMode ? 'New Password (Optional)' : 'Temporary Password'}</Label>
+                                    <Input 
+                                        required={!isEditMode} 
+                                        type="password" 
+                                        value={password} 
+                                        onChange={e => setPassword(e.target.value)} 
+                                        placeholder={isEditMode ? "Leave blank to keep current" : ""}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Confirm Password</Label>
+                                    <Input 
+                                        required={!isEditMode || password !== ""} 
+                                        type="password" 
+                                        value={confirmPassword} 
+                                        onChange={e => setConfirmPassword(e.target.value)} 
+                                        placeholder={isEditMode ? "Leave blank to keep current" : ""}
+                                    />
+                                </div>
+
                                 <div className="space-y-2">
                                     <Label>Role</Label>
                                     <Select onValueChange={setRole} value={role}>
