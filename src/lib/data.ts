@@ -5,13 +5,13 @@ export const mockStats = [
   { title: "Upcoming Events", value: "3", change: "This week" },
 ];
 
-// Exact 13 official PDDS leadership roles requested for filtering
+// Official PDDS leadership roles - using "Secretary General" for 100% data alignment
 export const pddsLeadershipRoles = [
   "President",
   "Chairman",
   "Vice Chairman",
   "VP",
-  "Sec Gen",
+  "Secretary General",
   "Treasurer",
   "Auditor",
   "VP Ways & Means Chair",
