@@ -3,6 +3,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp, deleteApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { initializeFirestore, memoryLocalCache, getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 import { firebaseConfig } from "./config";
 
 import { useUser } from "./auth/use-user";
@@ -14,6 +15,7 @@ import {
   useFirebaseApp,
   useFirestore,
   useAuth,
+  useStorage,
 } from "./provider";
 import { FirebaseClientProvider } from "./client-provider";
 
@@ -40,7 +42,9 @@ export function initializeFirebase() {
   }
 
   const auth = getAuth(app);
-  return { app, auth, firestore };
+  const storage = getStorage(app);
+  
+  return { app, auth, firestore, storage };
 }
 
 export const createTemporaryApp = () => {
@@ -63,4 +67,5 @@ export {
   useFirebaseApp,
   useFirestore,
   useAuth,
+  useStorage,
 };

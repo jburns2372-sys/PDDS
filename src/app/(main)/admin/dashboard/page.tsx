@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useFirestore, useUser, createTemporaryApp, deleteTemporaryApp } from "@/firebase";
+import { useFirestore, useUser, createTemporaryApp, deleteTemporaryApp, useStorage } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc } from "firebase/firestore";
 import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
@@ -24,6 +25,7 @@ const allAssignableRoles = [
 
 export default function AdminDashboard() {
     const firestore = useFirestore();
+    const storage = useStorage();
     const { user: currentUser } = useUser();
     const { toast } = useToast();
     
@@ -41,6 +43,7 @@ export default function AdminDashboard() {
     const [jurisdictionLevel, setJurisdictionLevel] = useState("National");
     const [assignedLocation, setAssignedLocation] = useState("");
     const [photoURL, setPhotoURL] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -67,8 +70,6 @@ export default function AdminDashboard() {
         return () => unsubscribe();
     }, [firestore]);
 
-    // Role Visibility Filter: Exact mapping of the PDDS Leadership Roles.
-    // Explicitly excludes "System Admin" and "Admin" from the public political registry view.
     const activeOfficers = useMemo(() => {
         return allUsers.filter(user => {
             const isPoliticalRole = pddsLeadershipRoles.includes(user.role);
@@ -88,6 +89,7 @@ export default function AdminDashboard() {
         setJurisdictionLevel("National");
         setAssignedLocation("");
         setPhotoURL(null);
+        setSelectedFile(null);
         setPassword("");
         setConfirmPassword("");
     };
@@ -101,29 +103,19 @@ export default function AdminDashboard() {
         setJurisdictionLevel(user.jurisdictionLevel || "National");
         setAssignedLocation(user.assignedLocation || "");
         setPhotoURL(user.photoURL || null);
+        setSelectedFile(null);
         setPassword("");
         setConfirmPassword("");
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // Bypassing Storage with Base64 Conversion
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Firestore document limit is 1MiB. 700KB is safe after Base64 overhead.
-            if (file.size > 1024 * 700) { 
-                toast({
-                    variant: "destructive",
-                    title: "Image too large",
-                    description: "Image must be under 700KB to save to Firestore. Please resize your photo."
-                });
-                return;
-            }
-
+            setSelectedFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
-                const base64String = reader.result as string;
-                setPhotoURL(base64String);
+                setPhotoURL(reader.result as string);
             };
             reader.readAsDataURL(file);
         }
@@ -160,71 +152,99 @@ export default function AdminDashboard() {
 
         setLoading(true);
 
-        const dataPayload: any = { 
-            fullName: fullName.trim(), 
-            email: email.trim().toLowerCase(), 
-            role, 
-            jurisdictionLevel, 
-            assignedLocation: assignedLocation.trim(), 
-            photoURL: photoURL || null,
-            isApproved: true,
-            kartilyaAgreed: true
-        };
+        try {
+            let finalPhotoURL = photoURL;
+            let uid = selectedUser?.id;
 
-        if (isEditMode && selectedUser) {
-            // 1. Optional Auth Password Update
-            if (password) {
-                try {
-                    if (selectedUser.id === currentUser?.uid) {
-                        const auth = getAuth();
-                        if (auth.currentUser) await updatePassword(auth.currentUser, password);
-                    } else {
-                        toast({ 
-                            variant: "default", 
-                            title: "Auth Note", 
-                            description: "Passwords for other users must be managed via Admin Tools." 
-                        });
+            if (isEditMode && selectedUser) {
+                // Handle Password Update if provided
+                if (password) {
+                    try {
+                        if (selectedUser.id === currentUser?.uid) {
+                            const auth = getAuth();
+                            if (auth.currentUser) await updatePassword(auth.currentUser, password);
+                        } else {
+                            toast({ variant: "default", title: "Auth Note", description: "Passwords for other users must be managed via Admin Tools." });
+                        }
+                    } catch (authError: any) {
+                        toast({ variant: "destructive", title: "Auth Failed", description: "Could not update credentials." });
+                        setLoading(false);
+                        return;
                     }
-                } catch (authError: any) {
-                    toast({ variant: "destructive", title: "Auth Failed", description: "Could not update credentials." });
-                    setLoading(false);
-                    return;
                 }
-            }
 
-            try {
-                // 2. Isolated Firestore Update
-                await updateUserDocument(firestore, selectedUser.id, dataPayload);
+                // Handle Image Upload if new file selected
+                if (selectedFile) {
+                    try {
+                        const storageRef = ref(storage, `users/${uid}/profile`);
+                        const uploadResult = await uploadBytes(storageRef, selectedFile);
+                        finalPhotoURL = await getDownloadURL(uploadResult.ref);
+                    } catch (storageError: any) {
+                        console.error("Storage upload failed:", storageError);
+                        toast({ variant: "destructive", title: "Upload Failed", description: "Could not upload profile picture to storage." });
+                        setLoading(false);
+                        return;
+                    }
+                }
+
+                const dataPayload: any = { 
+                    fullName: fullName.trim(), 
+                    role, 
+                    jurisdictionLevel, 
+                    assignedLocation: assignedLocation.trim(), 
+                    photoURL: finalPhotoURL,
+                    isApproved: true,
+                    kartilyaAgreed: true
+                };
+
+                await updateUserDocument(firestore, uid, dataPayload);
                 toast({ title: "Updated", description: "Officer record has been updated successfully." });
                 resetForm();
-            } catch (fsError: any) {
-                toast({ variant: "destructive", title: "Save Failed", description: fsError.message });
-            } finally {
-                setLoading(false);
-            }
-        } else {
-            // New Registration Flow
-            const tempApp = createTemporaryApp();
-            const tempAuth = getAuth(tempApp);
-            try {
-                const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
-                const uid = userCredential.user.uid;
-                
-                // Firestore Document Creation
-                await setDoc(doc(firestore, 'users', uid), {
-                    uid: uid,
-                    ...dataPayload,
-                    createdAt: serverTimestamp(),
-                });
+            } else {
+                // New Registration Flow
+                const tempApp = createTemporaryApp();
+                const tempAuth = getAuth(tempApp);
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
+                    uid = userCredential.user.uid;
 
-                toast({ title: "Registered", description: "New officer added to registry." });
-                resetForm();
-            } catch (regError: any) {
-                toast({ variant: "destructive", title: "Registration Failed", description: regError.message });
-            } finally {
-                await deleteTemporaryApp(tempApp);
-                setLoading(false);
+                    // Handle Image Upload for new user
+                    if (selectedFile) {
+                        try {
+                            const storageRef = ref(storage, `users/${uid}/profile`);
+                            const uploadResult = await uploadBytes(storageRef, selectedFile);
+                            finalPhotoURL = await getDownloadURL(uploadResult.ref);
+                        } catch (storageError: any) {
+                            console.error("Storage upload failed:", storageError);
+                        }
+                    }
+
+                    const dataPayload = {
+                        uid: uid,
+                        fullName: fullName.trim(), 
+                        email: email.trim().toLowerCase(), 
+                        role, 
+                        jurisdictionLevel, 
+                        assignedLocation: assignedLocation.trim(), 
+                        photoURL: finalPhotoURL,
+                        isApproved: true,
+                        kartilyaAgreed: true,
+                        createdAt: serverTimestamp(),
+                    };
+                    
+                    await setDoc(doc(firestore, 'users', uid), dataPayload);
+                    toast({ title: "Registered", description: "New officer added to registry." });
+                    resetForm();
+                } catch (regError: any) {
+                    toast({ variant: "destructive", title: "Registration Failed", description: regError.message });
+                } finally {
+                    await deleteTemporaryApp(tempApp);
+                }
             }
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Process Error", description: error.message });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -260,7 +280,6 @@ export default function AdminDashboard() {
                                         <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                                             Select Photo
                                         </Button>
-                                        <p className="text-[10px] text-muted-foreground mt-1">Max 700KB</p>
                                     </div>
                                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                                 </div>

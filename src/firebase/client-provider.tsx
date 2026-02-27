@@ -3,6 +3,7 @@ import React, { ReactNode, useEffect, useState } from "react";
 import { FirebaseApp } from "firebase/app";
 import { Auth } from "firebase/auth";
 import { Firestore } from "firebase/firestore";
+import { FirebaseStorage } from "firebase/storage";
 import { initializeFirebase, FirebaseProvider } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -17,6 +18,7 @@ export function FirebaseClientProvider({
     app: FirebaseApp;
     auth: Auth;
     firestore: Firestore;
+    storage: FirebaseStorage;
   } | null>(null);
 
   useEffect(() => {
@@ -25,12 +27,10 @@ export function FirebaseClientProvider({
       setFirebase(app);
     } catch (error) {
       console.error("Firebase initialization failed:", error);
-      // You could set an error state here to show a more specific error message
     }
   }, []);
 
   if (!firebase) {
-    // Render a skeleton loader while Firebase is initializing
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex w-full max-w-md flex-col items-center gap-8">
@@ -53,6 +53,7 @@ export function FirebaseClientProvider({
       firebaseApp={firebase.app}
       auth={firebase.auth}
       firestore={firebase.firestore}
+      storage={firebase.storage}
     >
       {children}
     </FirebaseProvider>
