@@ -23,6 +23,22 @@
           "type": "string",
           "description": "The user's verified phone number."
         },
+        "address": {
+          "type": "string",
+          "description": "The user's street address."
+        },
+        "city": {
+          "type": "string",
+          "description": "The user's city."
+        },
+        "province": {
+          "type": "string",
+          "description": "The user's province."
+        },
+        "zipCode": {
+          "type": "string",
+          "description": "The user's postal code."
+        },
         "role": {
           "type": "string",
           "description": "The user's role in the party.",
@@ -59,11 +75,11 @@
         },
         "assignedLocation": {
           "type": "string",
-          "description": "The name of the user's assigned location (e.g., province, city)."
+          "description": "The name of the user's assigned location."
         },
         "photoURL": {
           "type": "string",
-          "description": "The URL or data URI of the user's profile picture."
+          "description": "The URL of the user's profile picture."
         },
         "resumeURL": {
           "type": "string",
@@ -75,7 +91,7 @@
         },
         "aboutText": {
           "type": "string",
-          "description": "Biographical or additional information about the officer."
+          "description": "Biographical information about the officer."
         },
         "kartilyaAgreed": {
           "type": "boolean",
@@ -92,6 +108,14 @@
         "isVerified": {
           "type": "boolean",
           "description": "Whether the user's supporter account is verified."
+        },
+        "isEmailVerified": {
+          "type": "boolean",
+          "description": "Whether the email is verified."
+        },
+        "isPhoneVerified": {
+          "type": "boolean",
+          "description": "Whether the phone is verified."
         },
         "createdAt": {
           "type": "string",
