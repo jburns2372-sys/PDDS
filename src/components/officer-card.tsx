@@ -72,16 +72,16 @@ export function OfficerCard({ role, name, photoURL, about }: OfficerCardProps) {
           <TooltipContent 
             side="right" 
             sideOffset={10}
-            className="max-w-[450px] p-6 bg-primary text-primary-foreground border-none shadow-2xl z-50"
+            className="max-w-[450px] max-h-[500px] overflow-y-auto p-6 bg-primary text-primary-foreground border-none shadow-2xl z-50 scrollbar-thin scrollbar-thumb-accent/50 scrollbar-track-transparent"
           >
-            <div className="space-y-3">
+            <div className="space-y-4">
                 <div className="border-b border-primary-foreground/20 pb-2">
                     <p className="text-xs font-bold uppercase tracking-widest opacity-80">Officer Biography</p>
                     <h3 className="text-lg font-bold font-headline">{name}</h3>
                 </div>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                <div className="text-sm leading-relaxed whitespace-pre-wrap font-medium pr-2">
                     {about}
-                </p>
+                </div>
             </div>
           </TooltipContent>
         </Tooltip>
