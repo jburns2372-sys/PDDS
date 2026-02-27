@@ -1,15 +1,16 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PddsLogo from "@/components/icons/pdds-logo";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth, useFirestore, useStorage } from "@/firebase";
 import { 
     createUserWithEmailAndPassword, 
     RecaptchaVerifier, 
@@ -18,9 +19,10 @@ import {
     sendEmailVerification
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Phone, Loader2, Mail, Lock, User, Home as HomeIcon } from "lucide-react";
+import { Phone, Loader2, Mail, Lock, User, Home as HomeIcon, Camera, X } from "lucide-react";
 
 declare global {
   interface Window {
@@ -31,6 +33,7 @@ declare global {
 export default function JoinPage() {
     const auth = useAuth();
     const firestore = useFirestore();
+    const storage = useStorage();
     const router = useRouter();
     const { toast } = useToast();
     
@@ -44,6 +47,11 @@ export default function JoinPage() {
     const [zipCode, setZipCode] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("+63");
     
+    // Photo State
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     // UI State
     const [otp, setOtp] = useState("");
     const [loading, setLoading] = useState(false);
@@ -58,6 +66,24 @@ export default function JoinPage() {
             });
         }
     }, [auth]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const removePhoto = () => {
+        setSelectedFile(null);
+        setPhotoPreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
 
     const handleInitialSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -102,10 +128,23 @@ export default function JoinPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Step 3: Send Email Verification
+            // Step 3: Handle Photo Upload if any
+            let finalPhotoURL = null;
+            if (selectedFile) {
+                try {
+                    const storageRef = ref(storage, `users/${user.uid}/profile`);
+                    const uploadResult = await uploadBytes(storageRef, selectedFile);
+                    finalPhotoURL = await getDownloadURL(uploadResult.ref);
+                } catch (storageError) {
+                    console.error("Storage upload failed:", storageError);
+                    // Continue registration even if photo fails
+                }
+            }
+
+            // Step 4: Send Email Verification
             await sendEmailVerification(user);
 
-            // Step 4: Save to Firestore
+            // Step 5: Save to Firestore
             const supporterData = {
                 uid: user.uid,
                 email: email.trim().toLowerCase(),
@@ -115,6 +154,7 @@ export default function JoinPage() {
                 city: city.trim(),
                 province: province.trim(),
                 zipCode: zipCode.trim(),
+                photoURL: finalPhotoURL,
                 role: "Supporter",
                 jurisdictionLevel: "City/Municipal",
                 assignedLocation: city.trim() || province.trim() || "National",
@@ -160,6 +200,43 @@ export default function JoinPage() {
                             <CardDescription className="text-center">Secure your place in the Federalismo ng Dugong Dakilang Samahan.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {/* Photo Upload Section */}
+                            <div className="flex flex-col items-center gap-3 pb-4 border-b">
+                                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                    Upload Profile Photo (Optional)
+                                </Label>
+                                <div className="relative">
+                                    <Avatar className="h-24 w-24 border-4 border-white shadow-lg bg-muted">
+                                        <AvatarImage src={photoPreview || ""} className="object-cover" />
+                                        <AvatarFallback><Camera className="h-8 w-8 text-muted-foreground/40" /></AvatarFallback>
+                                    </Avatar>
+                                    {photoPreview && (
+                                        <button 
+                                            type="button" 
+                                            onClick={removePhoto}
+                                            className="absolute -top-1 -right-1 p-1 bg-destructive text-destructive-foreground rounded-full shadow-md hover:bg-destructive/90"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    )}
+                                    <button 
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="absolute -bottom-1 -right-1 p-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90"
+                                    >
+                                        <Camera className="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    className="hidden" 
+                                    accept="image/*" 
+                                    onChange={handleFileChange} 
+                                    disabled={loading}
+                                />
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="fullName">Full Name</Label>
@@ -196,8 +273,8 @@ export default function JoinPage() {
                             <div className="space-y-2">
                                 <Label htmlFor="address">Address</Label>
                                 <div className="relative">
-                                    <HomeIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input id="address" className="pl-9" placeholder="Street, Barangay" required value={address} onChange={e => setAddress(e.target.value)} disabled={loading} />
+                                    <HomeIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                                    <Input id="address" className="pl-10" placeholder="Street, Barangay" required value={address} onChange={e => setAddress(e.target.value)} disabled={loading} />
                                 </div>
                             </div>
 
@@ -241,7 +318,7 @@ export default function JoinPage() {
                                 disabled={loading || !agreed}
                             >
                                 {loading ? (
-                                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Sending SMS...</>
+                                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
                                 ) : "Register"}
                             </Button>
                             <p className="text-sm text-center text-muted-foreground">
