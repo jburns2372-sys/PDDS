@@ -48,7 +48,7 @@ export default function AdminDashboard() {
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 100% Reliable Registry Sync via onSnapshot
+    // Real-time Registry Sync
     useEffect(() => {
         setUsersLoading(true);
         const usersCollection = collection(firestore, 'users');
@@ -61,14 +61,13 @@ export default function AdminDashboard() {
             setAllUsers(users);
             setUsersLoading(false);
         }, (err) => {
-            console.error("Registry Sync Error:", err);
             setUsersLoading(false);
         });
 
         return () => unsubscribe();
     }, [firestore]);
 
-    // Role Visibility Filter: Exact mapping of the 13 PDDS Leadership Roles.
+    // Role Visibility Filter: Exact mapping of the PDDS Leadership Roles.
     // Explicitly excludes "System Admin" and "Admin" from the public political registry view.
     const activeOfficers = useMemo(() => {
         return allUsers.filter(user => {
@@ -107,22 +106,25 @@ export default function AdminDashboard() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    // Bypassing Storage with Base64 Conversion
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => setPhotoURL(reader.result as string);
+            reader.onloadend = () => {
+                const base64String = reader.result as string;
+                setPhotoURL(base64String);
+            };
             reader.readAsDataURL(file);
         }
     };
 
     const handleRevoke = async (user: any) => {
-        // Prevention: President and currently logged in user cannot be deleted by themselves
         if (user.id === currentUser?.uid) {
             toast({
                 variant: "destructive",
                 title: "Action Restricted",
-                description: "You cannot revoke your own access. Please contact another System Administrator."
+                description: "You cannot revoke your own access."
             });
             return;
         }
@@ -160,29 +162,27 @@ export default function AdminDashboard() {
         };
 
         if (isEditMode && selectedUser) {
-            // Isolate Auth update from Firestore update
+            // Update Auth Password if provided
             if (password) {
                 try {
-                    // Update current user's password if they are editing themselves,
-                    // otherwise mark password as temporary for the target user (if admin can do it)
                     if (selectedUser.id === currentUser?.uid) {
                         const auth = getAuth();
                         if (auth.currentUser) await updatePassword(auth.currentUser, password);
                     }
-                    dataPayload.passwordIsTemporary = true;
                 } catch (authError: any) {
-                    toast({ variant: "destructive", title: "Auth Failed", description: "Could not update credentials. " + authError.message });
+                    toast({ variant: "destructive", title: "Auth Failed", description: "Could not update credentials." });
                     setLoading(false);
                     return;
                 }
             }
 
             try {
+                // Isolated Firestore Update
                 await updateUserDocument(firestore, selectedUser.id, dataPayload);
                 toast({ title: "Updated", description: "Profile synchronized with registry." });
                 resetForm();
             } catch (fsError: any) {
-                toast({ variant: "destructive", title: "Registry Error", description: "Firestore write failed. " + fsError.message });
+                toast({ variant: "destructive", title: "Registry Error", description: fsError.message });
             } finally {
                 setLoading(false);
             }
@@ -194,7 +194,7 @@ export default function AdminDashboard() {
                 const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
                 const uid = userCredential.user.uid;
                 
-                // Absolute Firestore write using setDoc for new document
+                // Firestore Document Creation
                 await setDoc(doc(firestore, 'users', uid), {
                     uid: uid,
                     fullName,
@@ -205,7 +205,6 @@ export default function AdminDashboard() {
                     photoURL: photoURL || null,
                     kartilyaAgreed: true,
                     isApproved: true,
-                    passwordIsTemporary: true,
                     createdAt: serverTimestamp(),
                 });
 
@@ -229,12 +228,6 @@ export default function AdminDashboard() {
                         Officer Management
                     </h1>
                     <p className="text-muted-foreground mt-2">Maintain the official leadership registry and access levels.</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="h-10 px-4 bg-white shadow-sm border-primary/20 flex items-center gap-2">
-                        <Users className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{activeOfficers.length} Officers Online</span>
-                    </Badge>
                 </div>
             </div>
 
