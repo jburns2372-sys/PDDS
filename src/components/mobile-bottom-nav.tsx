@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone } from "lucide-react";
+import { Home, Users, BookText, UserCircle, MessageSquare, Megaphone, Map, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AboutPddsDialog } from "./about-pdds-dialog";
 import { useUserData } from "@/context/user-data-context";
@@ -19,6 +19,7 @@ const baseNavItems = [
 const profileNavItem = { href: "/profile", icon: UserCircle, label: "Profile" };
 const auditNavItem = { href: "/admin/audit", icon: MessageSquare, label: "Audit" };
 const broadcastNavItem = { href: "/admin/broadcast", icon: Megaphone, label: "Alert" };
+const analyticsNavItem = { href: "/admin/analytics", icon: Map, label: "Map" };
 
 export function MobileBottomNav() {
   const pathname = usePathname();
@@ -26,7 +27,7 @@ export function MobileBottomNav() {
   const userRole = userData?.role || '';
   const userEmail = (user?.email || '').toLowerCase();
 
-  const isOfficer = pddsLeadershipRoles.includes(userRole);
+  const isOfficer = pddsLeadershipRoles.includes(userRole) || userRole === 'Officer';
   const isAdmin = userRole === 'Admin' || userRole === 'System Admin';
   const isPrivilegedEmail = 
     userEmail === 'iamgrecobelgica@gmail.com' ||
@@ -40,6 +41,7 @@ export function MobileBottomNav() {
   if (isPrivileged) {
       visibleNavItems.push(broadcastNavItem);
       visibleNavItems.push(auditNavItem);
+      visibleNavItems.push(analyticsNavItem);
   }
   visibleNavItems.push(profileNavItem);
 

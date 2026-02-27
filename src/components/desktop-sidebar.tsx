@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -20,7 +20,8 @@ const navItems = [
 const adminNavItems = [
     { href: '/admin/dashboard', label: 'Officer Panel', icon: Shield },
     { href: '/admin/broadcast', label: 'Broadcast', icon: Megaphone },
-    { href: '/admin/audit', label: 'Feedback Audit', icon: MessageSquare }
+    { href: '/admin/audit', label: 'Audit Queue', icon: MessageSquare },
+    { href: '/admin/analytics', label: 'Heat Map', icon: Map }
 ];
 
 export function DesktopSidebar() {
@@ -29,7 +30,7 @@ export function DesktopSidebar() {
   const userRole = userData?.role || '';
   const userEmail = (user?.email || '').toLowerCase();
 
-  const isOfficer = pddsLeadershipRoles.includes(userRole);
+  const isOfficer = pddsLeadershipRoles.includes(userRole) || userRole === 'Officer';
   const isAdmin = userRole === 'Admin' || userRole === 'System Admin';
   const isPrivilegedEmail = 
     userEmail === 'iamgrecobelgica@gmail.com' ||
@@ -79,7 +80,7 @@ export function DesktopSidebar() {
             
             {isPrivileged && (
               <>
-                <div className="px-4 py-2 mt-6 mb-1 text-[10px] font-black uppercase text-primary/40 tracking-[0.2em]">Administration</div>
+                <div className="px-4 py-2 mt-6 mb-1 text-[10px] font-black uppercase text-primary/40 tracking-[0.2em]">Leadership Tools</div>
                 {adminNavItems.map((item) => {
                   const isActive = pathname.startsWith(item.href);
                   return (
