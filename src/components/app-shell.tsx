@@ -9,7 +9,6 @@ import { useUser, useFirestore } from "@/firebase";
 import { UserDataContext, UserDataContextType, UserProfile } from "@/context/user-data-context";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { pddsLeadershipRoles } from "@/lib/data";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -39,7 +38,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             const docRef = doc(firestore, "users", user.uid);
             const docSnap = await getDoc(docRef);
 
-            // Recognized high-level developer/admin emails
             const isPresidentEmail = user.email === 'iamgrecobelgica@gmail.com';
             const isAdminEmail = user.email === 'j.burns2372@gmail.com' || user.email === 'j.burns.2372@gmail.com';
             const isPrivileged = isPresidentEmail || isAdminEmail;
@@ -48,14 +46,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                 const data = docSnap.data();
                 setUserData({ id: docSnap.id, ...data });
                 
-                // Keep privileged status updated
+                // Ensure privileged users have correct schema and roles
                 if (isPrivileged) {
                     const targetRole = isPresidentEmail ? 'President' : 'Admin';
-                    if (data.role !== targetRole || !data.isApproved) {
+                    if (data.role !== targetRole || data.jurisdictionLevel !== 'National' || !data.isApproved) {
                         const update = { 
                             role: targetRole, 
-                            level: 'National',
-                            locationName: 'National Headquarters',
+                            jurisdictionLevel: 'National',
+                            assignedLocation: 'National Headquarters',
                             kartilyaAgreed: true,
                             isApproved: true
                         };
@@ -64,16 +62,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                     }
                 }
             } else {
-                // Creation flow for first-time login
                 const targetRole = isPresidentEmail ? 'President' : (isAdminEmail ? 'Admin' : 'Member');
                 const newUserProfile = {
                     uid: user.uid,
                     email: user.email || '',
                     fullName: user.displayName || user.email?.split('@')[0] || 'Member',
                     role: targetRole,
-                    level: 'National',
-                    locationName: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
-                    avatarUrl: null,
+                    jurisdictionLevel: 'National',
+                    assignedLocation: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
+                    photoURL: null,
                     kartilyaAgreed: isPrivileged, 
                     isApproved: true,
                     passwordIsTemporary: false,
@@ -90,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 email: user.email || '',
                 fullName: 'Authenticated Member',
                 role: 'Member',
-                level: 'National',
+                jurisdictionLevel: 'National',
                 isApproved: true,
                 isFallback: true
             });

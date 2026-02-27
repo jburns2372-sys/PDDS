@@ -60,6 +60,7 @@ export default function AdminDashboard() {
             setAllUsers(users);
             setUsersLoading(false);
         }, (err) => {
+            console.error("Registry sync error:", err);
             setUsersLoading(false);
         });
 
@@ -109,12 +110,12 @@ export default function AdminDashboard() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Firestore document limit is 1MiB. We should check size.
-            if (file.size > 1024 * 700) { // Limit to ~700KB to be safe with Base64 overhead
+            // Firestore document limit is 1MiB. 700KB is safe after Base64 overhead.
+            if (file.size > 1024 * 700) { 
                 toast({
                     variant: "destructive",
                     title: "Image too large",
-                    description: "Please select an image smaller than 700KB."
+                    description: "Image must be under 700KB to save to Firestore. Please resize your photo."
                 });
                 return;
             }
@@ -160,22 +161,20 @@ export default function AdminDashboard() {
         setLoading(true);
 
         const dataPayload: any = { 
-            fullName, 
-            email, 
+            fullName: fullName.trim(), 
+            email: email.trim().toLowerCase(), 
             role, 
             jurisdictionLevel, 
-            assignedLocation, 
+            assignedLocation: assignedLocation.trim(), 
             photoURL: photoURL || null,
             isApproved: true,
             kartilyaAgreed: true
         };
 
         if (isEditMode && selectedUser) {
-            // 1. Update Auth Password if provided (Only if user matches or admin has rights)
+            // 1. Optional Auth Password Update
             if (password) {
                 try {
-                    // Note: Update password only works for the currently logged-in user in client SDK.
-                    // For other users, this requires Admin SDK (not available here).
                     if (selectedUser.id === currentUser?.uid) {
                         const auth = getAuth();
                         if (auth.currentUser) await updatePassword(auth.currentUser, password);
@@ -183,7 +182,7 @@ export default function AdminDashboard() {
                         toast({ 
                             variant: "default", 
                             title: "Auth Note", 
-                            description: "Passwords for other users can only be managed by administrators via System Admin tools." 
+                            description: "Passwords for other users must be managed via Admin Tools." 
                         });
                     }
                 } catch (authError: any) {
@@ -196,10 +195,10 @@ export default function AdminDashboard() {
             try {
                 // 2. Isolated Firestore Update
                 await updateUserDocument(firestore, selectedUser.id, dataPayload);
-                toast({ title: "Updated", description: "Profile synchronized with registry." });
+                toast({ title: "Updated", description: "Officer record has been updated successfully." });
                 resetForm();
             } catch (fsError: any) {
-                toast({ variant: "destructive", title: "Registry Error", description: fsError.message });
+                toast({ variant: "destructive", title: "Save Failed", description: fsError.message });
             } finally {
                 setLoading(false);
             }
@@ -214,21 +213,14 @@ export default function AdminDashboard() {
                 // Firestore Document Creation
                 await setDoc(doc(firestore, 'users', uid), {
                     uid: uid,
-                    fullName,
-                    email,
-                    role,
-                    jurisdictionLevel,
-                    assignedLocation,
-                    photoURL: photoURL || null,
-                    kartilyaAgreed: true,
-                    isApproved: true,
+                    ...dataPayload,
                     createdAt: serverTimestamp(),
                 });
 
                 toast({ title: "Registered", description: "New officer added to registry." });
                 resetForm();
             } catch (regError: any) {
-                toast({ variant: "destructive", title: "Registration Error", description: regError.message });
+                toast({ variant: "destructive", title: "Registration Failed", description: regError.message });
             } finally {
                 await deleteTemporaryApp(tempApp);
                 setLoading(false);
@@ -264,9 +256,12 @@ export default function AdminDashboard() {
                                         <AvatarImage src={photoURL || ""} className="object-cover" />
                                         <AvatarFallback><Camera className="h-8 w-8 text-muted-foreground" /></AvatarFallback>
                                     </Avatar>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                                        Select Photo
-                                    </Button>
+                                    <div className="text-center">
+                                        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                            Select Photo
+                                        </Button>
+                                        <p className="text-[10px] text-muted-foreground mt-1">Max 700KB</p>
+                                    </div>
                                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                                 </div>
                                 <div className="space-y-2">
@@ -275,7 +270,7 @@ export default function AdminDashboard() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Email Address</Label>
-                                    <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={isEditMode} placeholder="email@pdds.ph" />
+                                    <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={isEditMode} placeholder="email@example.com" />
                                 </div>
                                 
                                 <div className="grid grid-cols-1 gap-4">

@@ -16,14 +16,14 @@ service cloud.firestore {
       let email = request.auth.token.email;
       return email == 'iamgrecobelgica@gmail.com' || 
              email == 'j.burns2372@gmail.com' || 
-             email == 'j.burns.2372@gmail.com';
+             email == 'j.burns.2372@gmail.com' ||
+             email == 'mariashellajoygomez@gmail.com';
     }
 
     function isAdministrator() {
       if (!isSignedIn()) return false;
       if (isPrivilegedEmail()) return true;
       
-      // Simple role check to allow administrative roles to manage the registry
       let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
       return exists(userPath) && (
         get(userPath).data.role == 'Admin' || 
@@ -37,11 +37,9 @@ service cloud.firestore {
       // Allow any authenticated member to read the directory
       allow read: if isSignedIn();
       
-      // Allow profile creation if it's the owner, a privileged email, or an administrator
-      allow create: if isOwner(userId) || isPrivilegedEmail() || isAdministrator();
-      
-      // Allow updates if owner, a privileged email, or an administrator
-      allow update: if isOwner(userId) || isPrivilegedEmail() || isAdministrator();
+      // Allow profile creation and updates if it's the owner or an administrator
+      allow create: if isOwner(userId) || isAdministrator();
+      allow update: if isOwner(userId) || isAdministrator();
       
       // Only an Admin can delete users
       allow delete: if isAdministrator();
