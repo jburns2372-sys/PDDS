@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { useFirestore, useUser, useCollection } from "@/firebase";
+import { useUserData } from "@/context/user-data-context";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MessageSquare, Send, History, MessageCircle } from "lucide-react";
+import { Loader2, MessageSquare, Send, History, MessageCircle, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -25,13 +26,14 @@ const TOPICS = [
 ];
 
 export function CommunityFeedback() {
-  const { user, userData } = useUser() as any;
+  const { user } = useUser();
+  const { userData } = useUserData();
   const firestore = useFirestore();
   const { toast } = useToast();
   
   const [topic, setTopic] = useState("");
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const { data: history, loading: loadingHistory } = useCollection('community_feedback', {
     queries: user ? [{ attribute: 'submitterUid', operator: '==', value: user.uid }] : []
@@ -40,15 +42,11 @@ export function CommunityFeedback() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !userData) return;
-    if (!topic || !message) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Please select a topic and enter your message." });
-      return;
-    }
 
-    setLoading(true);
+    setSubmitting(true);
     const feedbackData = {
       topic,
-      message,
+      message: message.trim(),
       status: "Received",
       submittedBy: userData.fullName || "Anonymous Member",
       submitterUid: user.uid,
@@ -59,7 +57,10 @@ export function CommunityFeedback() {
 
     try {
       await addDoc(collection(firestore, 'community_feedback'), feedbackData);
-      toast({ title: "Feedback Received", description: "Thank you for sharing your concerns with the party." });
+      toast({ 
+        title: "Message Sent Successfully!", 
+        description: "Your feedback has been recorded and will be reviewed by party leadership." 
+      });
       setTopic("");
       setMessage("");
     } catch (error: any) {
@@ -70,9 +71,12 @@ export function CommunityFeedback() {
       });
       errorEmitter.emit('permission-error', permissionError);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  // Simplified Validation Logic
+  const canSubmit = topic && message.trim().length > 0;
 
   return (
     <div className="space-y-8">
@@ -108,8 +112,12 @@ export function CommunityFeedback() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full font-bold h-12 text-lg" disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Submit Feedback</>}
+            <Button type="submit" className="w-full font-bold h-12 text-lg" disabled={submitting || !canSubmit}>
+              {submitting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>
+              ) : (
+                <><Send className="mr-2 h-4 w-4" /> Submit Feedback</>
+              )}
             </Button>
           </CardFooter>
         </form>
