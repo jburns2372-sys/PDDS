@@ -69,10 +69,19 @@ export function OfficerCard({ role, name, photoURL, about }: OfficerCardProps) {
           <TooltipTrigger asChild>
             {cardContent}
           </TooltipTrigger>
-          <TooltipContent className="max-w-[300px] p-4 bg-primary text-primary-foreground border-none shadow-2xl">
-            <div className="space-y-1">
-                <p className="text-xs font-bold uppercase tracking-wider opacity-70">About {name}</p>
-                <p className="text-sm leading-relaxed">{about}</p>
+          <TooltipContent 
+            side="right" 
+            sideOffset={10}
+            className="max-w-[450px] p-6 bg-primary text-primary-foreground border-none shadow-2xl z-50"
+          >
+            <div className="space-y-3">
+                <div className="border-b border-primary-foreground/20 pb-2">
+                    <p className="text-xs font-bold uppercase tracking-widest opacity-80">Officer Biography</p>
+                    <h3 className="text-lg font-bold font-headline">{name}</h3>
+                </div>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                    {about}
+                </p>
             </div>
           </TooltipContent>
         </Tooltip>
