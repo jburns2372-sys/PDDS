@@ -8,7 +8,7 @@ import { Skeleton } from "./ui/skeleton";
 import { useUser, useFirestore } from "@/firebase";
 import { UserDataContext, UserDataContextType, UserProfile } from "@/context/user-data-context";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -24,83 +24,77 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const fetchOrCreateUser = async () => {
-        if (!user) {
-            if (!userLoading) {
-                setUserData(null);
-                setUserDataLoading(false);
-            }
-            return;
-        }
-
-        setUserDataLoading(true);
-        try {
-            const docRef = doc(firestore, "users", user.uid);
-            const docSnap = await getDoc(docRef);
-
-            const isPresidentEmail = user.email === 'iamgrecobelgica@gmail.com';
-            const isAdminEmail = user.email === 'j.burns2372@gmail.com' || user.email === 'j.burns.2372@gmail.com';
-            const isPrivileged = isPresidentEmail || isAdminEmail;
-
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                setUserData({ id: docSnap.id, ...data });
-                
-                // Ensure privileged users have correct schema and roles
-                if (isPrivileged) {
-                    const targetRole = isPresidentEmail ? 'President' : 'Admin';
-                    if (data.role !== targetRole || data.jurisdictionLevel !== 'National' || !data.isApproved) {
-                        const update = { 
-                            role: targetRole, 
-                            jurisdictionLevel: 'National',
-                            assignedLocation: 'National Headquarters',
-                            kartilyaAgreed: true,
-                            isApproved: true
-                        };
-                        await setDoc(docRef, update, { merge: true });
-                        setUserData(prev => prev ? { ...prev, ...update } : null);
-                    }
-                }
-            } else {
-                const targetRole = isPresidentEmail ? 'President' : (isAdminEmail ? 'Admin' : 'Member');
-                const newUserProfile = {
-                    uid: user.uid,
-                    email: user.email || '',
-                    fullName: user.displayName || user.email?.split('@')[0] || 'Member',
-                    role: targetRole,
-                    jurisdictionLevel: 'National',
-                    assignedLocation: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
-                    photoURL: null,
-                    kartilyaAgreed: isPrivileged, 
-                    isApproved: true,
-                    passwordIsTemporary: false,
-                    createdAt: serverTimestamp(),
-                };
-
-                await setDoc(docRef, newUserProfile);
-                setUserData({ id: user.uid, ...newUserProfile });
-            }
-        } catch (error) {
-            console.error("Critical error in AppShell profile sync:", error);
-            setUserData({
-                uid: user.uid,
-                email: user.email || '',
-                fullName: 'Authenticated Member',
-                role: 'Member',
-                jurisdictionLevel: 'National',
-                isApproved: true,
-                isFallback: true
-            });
-        } finally {
-            setUserDataLoading(false);
-        }
-    };
-
-    if (user && !userLoading) {
-        fetchOrCreateUser();
-    } else if (!userLoading && !user) {
+    if (!user || userLoading) {
+      if (!userLoading) {
+        setUserData(null);
         setUserDataLoading(false);
+      }
+      return;
     }
+
+    setUserDataLoading(true);
+    const docRef = doc(firestore, "users", user.uid);
+
+    // Use onSnapshot for real-time synchronization of profile data (including photoURL)
+    const unsubscribe = onSnapshot(docRef, async (docSnap) => {
+      const isPresidentEmail = user.email === 'iamgrecobelgica@gmail.com';
+      const isAdminEmail = user.email === 'j.burns2372@gmail.com' || user.email === 'j.burns.2372@gmail.com';
+      const isPrivileged = isPresidentEmail || isAdminEmail;
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setUserData({ id: docSnap.id, ...data });
+        
+        // Ensure privileged users have correct schema and roles if they exist but are misconfigured
+        if (isPrivileged) {
+          const targetRole = isPresidentEmail ? 'President' : 'Admin';
+          if (data.role !== targetRole || data.jurisdictionLevel !== 'National' || !data.isApproved) {
+            const update = { 
+              role: targetRole, 
+              jurisdictionLevel: 'National',
+              assignedLocation: 'National Headquarters',
+              kartilyaAgreed: true,
+              isApproved: true
+            };
+            await setDoc(docRef, update, { merge: true });
+          }
+        }
+      } else {
+        // Initialize new user document if it doesn't exist
+        const targetRole = isPresidentEmail ? 'President' : (isAdminEmail ? 'Admin' : 'Member');
+        const newUserProfile = {
+          uid: user.uid,
+          email: user.email || '',
+          fullName: user.displayName || user.email?.split('@')[0] || 'Member',
+          role: targetRole,
+          jurisdictionLevel: 'National',
+          assignedLocation: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
+          photoURL: null,
+          kartilyaAgreed: isPrivileged, 
+          isApproved: true,
+          passwordIsTemporary: false,
+          createdAt: serverTimestamp(),
+        };
+
+        await setDoc(docRef, newUserProfile);
+        // The next snapshot will catch this created doc
+      }
+      setUserDataLoading(false);
+    }, (error) => {
+      console.error("Critical error in AppShell profile sync:", error);
+      setUserData({
+        uid: user.uid,
+        email: user.email || '',
+        fullName: 'Authenticated Member',
+        role: 'Member',
+        jurisdictionLevel: 'National',
+        isApproved: true,
+        isFallback: true
+      });
+      setUserDataLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [user, userLoading, firestore]);
   
   const loading = !isClient || userLoading || userDataLoading;

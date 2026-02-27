@@ -36,9 +36,14 @@ export function DigitalIdCard({ userData }: { userData: any }) {
           </Badge>
         </div>
 
-        <div className="h-28 w-28 rounded-full border-4 border-accent overflow-hidden bg-white/10 flex items-center justify-center shadow-2xl">
+        <div className="h-28 w-28 rounded-full border-4 border-accent overflow-hidden bg-white/10 flex items-center justify-center shadow-2xl relative">
           {userData.photoURL ? (
-            <img src={userData.photoURL} alt={userData.fullName} className="h-full w-full object-cover" />
+            <img 
+              src={userData.photoURL} 
+              alt={userData.fullName} 
+              className="h-full w-full object-cover" 
+              key={userData.photoURL} // Key forces re-render if URL changes
+            />
           ) : (
              <div className="flex items-center justify-center h-full w-full bg-primary/20">
                 <PddsLogo className="h-14 w-14 text-white/30" />
@@ -74,7 +79,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
             </div>
         </div>
         
-        <p className="text-[9px] text-white/40 font-mono mt-2">UID: {userData.uid?.substring(0, 12).toUpperCase() || 'ANONYMOUS'}</p>
+        <p className="text-[9px] text-white/40 font-mono mt-2 uppercase">UID: {userData.uid?.substring(0, 12) || 'ANONYMOUS'}</p>
       </CardContent>
     </Card>
   );
