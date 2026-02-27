@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -10,6 +11,7 @@ import PddsLogo from "@/components/icons/pdds-logo";
 import { useAuth } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 export default function LoginPage() {
     const auth = useAuth();
@@ -64,6 +66,11 @@ export default function LoginPage() {
                 <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "Signing In..." : "Sign In"}
                 </Button>
+                <div className="text-center w-full">
+                    <p className="text-sm text-muted-foreground">
+                        Not a member yet? <Link href="/join" className="text-primary font-bold hover:underline">Join as Supporter</Link>
+                    </p>
+                </div>
             </CardFooter>
         </form>
       </Card>

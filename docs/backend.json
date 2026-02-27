@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "user": {
@@ -37,7 +38,8 @@
             "VP legal affairs",
             "Member",
             "Admin",
-            "System Admin"
+            "System Admin",
+            "Supporter"
           ]
         },
         "jurisdictionLevel": {
@@ -82,6 +84,10 @@
         "isApproved": {
           "type": "boolean",
           "description": "Whether the user is approved."
+        },
+        "isVerified": {
+          "type": "boolean",
+          "description": "Whether the user's supporter account is verified."
         },
         "createdAt": {
           "type": "string",
