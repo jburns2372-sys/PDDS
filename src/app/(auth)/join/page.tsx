@@ -20,7 +20,7 @@ import {
     ConfirmationResult,
     sendEmailVerification
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, increment, updateDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, increment, updateDoc, collection, getDocs, query, limit } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
@@ -345,6 +345,12 @@ export default function JoinPage() {
         setLoading(true);
         try {
             await confirmationResult.confirm(otp);
+            
+            // Check if this is the first user in the system
+            const usersRef = collection(firestore, "users");
+            const firstUserCheck = await getDocs(query(usersRef, limit(1)));
+            const isFirstUser = firstUserCheck.empty;
+
             const trimmedEmail = email.trim().toLowerCase();
             const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
             const user = userCredential.user;
@@ -373,9 +379,10 @@ export default function JoinPage() {
                 province: selectedProvince,
                 zipCode: zipCode,
                 photoURL: finalPhotoURL,
-                role: "Supporter",
-                jurisdictionLevel: "City/Municipal",
-                assignedLocation: selectedCity,
+                role: isFirstUser ? "Admin" : "Supporter",
+                isSuperAdmin: isFirstUser,
+                jurisdictionLevel: isFirstUser ? "National" : "City/Municipal",
+                assignedLocation: isFirstUser ? "National Headquarters" : selectedCity,
                 isApproved: true,
                 kartilyaAgreed: true,
                 recruitCount: 0,
@@ -386,17 +393,25 @@ export default function JoinPage() {
             await setDoc(doc(firestore, "users", user.uid), supporterData);
 
             // Increment inviter's count if referral exists
-            if (referralUid) {
+            if (referralUid && !isFirstUser) {
               const referrerRef = doc(firestore, "users", referralUid);
               updateDoc(referrerRef, {
                 recruitCount: increment(1)
               }).catch(err => console.error("Referrer update failed:", err));
             }
 
-            toast({ 
-                title: "Welcome to PDDS!", 
-                description: "Account created. Please check your email for a verification link." 
-            });
+            if (isFirstUser) {
+                toast({ 
+                    title: "Welcome to PDDS!", 
+                    description: "Production Environment Initialized. You have been granted Administrative access to the PDDS War Room." 
+                });
+            } else {
+                toast({ 
+                    title: "Welcome to PDDS!", 
+                    description: "Account created. Please check your email for a verification link." 
+                });
+            }
+            
             router.push("/home");
         } catch (error: any) {
             console.error(error);

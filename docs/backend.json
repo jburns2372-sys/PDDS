@@ -24,6 +24,7 @@
             "VP legal affairs", "Officer", "Member", "Admin", "System Admin", "Supporter"
           ]
         },
+        "isSuperAdmin": { "type": "boolean" },
         "jurisdictionLevel": {
           "type": "string",
           "enum": ["National", "Regional", "Provincial", "City/Municipal", "Barangay"]
