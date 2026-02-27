@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -17,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type } from "lucide-react";
+import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc } from "firebase/firestore";
 import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
 import {
@@ -58,6 +57,7 @@ export default function AdminDashboard() {
     const [resumeFile, setResumeFile] = useState<File | null>(null);
     const [resumeText, setResumeText] = useState("");
     const [resumeURL, setResumeURL] = useState<string | null>(null);
+    const [aboutText, setAboutText] = useState("");
     const [loading, setLoading] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -107,6 +107,7 @@ export default function AdminDashboard() {
         setResumeFile(null);
         setResumeText("");
         setResumeURL(null);
+        setAboutText("");
         setPassword("");
         setConfirmPassword("");
     };
@@ -122,6 +123,7 @@ export default function AdminDashboard() {
         setPhotoURL(user.photoURL || null);
         setResumeURL(user.resumeURL || null);
         setResumeText(user.resumeText || "");
+        setAboutText(user.aboutText || "");
         setSelectedFile(null);
         setResumeFile(null);
         setPassword("");
@@ -223,6 +225,7 @@ export default function AdminDashboard() {
                     photoURL: finalPhotoURL,
                     resumeURL: finalResumeURL,
                     resumeText: resumeText.trim(),
+                    aboutText: aboutText.trim(),
                     isApproved: true,
                     kartilyaAgreed: true
                 };
@@ -260,6 +263,7 @@ export default function AdminDashboard() {
                         photoURL: finalPhotoURL,
                         resumeURL: finalResumeURL,
                         resumeText: resumeText.trim(),
+                        aboutText: aboutText.trim(),
                         isApproved: true,
                         kartilyaAgreed: true,
                         createdAt: serverTimestamp(),
@@ -377,6 +381,19 @@ export default function AdminDashboard() {
                                         <Label>Assigned Location</Label>
                                         <Input required placeholder="City or Province" value={assignedLocation} onChange={e => setAssignedLocation(e.target.value)} />
                                     </div>
+                                </div>
+
+                                <div className="space-y-2 pt-4 border-t">
+                                    <Label className="flex items-center gap-2">
+                                        <Info className="h-4 w-4" />
+                                        About Information
+                                    </Label>
+                                    <Textarea 
+                                        placeholder="Write a brief bio or description of the officer..." 
+                                        value={aboutText} 
+                                        onChange={e => setAboutText(e.target.value)}
+                                        className="min-h-[100px] text-xs"
+                                    />
                                 </div>
 
                                 <div className="space-y-2 pt-4 border-t">

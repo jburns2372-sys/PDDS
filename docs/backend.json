@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "user": {
@@ -27,7 +26,7 @@
             "Chairman",
             "Vice Chairman",
             "VP",
-            "Sec Gen",
+            "Secretary General",
             "Treasurer",
             "Auditor",
             "VP Ways & Means Chair",
@@ -68,6 +67,10 @@
           "type": "string",
           "description": "The text-based content of the user's resume."
         },
+        "aboutText": {
+          "type": "string",
+          "description": "Biographical or additional information about the officer."
+        },
         "kartilyaAgreed": {
           "type": "boolean",
           "description": "Whether the user has agreed to the Kartilya."
@@ -94,7 +97,7 @@
   },
   "firestore": {
     "/users/{userId}": {
-      "schema": { "$ref": "#/entities/user" },
+      "schema": { "$ref": "#/backend/entities/user" },
       "description": "Stores user profile information."
     }
   }

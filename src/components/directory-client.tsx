@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCollection } from '@/firebase';
@@ -62,6 +61,7 @@ export function DirectoryClient() {
                                     role={role} 
                                     name={officer?.fullName || ""} 
                                     photoURL={officer?.photoURL || ""}
+                                    about={officer?.aboutText || ""}
                                 />
                             );
                         })}

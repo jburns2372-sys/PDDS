@@ -1,20 +1,33 @@
+"use client";
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserCircle } from 'lucide-react';
+import { UserCircle, Info } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type OfficerCardProps = {
   role: string;
   name: string;
   photoURL?: string;
+  about?: string;
 };
 
-export function OfficerCard({ role, name, photoURL }: OfficerCardProps) {
+export function OfficerCard({ role, name, photoURL, about }: OfficerCardProps) {
   const isVacant = !name;
 
-  return (
+  const cardContent = (
     <Card className={`overflow-hidden transition-all duration-300 border-primary/10 ${isVacant ? 'bg-muted/5' : 'hover:scale-105 hover:shadow-xl hover:border-primary/30'}`}>
-      <CardContent className="flex items-center gap-4 p-5">
+      <CardContent className="flex items-center gap-4 p-5 relative">
+        {!isVacant && about && (
+            <div className="absolute top-2 right-2 text-primary/30">
+                <Info className="h-3 w-3" />
+            </div>
+        )}
         <Avatar className={`h-16 w-16 border-2 shadow-sm ${isVacant ? 'border-muted bg-muted/10' : 'border-accent bg-background'}`}>
           {photoURL && !isVacant ? (
             <AvatarImage src={photoURL} alt={name} className="object-cover" />
@@ -48,4 +61,24 @@ export function OfficerCard({ role, name, photoURL }: OfficerCardProps) {
       </CardContent>
     </Card>
   );
+
+  if (!isVacant && about) {
+    return (
+      <TooltipProvider>
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>
+            {cardContent}
+          </TooltipTrigger>
+          <TooltipContent className="max-w-[300px] p-4 bg-primary text-primary-foreground border-none shadow-2xl">
+            <div className="space-y-1">
+                <p className="text-xs font-bold uppercase tracking-wider opacity-70">About {name}</p>
+                <p className="text-sm leading-relaxed">{about}</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return cardContent;
 }
