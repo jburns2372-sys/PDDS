@@ -4,20 +4,21 @@ export const mockStats = [
   { title: "Upcoming Events", value: "3", change: "This week" },
 ];
 
-export const officerRoles = [
-  { id: 3, role: "President", name: "Greco Belgica", avatarId: "avatar-president" },
-  { id: 4, role: "Vice President", name: "Gen. Rey Leonardo Guerrero", avatarId: "avatar-vice-president" },
-  { id: 1, role: "Chairman", name: "Gen. Hermogenes Esperon", avatarId: "avatar-chairman" },
-  { id: 2, role: "Vice Chairman", name: "Atty. Ruphil Bañoc", avatarId: "avatar-vice-chairman" },
-  { id: 5, role: "Secretary General", name: "Atty. Joy B. Puno", avatarId: "avatar-secretary-general" },
-  { id: 6, role: "Treasurer", name: "Margarita “Tingting” Cojuangco", avatarId: "avatar-treasurer" },
-  { id: 7, role: "Auditor", name: "Peter “Kuya” L. Tiu", avatarId: "avatar-auditor" },
-  { id: 8, role: "VP Ways & Means", name: "Ma. “Marichu” C. Mauro", avatarId: "avatar-vp-ways-means" },
-  { id: 9, role: "VP Media Comms", name: "Gen. Abraham “Abe” F. Bagasin", avatarId: "avatar-vp-media-comms" },
-  { id: 10, role: "VP Soc Med Comms", name: "Jamal Ashley Yahya", avatarId: "avatar-vp-soc-med-comms" },
-  { id: 11, role: "VP Events and Programs", name: "Gen. Thompson C. Lantion", avatarId: "avatar-vp-events" },
-  { id: 12, role: "VP Membership", name: "Audie “APT” A. Pacia", avatarId: "avatar-vp-membership" },
-  { id: 13, role: "VP Legal Affairs", name: "Atty. Jose “Joe” C. Malvar", avatarId: "avatar-vp-legal-affairs" },
+// Standardized list of PDDS leadership roles used as a template for the Directory
+export const pddsLeadershipRoles = [
+  "President",
+  "Chairman",
+  "Vice Chairman",
+  "Vice President",
+  "Secretary General",
+  "Treasurer",
+  "Auditor",
+  "VP Ways & Means",
+  "VP Media Comms",
+  "VP Soc Med Comms",
+  "VP Events and Programs",
+  "VP Membership",
+  "VP Legal Affairs",
 ];
 
 export type Agenda = {
@@ -124,7 +125,7 @@ export const pddsInfo = {
         "Public Service: Public Trust",
         "Rule of Law not Mob Rule",
         "An Equitable Electoral System and Suffrage Parliamentary (Multi-Party System)",
-        "Criteria for Elective Civil Servants - Elected after Qualified",
+        "Criteria for Elective Civil servants - Elected after Qualified",
       ],
     },
     {
