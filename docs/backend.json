@@ -91,6 +91,21 @@
         "createdBy": { "type": "string" }
       },
       "required": ["title", "message", "targetGroup", "timestamp", "createdBy"]
+    },
+    "communication_audit": {
+      "title": "Communication Audit",
+      "description": "Logs for official SMS and push broadcasts.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["SMS", "Push", "Dual"] },
+        "message": { "type": "string" },
+        "targetGroup": { "type": "string" },
+        "recipientCount": { "type": "number" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["type", "message", "targetGroup", "recipientCount", "timestamp", "createdBy"]
     }
   },
   "auth": {
@@ -116,6 +131,10 @@
     "/announcements/{announcementId}": {
       "schema": { "$ref": "#/backend/entities/announcement" },
       "description": "Stores official party broadcasts."
+    },
+    "/communication_audit/{auditId}": {
+      "schema": { "$ref": "#/backend/entities/communication_audit" },
+      "description": "Stores logs of official party communications."
     }
   }
 }
