@@ -3,11 +3,9 @@
 import { useCollection } from '@/firebase';
 import { OfficerCard } from './officer-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { pddsLeadershipRoles } from '@/lib/data';
+import { pddsLeadershipRoles, jurisdictionLevels } from '@/lib/data';
 import { Loader2, Users } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
-
-const levels = ["National", "Regional", "Provincial", "City/Municipal", "Barangay"];
 
 export function DirectoryClient() {
   // Real-time listener on the 'users' collection (The Registry)
@@ -26,7 +24,7 @@ export function DirectoryClient() {
     <Tabs defaultValue="National" className="w-full space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <TabsList className="bg-primary/5 p-1 border border-primary/10">
-          {levels.map(level => (
+          {jurisdictionLevels.map(level => (
             <TabsTrigger 
               key={level} 
               value={level} 
@@ -43,7 +41,7 @@ export function DirectoryClient() {
         </div>
       </div>
 
-      {levels.map(level => (
+      {jurisdictionLevels.map(level => (
         <TabsContent key={level} value={level} className="mt-0 focus-visible:outline-none">
             <Card className="border-none shadow-none bg-transparent">
                 <CardHeader className="px-0 pt-0">
@@ -55,8 +53,9 @@ export function DirectoryClient() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {pddsLeadershipRoles.map((role) => {
                             // Find the officer for this specific role and level from the Registry
+                            // Ensure strict comparison of role and level strings
                             const officer = (users || []).find(u => 
-                                u.role === role && u.level === level
+                                u.role?.trim() === role.trim() && u.level?.trim() === level.trim()
                             );
                             
                             return (

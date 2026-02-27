@@ -15,30 +15,12 @@ import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/fir
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
 import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc } from "firebase/firestore";
-
-// Official PDDS roles aligned with backend.json
-const pddsLeadershipRoles = [
-  'President', 
-  'Chairman', 
-  'Vice Chairman', 
-  'Vice President', 
-  'Secretary General', 
-  'Treasurer', 
-  'Auditor', 
-  'VP Ways & Means', 
-  'VP Media Comms', 
-  'VP Soc Med Comms', 
-  'VP Events and Programs', 
-  'VP Membership', 
-  'VP Legal Affairs'
-];
+import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
 
 const allAssignableRoles = [
   ...pddsLeadershipRoles,
   "Member", "Admin", "System Admin"
 ];
-
-const levels = ["National", "Regional", "Provincial", "City/Municipal", "Barangay"];
 
 export default function AdminDashboard() {
     const firestore = useFirestore();
@@ -317,7 +299,7 @@ export default function AdminDashboard() {
                                         <Select onValueChange={setLevel} value={level}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>
-                                                {levels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                                                {jurisdictionLevels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>

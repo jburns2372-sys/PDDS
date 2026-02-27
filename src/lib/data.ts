@@ -4,7 +4,7 @@ export const mockStats = [
   { title: "Upcoming Events", value: "3", change: "This week" },
 ];
 
-// Standardized list of PDDS leadership roles used as a template for the Directory
+// Centralized source of truth for PDDS leadership roles
 export const pddsLeadershipRoles = [
   "President",
   "Chairman",
@@ -19,6 +19,15 @@ export const pddsLeadershipRoles = [
   "VP Events and Programs",
   "VP Membership",
   "VP Legal Affairs",
+];
+
+// Centralized source of truth for geographical levels
+export const jurisdictionLevels = [
+  "National",
+  "Regional",
+  "Provincial",
+  "City/Municipal",
+  "Barangay",
 ];
 
 export type Agenda = {

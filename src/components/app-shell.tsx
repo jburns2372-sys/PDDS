@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -10,6 +9,7 @@ import { useUser, useFirestore } from "@/firebase";
 import { UserDataContext, UserDataContextType, UserProfile } from "@/context/user-data-context";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { pddsLeadershipRoles } from "@/lib/data";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
