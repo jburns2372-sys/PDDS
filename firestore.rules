@@ -36,14 +36,9 @@ service cloud.firestore {
 
     // Rules for 'users' collection
     match /users/{userId} {
-      // Allow any authenticated member to read the directory
       allow read: if isSignedIn();
-      
-      // Allow profile creation and updates if it's the owner or an administrator
       allow create: if isOwner(userId) || isAdministrator();
       allow update: if isOwner(userId) || isAdministrator();
-      
-      // Only an Admin can delete users
       allow delete: if isAdministrator();
     }
 
@@ -51,6 +46,16 @@ service cloud.firestore {
     match /campaign_actions/{actionId} {
       allow read: if isSignedIn();
       allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signedBy']);
+      allow write: if isAdministrator();
+    }
+
+    // Rules for polls
+    match /polls/{pollId} {
+      allow read: if isSignedIn();
+      allow update: if isSignedIn() && 
+                    !resource.data.votedBy.contains(request.auth.uid) &&
+                    request.resource.data.votedBy.contains(request.auth.uid) &&
+                    request.resource.data.votedBy.size() == resource.data.votedBy.size() + 1;
       allow write: if isAdministrator();
     }
   }

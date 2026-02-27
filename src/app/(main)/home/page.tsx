@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DigitalIdCard } from "@/components/digital-id-card";
 import { ActionCenter } from "@/components/action-center";
+import { DailyPulse } from "@/components/daily-pulse";
 
 function UserHeader({userData}: {userData: any}) {
   return (
@@ -96,9 +98,14 @@ export default function HomePage() {
         
         {isSupporter && (
             <div className="grid gap-8 lg:grid-cols-12 items-start">
-                <div className="lg:col-span-4 flex flex-col gap-4">
-                    <h2 className="text-xl font-bold font-headline text-primary">Member ID</h2>
-                    <DigitalIdCard userData={userData} />
+                <div className="lg:col-span-4 flex flex-col gap-6">
+                    <div>
+                      <h2 className="text-xl font-bold font-headline text-primary mb-4">Member ID</h2>
+                      <DigitalIdCard userData={userData} />
+                    </div>
+                    
+                    <DailyPulse />
+
                     <div className="bg-accent/10 p-4 rounded-lg border border-accent/20">
                         <p className="text-[10px] font-black uppercase text-accent-foreground tracking-widest mb-1">Status Note</p>
                         <p className="text-xs text-accent-foreground/80 leading-tight">Your digital ID is your official credential for LEADCON and local party events. Ensure your profile photo is up to date.</p>

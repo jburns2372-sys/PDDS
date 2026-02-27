@@ -153,6 +153,36 @@
         }
       },
       "required": ["title", "description", "targetSignatures", "signedBy"]
+    },
+    "poll": {
+      "title": "Poll",
+      "description": "A daily pulse survey for members.",
+      "type": "object",
+      "properties": {
+        "question": {
+          "type": "string",
+          "description": "The poll question."
+        },
+        "options": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The possible answers."
+        },
+        "votes": {
+          "type": "object",
+          "description": "Map of option names to vote counts."
+        },
+        "votedBy": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of user UIDs who have already voted."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the poll is currently open for voting."
+        }
+      },
+      "required": ["question", "options", "votes", "votedBy", "isActive"]
     }
   },
   "auth": {
@@ -166,6 +196,10 @@
     "/campaign_actions/{actionId}": {
       "schema": { "$ref": "#/backend/entities/campaign_action" },
       "description": "Stores petitions and supporter campaign actions."
+    },
+    "/polls/{pollId}": {
+      "schema": { "$ref": "#/backend/entities/poll" },
+      "description": "Stores party polls and surveys."
     }
   }
 }
