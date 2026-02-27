@@ -218,7 +218,7 @@ export default function AdminDashboard() {
                 }
 
                 const dataPayload: any = { 
-                    fullName: fullName.trim(), 
+                    fullName: fullName.trim().toUpperCase(), 
                     role, 
                     jurisdictionLevel, 
                     assignedLocation: assignedLocation.trim(), 
@@ -256,7 +256,7 @@ export default function AdminDashboard() {
                     const dataPayload = {
                         uid: uid,
                         email: email.trim().toLowerCase(),
-                        fullName: fullName.trim(), 
+                        fullName: fullName.trim().toUpperCase(), 
                         role, 
                         jurisdictionLevel, 
                         assignedLocation: assignedLocation.trim(), 
@@ -323,7 +323,12 @@ export default function AdminDashboard() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Officer Full Name</Label>
-                                    <Input required value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Enter full name" />
+                                    <Input 
+                                        required 
+                                        value={fullName} 
+                                        onChange={e => setFullName(e.target.value.toUpperCase())} 
+                                        placeholder="ENTER FULL NAME" 
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Email Address</Label>
@@ -489,7 +494,7 @@ export default function AdminDashboard() {
                                                 </Avatar>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="font-bold text-sm">{officer.fullName}</div>
+                                                <div className="font-bold text-sm uppercase">{officer.fullName}</div>
                                                 <div className="text-[11px] text-muted-foreground">{officer.email}</div>
                                             </TableCell>
                                             <TableCell>

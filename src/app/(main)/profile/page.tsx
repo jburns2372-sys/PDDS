@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -72,7 +71,7 @@ export default function ProfilePage() {
             }
 
             await updateUserDocument(firestore, user.uid, {
-                fullName: fullName.trim(),
+                fullName: fullName.trim().toUpperCase(),
                 address: address.trim(),
                 city: city.trim(),
                 province: province.trim(),
@@ -146,7 +145,7 @@ export default function ProfilePage() {
                                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                                 </div>
                                 <div className="mt-4">
-                                    <h2 className="text-xl font-bold text-primary">{fullName || 'Member Name'}</h2>
+                                    <h2 className="text-xl font-bold text-primary uppercase">{fullName || 'MEMBER NAME'}</h2>
                                     <p className="text-xs font-bold text-accent-foreground/60 uppercase tracking-widest">
                                         {userData?.role || 'Supporter'}
                                     </p>
@@ -190,8 +189,8 @@ export default function ProfilePage() {
                                         <Input 
                                             id="fullName" 
                                             value={fullName} 
-                                            onChange={e => setFullName(e.target.value)} 
-                                            placeholder="Your complete name"
+                                            onChange={e => setFullName(e.target.value.toUpperCase())} 
+                                            placeholder="YOUR COMPLETE NAME"
                                             required
                                             className="h-11"
                                         />

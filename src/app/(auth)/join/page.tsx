@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -148,7 +147,7 @@ export default function JoinPage() {
             const supporterData = {
                 uid: user.uid,
                 email: email.trim().toLowerCase(),
-                fullName: fullName.trim(),
+                fullName: fullName.trim().toUpperCase(),
                 phoneNumber: phoneNumber,
                 address: address.trim(),
                 city: city.trim(),
@@ -242,7 +241,15 @@ export default function JoinPage() {
                                     <Label htmlFor="fullName">Full Name</Label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input id="fullName" className="pl-9" placeholder="Juan Dela Cruz" required value={fullName} onChange={e => setFullName(e.target.value)} disabled={loading} />
+                                        <Input 
+                                            id="fullName" 
+                                            className="pl-9" 
+                                            placeholder="JUAN DELA CRUZ" 
+                                            required 
+                                            value={fullName} 
+                                            onChange={e => setFullName(e.target.value.toUpperCase())} 
+                                            disabled={loading} 
+                                        />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
