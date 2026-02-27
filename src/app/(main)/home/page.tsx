@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMessaging, useFirestore, useCollection } from "@/firebase";
 import { getToken } from "firebase/messaging";
 import { doc, updateDoc } from "firebase/firestore";
+import { mockStats } from "@/lib/data";
 
 function UserHeader({userData}: {userData: any}) {
   return (
