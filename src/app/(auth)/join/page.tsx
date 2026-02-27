@@ -34,6 +34,34 @@ declare global {
 
 const NCR_CODE = "130000000";
 
+// Simplified Zip Code Mapping for key areas and general city defaults
+const ZIP_CODE_MAP: Record<string, any> = {
+    "CITY OF MANILA": { default: "1000", "SAMPALOC": "1008", "MALATE": "1004", "BINONDO": "1006", "ERMITA": "1000", "QUIAPO": "1001" },
+    "QUEZON CITY": { default: "1100", "COMMONWEALTH": "1121", "DILIMAN": "1101", "BATASAN HILLS": "1126", "CUBAO": "1109", "LOYOLA HEIGHTS": "1108" },
+    "MAKATI CITY": { default: "1200", "BEL-AIR": "1209", "FORBES PARK": "1219", "MAGALLANES VILLAGE": "1232" },
+    "PASIG CITY": { default: "1600", "ORTIGAS CENTER": "1605", "KANIOGAN": "1606" },
+    "TAGUIG CITY": { default: "1630", "FORT BONIFACIO": "1634", "WESTERN BICUTAN": "1630" },
+    "CALOOCAN CITY": { default: "1400" },
+    "LAS PIÑAS CITY": { default: "1740" },
+    "MALABON CITY": { default: "1470" },
+    "MANDALUYONG CITY": { default: "1550" },
+    "MARIKINA CITY": { default: "1800" },
+    "MUNTINLUPA CITY": { default: "1770" },
+    "NAVOTAS CITY": { default: "1485" },
+    "PARAÑAQUE CITY": { default: "1700" },
+    "PASAY CITY": { default: "1300" },
+    "PATEROS": { default: "1620" },
+    "SAN JUAN CITY": { default: "1500" },
+    "VALENZUELA CITY": { default: "1440" },
+    "CEBU CITY": { default: "6000" },
+    "DAVAO CITY": { default: "8000" },
+    "BAGUIO CITY": { default: "2600" },
+    "ILOILO CITY": { default: "5000" },
+    "BACOLOD CITY": { default: "6100" },
+    "CAGAYAN DE ORO CITY": { default: "9000" },
+    "ZAMBOANGA CITY": { default: "7000" },
+};
+
 export default function JoinPage() {
     const auth = useAuth();
     const firestore = useFirestore();
@@ -77,15 +105,13 @@ export default function JoinPage() {
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
     const [agreed, setAgreed] = useState(false);
 
-    // Fetch Provinces on Load (Plus NCR Fix)
+    // Fetch Provinces on Load
     useEffect(() => {
         const fetchProvincesAndNCR = async () => {
             try {
-                // Fetch regular provinces
                 const pResp = await fetch('https://psgc.gitlab.io/api/provinces/');
                 const pData = await pResp.json();
                 
-                // Fetch NCR specifically from regions
                 const ncrResp = await fetch(`https://psgc.gitlab.io/api/regions/${NCR_CODE}`);
                 const ncrData = await ncrResp.json();
                 
@@ -97,11 +123,10 @@ export default function JoinPage() {
                 setProvinces(combined);
             } catch (error) {
                 console.error("Error fetching provinces:", error);
-                toast({ variant: "destructive", title: "Location Error", description: "Failed to load provinces. Please refresh." });
             }
         };
         fetchProvincesAndNCR();
-    }, [toast]);
+    }, []);
 
     // Fetch Cities when Province Changes
     useEffect(() => {
@@ -113,7 +138,6 @@ export default function JoinPage() {
             try {
                 const province = provinces.find(p => p.name === selectedProvince);
                 if (province) {
-                    // Use NCR regions endpoint for Metro Manila, otherwise use provinces endpoint
                     const endpoint = province.isNCR 
                         ? `https://psgc.gitlab.io/api/regions/${NCR_CODE}/cities-municipalities/`
                         : `https://psgc.gitlab.io/api/provinces/${province.code}/cities-municipalities/`;
@@ -129,6 +153,7 @@ export default function JoinPage() {
         fetchCities();
         setSelectedCity("");
         setSelectedBarangay("");
+        setZipCode("");
     }, [selectedProvince, provinces]);
 
     // Fetch Barangays when City Changes
@@ -152,6 +177,33 @@ export default function JoinPage() {
         fetchBarangays();
         setSelectedBarangay("");
     }, [selectedCity, cities]);
+
+    // Automatic Zip Code Assignment Logic
+    useEffect(() => {
+        if (!selectedCity) {
+            setZipCode("");
+            return;
+        }
+
+        const cityKey = selectedCity.toUpperCase();
+        const cityData = ZIP_CODE_MAP[cityKey];
+
+        if (cityData) {
+            // Check for specific barangay override
+            const brgyKey = selectedBarangay.toUpperCase();
+            const specificZip = cityData[brgyKey];
+            
+            if (specificZip) {
+                setZipCode(specificZip);
+            } else {
+                setZipCode(cityData.default || "");
+            }
+        } else {
+            // Fallback for cities not in explicit map (e.g., provinces)
+            // In a real app, you might use a more comprehensive API or a pattern
+            setZipCode("0000"); 
+        }
+    }, [selectedCity, selectedBarangay]);
 
     useEffect(() => {
         if (typeof window !== "undefined" && !window.recaptchaVerifier) {
@@ -268,15 +320,11 @@ export default function JoinPage() {
 
         setLoading(true);
         try {
-            // Step 1: Verify OTP
             await confirmationResult.confirm(otp);
-            
-            // Step 2: Create Email/Password account
             const trimmedEmail = email.trim().toLowerCase();
             const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
             const user = userCredential.user;
 
-            // Step 3: Handle Photo Upload
             let finalPhotoURL = null;
             if (selectedFile) {
                 try {
@@ -288,10 +336,8 @@ export default function JoinPage() {
                 }
             }
 
-            // Step 4: Send Email Verification
             await sendEmailVerification(user);
 
-            // Step 5: Save to Firestore
             const supporterData = {
                 uid: user.uid,
                 email: trimmedEmail,
@@ -301,7 +347,7 @@ export default function JoinPage() {
                 barangay: selectedBarangay,
                 city: selectedCity,
                 province: selectedProvince,
-                zipCode: zipCode.trim(),
+                zipCode: zipCode,
                 photoURL: finalPhotoURL,
                 role: "Supporter",
                 jurisdictionLevel: "City/Municipal",
@@ -530,8 +576,16 @@ export default function JoinPage() {
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="zipCode">Zip Code</Label>
-                                        <Input id="zipCode" placeholder="0000" required value={zipCode} onChange={e => setZipCode(e.target.value)} disabled={loading} />
+                                        <Label htmlFor="zipCode">Zip Code (Auto-assigned)</Label>
+                                        <Input 
+                                            id="zipCode" 
+                                            placeholder="Auto-filled" 
+                                            required 
+                                            value={zipCode} 
+                                            readOnly
+                                            className="bg-muted cursor-not-allowed font-mono font-bold"
+                                            disabled={loading} 
+                                        />
                                     </div>
                                 </div>
 
@@ -569,7 +623,7 @@ export default function JoinPage() {
                             <Button 
                                 type="submit" 
                                 className="w-full h-12 text-lg font-bold" 
-                                disabled={loading || !agreed}
+                                disabled={loading || !agreed || !zipCode}
                             >
                                 {loading ? (
                                     <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
