@@ -19,6 +19,10 @@
           "type": "string",
           "description": "The user's full name."
         },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The user's verified phone number."
+        },
         "role": {
           "type": "string",
           "description": "The user's role in the party.",
@@ -99,7 +103,7 @@
     }
   },
   "auth": {
-    "providers": ["email-password"]
+    "providers": ["email-password", "phone"]
   },
   "firestore": {
     "/users/{userId}": {
