@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useUserData } from "@/context/user-data-context";
@@ -13,15 +14,18 @@ export default function SuperAdminLayout({
   const { user, userData, loading } = useUserData();
   const router = useRouter();
 
+  const userEmail = (user?.email || '').toLowerCase();
+
   const isAuthorizedEmail = 
-    user?.email === 'iamgrecobelgica@gmail.com' || 
-    user?.email === 'j.burns2372@gmail.com';
+    userEmail === 'iamgrecobelgica@gmail.com' || 
+    userEmail === 'j.burns2372@gmail.com' ||
+    userEmail === 'j.burns372@gmail.com';
 
   // System Admin and President (at National level) share full Superadmin/developer access
   const isSuperAdmin = 
     isAuthorizedEmail || 
     userData?.role === 'System Admin' || 
-    (userData?.level === 'National' && userData?.role === 'President');
+    (userData?.jurisdictionLevel === 'National' && userData?.role === 'President');
 
   useEffect(() => {
     if (!loading && !isSuperAdmin) {

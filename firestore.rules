@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -13,10 +14,11 @@ service cloud.firestore {
     }
 
     function isPrivilegedEmail() {
-      let email = request.auth.token.email;
+      let email = request.auth.token.email.lower();
       return email == 'iamgrecobelgica@gmail.com' || 
              email == 'j.burns2372@gmail.com' || 
              email == 'j.burns.2372@gmail.com' ||
+             email == 'j.burns372@gmail.com' ||
              email == 'mariashellajoygomez@gmail.com';
     }
 
@@ -43,6 +45,13 @@ service cloud.firestore {
       
       // Only an Admin can delete users
       allow delete: if isAdministrator();
+    }
+
+    // Rules for campaign actions
+    match /campaign_actions/{actionId} {
+      allow read: if isSignedIn();
+      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signedBy']);
+      allow write: if isAdministrator();
     }
   }
 }

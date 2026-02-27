@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useUserData } from "@/context/user-data-context";
@@ -13,13 +14,16 @@ export default function AdminLayout({
   const { user, userData, loading } = useUserData();
   const router = useRouter();
 
+  const userEmail = (user?.email || '').toLowerCase();
+  
   // System Admin shares identical administrative privileges with President and Admin roles
   const isAuthorized = 
     userData?.role === 'Admin' || 
     userData?.role === 'President' || 
     userData?.role === 'System Admin' || 
-    user?.email === 'iamgrecobelgica@gmail.com' ||
-    user?.email === 'j.burns2372@gmail.com';
+    userEmail === 'iamgrecobelgica@gmail.com' ||
+    userEmail === 'j.burns2372@gmail.com' ||
+    userEmail === 'j.burns372@gmail.com';
 
   useEffect(() => {
     if (!loading && !isAuthorized) {

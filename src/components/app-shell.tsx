@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -5,10 +6,11 @@ import { DesktopSidebar } from "./desktop-sidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { useEffect, useState, ReactNode } from "react";
 import { Skeleton } from "./ui/skeleton";
-import { useUser, useFirestore } from "@/firebase";
+import { useUser, useFirestore, useAuth } from "@/firebase";
 import { UserDataContext, UserDataContextType, UserProfile } from "@/context/user-data-context";
 import { useRouter } from "next/navigation";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -18,6 +20,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [userDataLoading, setUserDataLoading] = useState(true);
   const router = useRouter();
   const firestore = useFirestore();
+  const auth = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsClient(true);
@@ -35,14 +39,28 @@ export function AppShell({ children }: { children: ReactNode }) {
     setUserDataLoading(true);
     const docRef = doc(firestore, "users", user.uid);
 
-    // Use onSnapshot for real-time synchronization of profile data (including photoURL)
+    // Use onSnapshot for real-time synchronization and "Bouncer" security logic
     const unsubscribe = onSnapshot(docRef, async (docSnap) => {
-      const isPresidentEmail = user.email === 'iamgrecobelgica@gmail.com';
-      const isAdminEmail = user.email === 'j.burns2372@gmail.com' || user.email === 'j.burns.2372@gmail.com';
+      const userEmail = (user.email || '').toLowerCase();
+      const isPresidentEmail = userEmail === 'iamgrecobelgica@gmail.com';
+      const isAdminEmail = userEmail === 'j.burns2372@gmail.com' || userEmail === 'j.burns.2372@gmail.com' || userEmail === 'j.burns372@gmail.com';
       const isPrivileged = isPresidentEmail || isAdminEmail;
 
       if (docSnap.exists()) {
         const data = docSnap.data();
+
+        // BOUNCER CHECK: Suspend account if isApproved is explicitly set to false
+        if (data.isApproved === false && !isPrivileged) {
+          await auth.signOut();
+          toast({
+            variant: "destructive",
+            title: "Access Denied",
+            description: "Your account has been disabled by an Administrator."
+          });
+          router.push('/login');
+          return;
+        }
+
         setUserData({ id: docSnap.id, ...data });
         
         // Ensure privileged users have correct schema and roles if they exist but are misconfigured
@@ -60,24 +78,35 @@ export function AppShell({ children }: { children: ReactNode }) {
           }
         }
       } else {
-        // Initialize new user document if it doesn't exist
-        const targetRole = isPresidentEmail ? 'President' : (isAdminEmail ? 'Admin' : 'Member');
+        // BOUNCER CHECK: Sign out if the document doesn't exist (unless it's a privileged user)
+        if (!isPrivileged) {
+          await auth.signOut();
+          toast({
+            variant: "destructive",
+            title: "Account Removed",
+            description: "Your account has been removed or disabled by an Administrator."
+          });
+          router.push('/login');
+          return;
+        }
+
+        // Initialize new user document for privileged emails if it somehow got deleted
+        const targetRole = isPresidentEmail ? 'President' : 'Admin';
         const newUserProfile = {
           uid: user.uid,
-          email: user.email || '',
-          fullName: user.displayName || user.email?.split('@')[0] || 'Member',
+          email: userEmail,
+          fullName: user.displayName || userEmail.split('@')[0] || 'Member',
           role: targetRole,
           jurisdictionLevel: 'National',
-          assignedLocation: isPrivileged ? 'National Headquarters' : 'Pending Assignment',
+          assignedLocation: 'National Headquarters',
           photoURL: null,
-          kartilyaAgreed: isPrivileged, 
+          kartilyaAgreed: true, 
           isApproved: true,
           passwordIsTemporary: false,
           createdAt: serverTimestamp(),
         };
 
         await setDoc(docRef, newUserProfile);
-        // The next snapshot will catch this created doc
       }
       setUserDataLoading(false);
     }, (error) => {
@@ -95,7 +124,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [user, userLoading, firestore]);
+  }, [user, userLoading, firestore, auth, toast, router]);
   
   const loading = !isClient || userLoading || userDataLoading;
 
