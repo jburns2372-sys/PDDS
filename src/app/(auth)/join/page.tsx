@@ -34,14 +34,89 @@ declare global {
 
 const NCR_CODE = "130000000";
 
-// Simplified Zip Code Mapping for key areas and general city defaults
-const ZIP_CODE_MAP: Record<string, any> = {
-    "CITY OF MANILA": { default: "1000", "SAMPALOC": "1008", "MALATE": "1004", "BINONDO": "1006", "ERMITA": "1000", "QUIAPO": "1001" },
-    "QUEZON CITY": { default: "1100", "COMMONWEALTH": "1121", "DILIMAN": "1101", "BATASAN HILLS": "1126", "CUBAO": "1109", "LOYOLA HEIGHTS": "1108" },
-    "MAKATI CITY": { default: "1200", "BEL-AIR": "1209", "FORBES PARK": "1219", "MAGALLANES VILLAGE": "1232" },
-    "PASIG CITY": { default: "1600", "ORTIGAS CENTER": "1605", "KANIOGAN": "1606" },
-    "TAGUIG CITY": { default: "1630", "FORT BONIFACIO": "1634", "WESTERN BICUTAN": "1630" },
-    "CALOOCAN CITY": { default: "1400" },
+// Comprehensive Philippine Zip Code Dictionary with Barangay-level mapping for key Metro Manila cities
+const ZIP_CODE_MAP: Record<string, { default: string; [barangay: string]: string }> = {
+    "CITY OF MANILA": { 
+        default: "1000", 
+        "SAMPALOC": "1008", 
+        "MALATE": "1004", 
+        "BINONDO": "1006", 
+        "ERMITA": "1000", 
+        "QUIAPO": "1001",
+        "TONDO": "1012",
+        "SANTA CRUZ": "1014",
+        "SANTA ANA": "1009",
+        "SAN MIGUEL": "1005",
+        "SAN NICOLAS": "1010",
+        "PANDACAN": "1011",
+        "PACO": "1007",
+        "INTRAMUROS": "1002",
+        "PORT AREA": "1018"
+    },
+    "QUEZON CITY": { 
+        default: "1100", 
+        "COMMONWEALTH": "1121", 
+        "DILIMAN": "1101", 
+        "BATASAN HILLS": "1126", 
+        "CUBAO": "1109", 
+        "LOYOLA HEIGHTS": "1108",
+        "PASONG TAMO": "1107",
+        "PAANG BUNDOK": "1114",
+        "BAGONG SILANGAN": "1119",
+        "NOVALICHES": "1123",
+        "NEW ERA": "1107",
+        "SAN BARTOLOME": "1116",
+        "TANDANG SORA": "1116",
+        "PROJECT 4": "1109",
+        "PROJECT 6": "1100",
+        "PROJECT 7": "1105",
+        "PROJECT 8": "1106",
+        "FAIRVIEW": "1118",
+        "HOLY SPIRIT": "1127",
+        "PAYATAS": "1119",
+        "UP CAMPUS": "1101"
+    },
+    "MAKATI CITY": { 
+        default: "1200", 
+        "BEL-AIR": "1209", 
+        "FORBES PARK": "1219", 
+        "MAGALLANES VILLAGE": "1232",
+        "DASMARIÑAS VILLAGE": "1222",
+        "GUADALUPE NUEVO": "1212",
+        "GUADALUPE VIEJO": "1211",
+        "POBLACION": "1210",
+        "SAN LORENZO": "1223",
+        "URA-DANZA": "1200"
+    },
+    "CALOOCAN CITY": { 
+        default: "1400",
+        "BAGONG BARRIO": "1406",
+        "GRACE PARK EAST": "1403",
+        "GRACE PARK WEST": "1406",
+        "MAYPJO": "1410",
+        "SANGANDAAN": "1408",
+        "NORTH CALOOCAN": "1420"
+    },
+    "PASIG CITY": { 
+        default: "1600", 
+        "ORTIGAS CENTER": "1605", 
+        "KANIOGAN": "1606",
+        "MANGGAHAN": "1611",
+        "MAYBUNGA": "1607",
+        "PINAGBUHATAN": "1602",
+        "ROSARIO": "1609",
+        "SANTA LUCIA": "1608",
+        "UGONG": "1604"
+    },
+    "TAGUIG CITY": { 
+        default: "1630", 
+        "FORT BONIFACIO": "1634", 
+        "WESTERN BICUTAN": "1630",
+        "UPPER BICUTAN": "1633",
+        "LOWER BICUTAN": "1632",
+        "TIPAS": "1638",
+        "BAGUMBAYAN": "1637"
+    },
     "LAS PIÑAS CITY": { default: "1740" },
     "MALABON CITY": { default: "1470" },
     "MANDALUYONG CITY": { default: "1550" },
@@ -178,7 +253,7 @@ export default function JoinPage() {
         setSelectedBarangay("");
     }, [selectedCity, cities]);
 
-    // Automatic Zip Code Assignment Logic
+    // Automatic Zip Code Assignment Logic - Refined for Barangay Precision
     useEffect(() => {
         if (!selectedCity) {
             setZipCode("");
@@ -191,7 +266,13 @@ export default function JoinPage() {
         if (cityData) {
             // Check for specific barangay override
             const brgyKey = selectedBarangay.toUpperCase();
-            const specificZip = cityData[brgyKey];
+            
+            // Search for partial match in dictionary keys to handle API naming variations (e.g. "Barangay Commonwealth" vs "Commonwealth")
+            const matchedBrgyKey = Object.keys(cityData).find(key => 
+                brgyKey.includes(key) || key.includes(brgyKey)
+            );
+            
+            const specificZip = matchedBrgyKey ? cityData[matchedBrgyKey] : null;
             
             if (specificZip) {
                 setZipCode(specificZip);
@@ -199,8 +280,7 @@ export default function JoinPage() {
                 setZipCode(cityData.default || "");
             }
         } else {
-            // Fallback for cities not in explicit map (e.g., provinces)
-            // In a real app, you might use a more comprehensive API or a pattern
+            // Fallback for cities not in explicit map
             setZipCode("0000"); 
         }
     }, [selectedCity, selectedBarangay]);
