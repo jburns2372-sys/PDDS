@@ -112,6 +112,25 @@ export default function AdminDashboard() {
         setConfirmPassword("");
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoURL(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleResumeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setResumeFile(file);
+        }
+    };
+
     const handleEditClick = (user: any) => {
         setSelectedUser(user);
         setIsEditMode(true);
