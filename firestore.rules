@@ -16,9 +16,7 @@ service cloud.firestore {
     function isPrivilegedEmail() {
       let email = request.auth.token.email.lower();
       return email == 'iamgrecobelgica@gmail.com' || 
-             email == 'j.burns2372@gmail.com' || 
-             email == 'j.burns.2372@gmail.com' ||
-             email == 'j.burns372@gmail.com' ||
+             email == 'j.burns372@gmail.com' || 
              email == 'mariashellajoygomez@gmail.com';
     }
 
@@ -34,7 +32,6 @@ service cloud.firestore {
       );
     }
 
-    // Rules for 'users' collection
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isOwner(userId) || isAdministrator();
@@ -42,21 +39,24 @@ service cloud.firestore {
       allow delete: if isAdministrator();
     }
 
-    // Rules for campaign actions
     match /campaign_actions/{actionId} {
       allow read: if isSignedIn();
       allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signedBy']);
       allow write: if isAdministrator();
     }
 
-    // Rules for polls
     match /polls/{pollId} {
       allow read: if isSignedIn();
       allow update: if isSignedIn() && 
                     !resource.data.votedBy.contains(request.auth.uid) &&
-                    request.resource.data.votedBy.contains(request.auth.uid) &&
-                    request.resource.data.votedBy.size() == resource.data.votedBy.size() + 1;
+                    request.resource.data.votedBy.contains(request.auth.uid);
       allow write: if isAdministrator();
+    }
+
+    match /community_feedback/{feedbackId} {
+      allow read: if isSignedIn() && (resource.data.submitterUid == request.auth.uid || isAdministrator());
+      allow create: if isSignedIn() && request.resource.data.submitterUid == request.auth.uid;
+      allow update, delete: if isAdministrator();
     }
   }
 }

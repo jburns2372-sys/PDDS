@@ -6,183 +6,74 @@
       "description": "A user of the application.",
       "type": "object",
       "properties": {
-        "uid": {
-          "type": "string",
-          "description": "The user's unique ID."
-        },
-        "email": {
-          "type": "string",
-          "format": "email",
-          "description": "The user's email address."
-        },
-        "fullName": {
-          "type": "string",
-          "description": "The user's full name."
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The user's verified phone number."
-        },
-        "streetAddress": {
-          "type": "string",
-          "description": "The user's street name, building, or house number."
-        },
-        "barangay": {
-          "type": "string",
-          "description": "The user's barangay."
-        },
-        "city": {
-          "type": "string",
-          "description": "The user's city or municipality."
-        },
-        "province": {
-          "type": "string",
-          "description": "The user's province."
-        },
-        "zipCode": {
-          "type": "string",
-          "description": "The user's postal code."
-        },
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "fullName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "streetAddress": { "type": "string" },
+        "barangay": { "type": "string" },
+        "city": { "type": "string" },
+        "province": { "type": "string" },
+        "zipCode": { "type": "string" },
         "role": {
           "type": "string",
-          "description": "The user's role in the party.",
           "enum": [
-            "President",
-            "Chairman",
-            "Vice Chairman",
-            "VP",
-            "Secretary General",
-            "Treasurer",
-            "Auditor",
-            "VP Ways & Means Chair",
-            "VP Media Comms",
-            "VP Soc Med Comms",
-            "VP Events and Programs",
-            "VP Membership",
-            "VP legal affairs",
-            "Member",
-            "Admin",
-            "System Admin",
-            "Supporter"
+            "President", "Chairman", "Vice Chairman", "VP", "Secretary General",
+            "Treasurer", "Auditor", "VP Ways & Means Chair", "VP Media Comms",
+            "VP Soc Med Comms", "VP Events and Programs", "VP Membership",
+            "VP legal affairs", "Member", "Admin", "System Admin", "Supporter"
           ]
         },
         "jurisdictionLevel": {
           "type": "string",
-          "description": "The user's jurisdiction level.",
-          "enum": [
-            "National",
-            "Regional",
-            "Provincial",
-            "City/Municipal",
-            "Barangay"
-          ]
+          "enum": ["National", "Regional", "Provincial", "City/Municipal", "Barangay"]
         },
-        "assignedLocation": {
-          "type": "string",
-          "description": "The name of the user's assigned location."
-        },
-        "photoURL": {
-          "type": "string",
-          "description": "The URL of the user's profile picture."
-        },
-        "resumeURL": {
-          "type": "string",
-          "description": "The URL of the user's uploaded resume file."
-        },
-        "resumeText": {
-          "type": "string",
-          "description": "The text-based content of the user's resume."
-        },
-        "aboutText": {
-          "type": "string",
-          "description": "Biographical information about the officer."
-        },
-        "kartilyaAgreed": {
-          "type": "boolean",
-          "description": "Whether the user has agreed to the Kartilya."
-        },
-        "passwordIsTemporary": {
-          "type": "boolean",
-          "description": "Whether the user needs to change their temporary password."
-        },
-        "isApproved": {
-          "type": "boolean",
-          "description": "Whether the user is approved."
-        },
-        "isVerified": {
-          "type": "boolean",
-          "description": "Whether the user's supporter account is verified."
-        },
-        "isEmailVerified": {
-          "type": "boolean",
-          "description": "Whether the email is verified."
-        },
-        "isPhoneVerified": {
-          "type": "boolean",
-          "description": "Whether the phone is verified."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the user document was created."
-        }
+        "assignedLocation": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "kartilyaAgreed": { "type": "boolean" },
+        "isApproved": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
     },
     "campaign_action": {
       "title": "Campaign Action",
-      "description": "A petition or community action for supporters.",
       "type": "object",
       "properties": {
-        "title": {
-          "type": "string",
-          "description": "The title of the petition."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the action."
-        },
-        "targetSignatures": {
-          "type": "number",
-          "description": "The goal number of signatures."
-        },
-        "signedBy": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "List of user UIDs who signed the petition."
-        }
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "targetSignatures": { "type": "number" },
+        "signedBy": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["title", "description", "targetSignatures", "signedBy"]
     },
     "poll": {
       "title": "Poll",
-      "description": "A daily pulse survey for members.",
       "type": "object",
       "properties": {
-        "question": {
-          "type": "string",
-          "description": "The poll question."
-        },
-        "options": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "The possible answers."
-        },
-        "votes": {
-          "type": "object",
-          "description": "Map of option names to vote counts."
-        },
-        "votedBy": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "List of user UIDs who have already voted."
-        },
-        "isActive": {
-          "type": "boolean",
-          "description": "Whether the poll is currently open for voting."
-        }
+        "question": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "votes": { "type": "object" },
+        "votedBy": { "type": "array", "items": { "type": "string" } },
+        "isActive": { "type": "boolean" }
       },
       "required": ["question", "options", "votes", "votedBy", "isActive"]
+    },
+    "community_feedback": {
+      "title": "Community Feedback",
+      "description": "Suggestions and concerns from supporters.",
+      "type": "object",
+      "properties": {
+        "topic": { "type": "string", "enum": ["Local Infrastructure", "Social Services", "Community Concerns", "Security", "Others"] },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["Received", "Under Review", "Addressed"] },
+        "submittedBy": { "type": "string" },
+        "submitterUid": { "type": "string" },
+        "location": { "type": "string" },
+        "officialReply": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["topic", "message", "status", "submittedBy", "submitterUid", "location", "timestamp"]
     }
   },
   "auth": {
@@ -200,6 +91,10 @@
     "/polls/{pollId}": {
       "schema": { "$ref": "#/backend/entities/poll" },
       "description": "Stores party polls and surveys."
+    },
+    "/community_feedback/{feedbackId}": {
+      "schema": { "$ref": "#/backend/entities/community_feedback" },
+      "description": "Stores member feedback and official replies."
     }
   }
 }

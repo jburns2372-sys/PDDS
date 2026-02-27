@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -16,14 +17,15 @@ const navItems = [
 ];
 
 const adminNavItems = [
-    { href: '/admin', label: 'Admin Panel', icon: Shield }
+    { href: '/admin/dashboard', label: 'Officer Panel', icon: Shield },
+    { href: '/admin/audit', label: 'Feedback Audit', icon: MessageSquare }
 ];
 
 export function DesktopSidebar() {
   const pathname = usePathname();
   const { user, userData, loading: isLoadingRole } = useUserData();
   const userRole = userData?.role;
-  const userEmail = user?.email;
+  const userEmail = (user?.email || '').toLowerCase();
 
   // Unified privilege check for Sidebar
   const isPrivileged = !isLoadingRole && (
@@ -31,15 +33,16 @@ export function DesktopSidebar() {
     userRole === 'Admin' || 
     userRole === 'System Admin' ||
     userEmail === 'iamgrecobelgica@gmail.com' ||
-    userEmail === 'j.burns2372@gmail.com'
+    userEmail === 'j.burns372@gmail.com' ||
+    userEmail === 'mariashellajoygomez@gmail.com'
   );
   
   return (
     <aside className="hidden w-64 flex-shrink-0 flex-col border-r bg-card md:flex">
       <div className="flex h-16 items-center gap-3 px-6">
         <PddsLogo className="h-8 w-8 text-primary" />
-        <span className="text-xl font-bold tracking-tight text-primary font-headline">
-          Federalismo Portal
+        <span className="text-xl font-bold tracking-tight text-primary font-headline uppercase">
+          PDDS PORTAL
         </span>
       </div>
       <Separator />
@@ -52,11 +55,11 @@ export function DesktopSidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground",
-                    isActive && "bg-primary/10 text-primary font-semibold"
+                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold",
+                    isActive && "bg-primary/10 text-primary font-bold border-l-4 border-primary rounded-l-none"
                 )}
                 >
-                <item.icon className="h-5 w-5" />
+                <item.icon className="h-4 w-4" />
                 <span>{item.label}</span>
                 </Link>
             );
@@ -64,43 +67,49 @@ export function DesktopSidebar() {
              <AboutPddsDialog>
                 <button
                     className={cn(
-                        "flex w-full items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground"
+                        "flex w-full items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold"
                     )}
                 >
-                    <Info className="h-5 w-5" />
+                    <Info className="h-4 w-4" />
                     <span>About PDDS</span>
                 </button>
             </AboutPddsDialog>
-            {isPrivileged && adminNavItems.map((item) => {
-            const isActive = pathname.startsWith(item.href);
-            return (
-                <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground",
-                    isActive && "bg-primary/10 text-primary font-semibold"
-                )}
-                >
-                <item.icon className="h-5 w-5" />
-                <span>{item.label}</span>
-                </Link>
-            );
-            })}
+            
+            {isPrivileged && (
+              <>
+                <div className="px-4 py-2 mt-4 text-[10px] font-black uppercase text-primary/40 tracking-widest">Administration</div>
+                {adminNavItems.map((item) => {
+                  const isActive = pathname.startsWith(item.href);
+                  return (
+                      <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                          "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold",
+                          isActive && "bg-primary/10 text-primary font-bold border-l-4 border-primary rounded-l-none"
+                      )}
+                      >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                      </Link>
+                  );
+                })}
+              </>
+            )}
         </div>
         <div>
-            <div className="px-4 py-2 text-xs text-muted-foreground">
-                [Role: {isLoadingRole ? 'Loading...' : userRole || 'Member'}]
+            <div className="px-4 py-2 text-[10px] font-black uppercase text-muted-foreground tracking-tighter opacity-50">
+                Logged in as {isLoadingRole ? '...' : userRole}
             </div>
              <Link
               href="/profile"
               className={cn(
-                "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground",
-                pathname.startsWith('/profile') && "bg-primary/10 text-primary font-semibold"
+                "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold",
+                pathname.startsWith('/profile') && "bg-primary/10 text-primary font-bold"
               )}
             >
-              <UserCircle className="h-5 w-5" />
-              <span>Profile</span>
+              <UserCircle className="h-4 w-4" />
+              <span>My Profile</span>
             </Link>
         </div>
       </nav>
