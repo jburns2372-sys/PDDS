@@ -6,13 +6,17 @@ import { mockStats, mockAnnouncement } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { AnnouncementCard } from "@/components/announcement-card";
 import { useUserData } from "@/context/user-data-context";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DigitalIdCard } from "@/components/digital-id-card";
 import { ActionCenter } from "@/components/action-center";
 import { DailyPulse } from "@/components/daily-pulse";
 import { CommunityFeedback } from "@/components/community-feedback";
+import { RecruitmentLeaderboard } from "@/components/recruitment-leaderboard";
+import { Button } from "@/components/ui/button";
+import { Copy, Share2, Trophy, Users } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 function UserHeader({userData}: {userData: any}) {
   return (
@@ -30,29 +34,17 @@ function UserHeader({userData}: {userData: any}) {
   );
 }
 
-function StatCards() {
-  return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {mockStats.map((stat) => (
-        <Card key={stat.title} className="shadow-sm border-primary/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-              {stat.title}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-primary">{stat.value}</div>
-            <p className="text-xs font-bold text-green-600 mt-1">{stat.change}</p>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
 export default function HomePage() {
   const router = useRouter();
   const { userData, loading } = useUserData();
+  const { toast } = useToast();
+  const [domain, setDomain] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setDomain(window.location.origin);
+    }
+  }, []);
 
   useEffect(() => {
     if (!loading && userData?.passwordIsTemporary) {
@@ -62,35 +54,32 @@ export default function HomePage() {
   
   if (loading || userData?.passwordIsTemporary) {
     return (
-      <>
-        <div className="bg-card p-6 md:p-8 border-b">
-            <div className="max-w-7xl mx-auto">
-                <Skeleton className="h-10 w-1/3" />
-                <div className="mt-4 flex items-center gap-2">
-                      <Skeleton className="h-6 w-24" />
-                      <Skeleton className="h-6 w-24" />
-                </div>
-            </div>
+      <div className="p-8 space-y-8">
+        <Skeleton className="h-12 w-1/3" />
+        <div className="grid md:grid-cols-3 gap-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
         </div>
-        <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
-            <section>
-                <h2 className="text-xl font-semibold mb-4 font-headline uppercase tracking-tight">Quick Stats</h2>
-                <div className="grid gap-4 md:grid-cols-3">
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-32 w-full" />
-                </div>
-            </section>
-            <section>
-                <h2 className="text-xl font-semibold mb-4 font-headline uppercase tracking-tight">Recent Announcements</h2>
-                  <Skeleton className="h-64 w-full" />
-            </section>
-        </div>
-      </>
+      </div>
     )
   }
 
   const isSupporter = userData?.role === 'Supporter';
+  const referralLink = `${domain}/join?ref=${userData?.uid}`;
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(referralLink);
+    toast({ title: "Link Copied", description: "Share this link to recruit new supporters!" });
+  };
+
+  const getRank = (count: number) => {
+    if (count >= 21) return { label: "Gold", color: "text-yellow-500", bg: "bg-yellow-500/10" };
+    if (count >= 6) return { label: "Silver", color: "text-gray-400", bg: "bg-gray-400/10" };
+    return { label: "Bronze", color: "text-orange-600", bg: "bg-orange-600/10" };
+  };
+
+  const rank = getRank(userData?.recruitCount || 0);
 
   return (
     <div className="flex flex-col">
@@ -100,19 +89,40 @@ export default function HomePage() {
         {isSupporter && (
             <div className="grid gap-8 lg:grid-cols-12 items-start">
                 <div className="lg:col-span-4 flex flex-col gap-8">
-                    <div>
-                      <h2 className="text-xl font-bold font-headline text-primary mb-4 uppercase tracking-tight">Member ID</h2>
-                      <DigitalIdCard userData={userData} />
-                    </div>
+                    <DigitalIdCard userData={userData} />
                     
-                    <DailyPulse />
+                    <Card className="shadow-lg border-t-4 border-accent">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                          <Trophy className="h-4 w-4 text-accent" />
+                          Recruitment Power
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <p className="text-3xl font-bold text-primary">{userData?.recruitCount || 0}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Supporters Recruited</p>
+                          </div>
+                          <Badge className={`${rank.bg} ${rank.color} border-none font-black text-xs px-3 py-1`}>
+                            {rank.label} Rank
+                          </Badge>
+                        </div>
+                        <div className="pt-4 border-t space-y-3">
+                          <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Your Referral Link</Label>
+                          <div className="flex gap-2">
+                            <Input value={referralLink} readOnly className="text-xs bg-muted font-mono" />
+                            <Button size="icon" variant="outline" onClick={copyLink} className="shrink-0"><Copy className="h-4 w-4" /></Button>
+                          </div>
+                          <p className="text-[9px] italic text-muted-foreground">Share this link to increase your rank and move up the leaderboard.</p>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                    <div className="bg-accent/10 p-5 rounded-lg border border-accent/20">
-                        <p className="text-[10px] font-black uppercase text-accent-foreground tracking-widest mb-2">Status Note</p>
-                        <p className="text-xs text-accent-foreground/80 leading-relaxed font-medium">Your digital ID is your official credential for LEADCON and local party events. Ensure your profile photo is up to date.</p>
-                    </div>
+                    <DailyPulse />
                 </div>
                 <div className="lg:col-span-8 space-y-12">
+                    <RecruitmentLeaderboard />
                     <ActionCenter />
                     <CommunityFeedback />
                 </div>
@@ -121,15 +131,24 @@ export default function HomePage() {
 
         {!isSupporter && (
             <section>
-                <h2 className="text-xl font-semibold mb-6 font-headline uppercase text-primary tracking-tight">Quick Stats</h2>
-                <StatCards />
+                <div className="grid gap-4 md:grid-cols-3">
+                  {mockStats.map((stat) => (
+                    <Card key={stat.title} className="shadow-sm">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase tracking-widest">{stat.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-primary">{stat.value}</div>
+                        <p className="text-xs font-bold text-green-600 mt-1">{stat.change}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
             </section>
         )}
 
         <section>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold font-headline text-primary uppercase tracking-tight">Recent Announcements</h2>
-          </div>
+          <h2 className="text-xl font-semibold font-headline text-primary uppercase tracking-tight mb-6">Recent Announcements</h2>
           <AnnouncementCard 
             title="LEADCON 2024 Highlights"
             date="October 28, 2024"

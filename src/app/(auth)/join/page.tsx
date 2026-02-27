@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,11 +20,11 @@ import {
     ConfirmationResult,
     sendEmailVerification
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, increment, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Phone, Loader2, Mail, Lock, User, Home as HomeIcon, Camera, X, Check, MapPin, Eye, EyeOff } from "lucide-react";
+import { Phone, Loader2, Mail, Lock, User, Camera, X, Check, MapPin, Eye, EyeOff } from "lucide-react";
 
 declare global {
   interface Window {
@@ -34,7 +34,6 @@ declare global {
 
 const NCR_CODE = "130000000";
 
-// Comprehensive Philippine Zip Code Dictionary with Barangay-level mapping for key Metro Manila cities
 const ZIP_CODE_MAP: Record<string, { default: string; [barangay: string]: string }> = {
     "CITY OF MANILA": { 
         default: "1000", 
@@ -88,53 +87,6 @@ const ZIP_CODE_MAP: Record<string, { default: string; [barangay: string]: string
         "SAN LORENZO": "1223",
         "URA-DANZA": "1200"
     },
-    "CALOOCAN CITY": { 
-        default: "1400",
-        "BAGONG BARRIO": "1406",
-        "GRACE PARK EAST": "1403",
-        "GRACE PARK WEST": "1406",
-        "MAYPJO": "1410",
-        "SANGANDAAN": "1408",
-        "NORTH CALOOCAN": "1420"
-    },
-    "PASIG CITY": { 
-        default: "1600", 
-        "ORTIGAS CENTER": "1605", 
-        "KANIOGAN": "1606",
-        "MANGGAHAN": "1611",
-        "MAYBUNGA": "1607",
-        "PINAGBUHATAN": "1602",
-        "ROSARIO": "1609",
-        "SANTA LUCIA": "1608",
-        "UGONG": "1604"
-    },
-    "TAGUIG CITY": { 
-        default: "1630", 
-        "FORT BONIFACIO": "1634", 
-        "WESTERN BICUTAN": "1630",
-        "UPPER BICUTAN": "1633",
-        "LOWER BICUTAN": "1632",
-        "TIPAS": "1638",
-        "BAGUMBAYAN": "1637"
-    },
-    "LAS PIÑAS CITY": { default: "1740" },
-    "MALABON CITY": { default: "1470" },
-    "MANDALUYONG CITY": { default: "1550" },
-    "MARIKINA CITY": { default: "1800" },
-    "MUNTINLUPA CITY": { default: "1770" },
-    "NAVOTAS CITY": { default: "1485" },
-    "PARAÑAQUE CITY": { default: "1700" },
-    "PASAY CITY": { default: "1300" },
-    "PATEROS": { default: "1620" },
-    "SAN JUAN CITY": { default: "1500" },
-    "VALENZUELA CITY": { default: "1440" },
-    "CEBU CITY": { default: "6000" },
-    "DAVAO CITY": { default: "8000" },
-    "BAGUIO CITY": { default: "2600" },
-    "ILOILO CITY": { default: "5000" },
-    "BACOLOD CITY": { default: "6100" },
-    "CAGAYAN DE ORO CITY": { default: "9000" },
-    "ZAMBOANGA CITY": { default: "7000" },
 };
 
 export default function JoinPage() {
@@ -142,8 +94,11 @@ export default function JoinPage() {
     const firestore = useFirestore();
     const storage = useStorage();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { toast } = useToast();
     
+    const referralUid = searchParams.get('ref');
+
     // Form fields
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
@@ -180,7 +135,6 @@ export default function JoinPage() {
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
     const [agreed, setAgreed] = useState(false);
 
-    // Fetch Provinces on Load
     useEffect(() => {
         const fetchProvincesAndNCR = async () => {
             try {
@@ -203,7 +157,6 @@ export default function JoinPage() {
         fetchProvincesAndNCR();
     }, []);
 
-    // Fetch Cities when Province Changes
     useEffect(() => {
         if (!selectedProvince) {
             setCities([]);
@@ -231,7 +184,6 @@ export default function JoinPage() {
         setZipCode("");
     }, [selectedProvince, provinces]);
 
-    // Fetch Barangays when City Changes
     useEffect(() => {
         if (!selectedCity) {
             setBarangays([]);
@@ -253,7 +205,6 @@ export default function JoinPage() {
         setSelectedBarangay("");
     }, [selectedCity, cities]);
 
-    // Automatic Zip Code Assignment Logic - Refined for Barangay Precision
     useEffect(() => {
         if (!selectedCity) {
             setZipCode("");
@@ -264,23 +215,17 @@ export default function JoinPage() {
         const cityData = ZIP_CODE_MAP[cityKey];
 
         if (cityData) {
-            // Check for specific barangay override
             const brgyKey = selectedBarangay.toUpperCase();
-            
-            // Search for partial match in dictionary keys to handle API naming variations (e.g. "Barangay Commonwealth" vs "Commonwealth")
             const matchedBrgyKey = Object.keys(cityData).find(key => 
                 brgyKey.includes(key) || key.includes(brgyKey)
             );
-            
             const specificZip = matchedBrgyKey ? cityData[matchedBrgyKey] : null;
-            
             if (specificZip) {
                 setZipCode(specificZip);
             } else {
                 setZipCode(cityData.default || "");
             }
         } else {
-            // Fallback for cities not in explicit map
             setZipCode("0000"); 
         }
     }, [selectedCity, selectedBarangay]);
@@ -296,7 +241,6 @@ export default function JoinPage() {
         };
     }, [auth]);
 
-    // Camera Logic
     const startCamera = async () => {
         setIsCameraOpen(true);
         try {
@@ -433,14 +377,21 @@ export default function JoinPage() {
                 jurisdictionLevel: "City/Municipal",
                 assignedLocation: selectedCity,
                 isApproved: true,
-                isVerified: true,
-                isEmailVerified: false,
-                isPhoneVerified: true,
                 kartilyaAgreed: true,
+                recruitCount: 0,
+                referredBy: referralUid || null,
                 createdAt: serverTimestamp(),
             };
 
             await setDoc(doc(firestore, "users", user.uid), supporterData);
+
+            // Increment inviter's count if referral exists
+            if (referralUid) {
+              const referrerRef = doc(firestore, "users", referralUid);
+              updateDoc(referrerRef, {
+                recruitCount: increment(1)
+              }).catch(err => console.error("Referrer update failed:", err));
+            }
 
             toast({ 
                 title: "Welcome to PDDS!", 
@@ -474,7 +425,6 @@ export default function JoinPage() {
                             <CardDescription className="text-center">Secure your place in the Federalismo ng Dugong Dakilang Samahan.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {/* Photo & Camera Section */}
                             <div className="flex flex-col items-center gap-4 pb-6 border-b">
                                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                                     Profile Photo (Optional)
@@ -543,25 +493,18 @@ export default function JoinPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="fullName">Full Name</Label>
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input 
-                                            id="fullName" 
-                                            className="pl-9" 
-                                            placeholder="JUAN DELA CRUZ" 
-                                            required 
-                                            value={fullName} 
-                                            onChange={e => setFullName(e.target.value.toUpperCase())} 
-                                            disabled={loading} 
-                                        />
-                                    </div>
+                                    <Input 
+                                        id="fullName" 
+                                        placeholder="JUAN DELA CRUZ" 
+                                        required 
+                                        value={fullName} 
+                                        onChange={e => setFullName(e.target.value.toUpperCase())} 
+                                        disabled={loading} 
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email Address</Label>
-                                    <div className="relative">
-                                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input id="email" className="pl-9" type="email" placeholder="juan@example.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
-                                    </div>
+                                    <Input id="email" type="email" placeholder="juan@example.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
                                 </div>
                             </div>
 
@@ -569,10 +512,8 @@ export default function JoinPage() {
                                 <div className="space-y-2">
                                     <Label htmlFor="password">Password</Label>
                                     <div className="relative">
-                                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                         <Input 
                                             id="password" 
-                                            className="pl-9 pr-9" 
                                             type={showPassword ? "text" : "password"} 
                                             required 
                                             value={password} 
@@ -580,21 +521,14 @@ export default function JoinPage() {
                                             minLength={6} 
                                             disabled={loading} 
                                         />
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-3"
-                                        >
+                                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3">
                                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="phoneNumber">Phone Number</Label>
-                                    <div className="relative">
-                                        <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input id="phoneNumber" className="pl-9" placeholder="+639123456789" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} disabled={loading} />
-                                    </div>
+                                    <Input id="phoneNumber" placeholder="+639123456789" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} disabled={loading} />
                                 </div>
                             </div>
 
@@ -620,11 +554,7 @@ export default function JoinPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>City / Municipality</Label>
-                                        <Select 
-                                            onValueChange={setSelectedCity} 
-                                            value={selectedCity}
-                                            disabled={!selectedProvince}
-                                        >
+                                        <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder={!selectedProvince ? "Select Province First" : "Select City"} />
                                             </SelectTrigger>
@@ -640,11 +570,7 @@ export default function JoinPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>Barangay</Label>
-                                        <Select 
-                                            onValueChange={setSelectedBarangay} 
-                                            value={selectedBarangay}
-                                            disabled={!selectedCity}
-                                        >
+                                        <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder={!selectedCity ? "Select City First" : "Select Barangay"} />
                                             </SelectTrigger>
@@ -656,58 +582,29 @@ export default function JoinPage() {
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="zipCode">Zip Code (Auto-assigned)</Label>
-                                        <Input 
-                                            id="zipCode" 
-                                            placeholder="Auto-filled" 
-                                            required 
-                                            value={zipCode} 
-                                            readOnly
-                                            className="bg-muted cursor-not-allowed font-mono font-bold"
-                                            disabled={loading} 
-                                        />
+                                        <Label htmlFor="zipCode">Zip Code (Auto)</Label>
+                                        <Input id="zipCode" value={zipCode} readOnly className="bg-muted" disabled={loading} />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label htmlFor="streetAddress">Street Address / House No.</Label>
-                                    <Input 
-                                        id="streetAddress" 
-                                        placeholder="Block No., Street Name, Phase" 
-                                        required 
-                                        value={streetAddress} 
-                                        onChange={e => setStreetAddress(e.target.value.toUpperCase())} 
-                                        disabled={loading} 
-                                    />
+                                    <Input id="streetAddress" placeholder="Block No., Street Name, Phase" required value={streetAddress} onChange={e => setStreetAddress(e.target.value.toUpperCase())} disabled={loading} />
                                 </div>
                             </div>
 
                             <div className="flex items-start space-x-3 pt-2">
-                                <Checkbox 
-                                    id="terms" 
-                                    checked={agreed} 
-                                    onCheckedChange={(checked) => setAgreed(checked === true)} 
-                                    disabled={loading}
-                                />
+                                <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} disabled={loading} />
                                 <div className="grid gap-1.5 leading-none">
-                                    <label
-                                        htmlFor="terms"
-                                        className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                    >
-                                        I agree to the PDDS Kartilya and its principles of batas at katarungan.
+                                    <label htmlFor="terms" className="text-xs font-medium leading-none">
+                                        I agree to the PDDS Kartilya and its principles.
                                     </label>
                                 </div>
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-col gap-4">
-                            <Button 
-                                type="submit" 
-                                className="w-full h-12 text-lg font-bold" 
-                                disabled={loading || !agreed || !zipCode}
-                            >
-                                {loading ? (
-                                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
-                                ) : "Register"}
+                            <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={loading || !agreed || !zipCode}>
+                                {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</> : "Register"}
                             </Button>
                             <p className="text-sm text-center text-muted-foreground">
                                 Already have an account? <Link href="/login" className="text-primary font-bold hover:underline">Sign In</Link>
@@ -723,32 +620,12 @@ export default function JoinPage() {
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="otp">6-Digit Code</Label>
-                                <Input 
-                                    id="otp" 
-                                    placeholder="000000" 
-                                    maxLength={6} 
-                                    className="text-center text-2xl tracking-[1em] h-14"
-                                    value={otp} 
-                                    onChange={e => setOtp(e.target.value)} 
-                                />
+                                <Input id="otp" placeholder="000000" maxLength={6} className="text-center text-2xl tracking-[1em] h-14" value={otp} onChange={e => setOtp(e.target.value)} />
                             </div>
-                            <Button 
-                                className="w-full h-12 text-lg font-bold" 
-                                onClick={handleVerifyAndComplete}
-                                disabled={loading || otp.length !== 6}
-                            >
-                                {loading ? (
-                                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Verifying...</>
-                                ) : "Confirm & Complete"}
+                            <Button className="w-full h-12 text-lg font-bold" onClick={handleVerifyAndComplete} disabled={loading || otp.length !== 6}>
+                                {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Verifying...</> : "Confirm & Complete"}
                             </Button>
-                            <Button 
-                                variant="ghost" 
-                                className="w-full" 
-                                onClick={() => setShowOtpInput(false)}
-                                disabled={loading}
-                            >
-                                Change Phone Number
-                            </Button>
+                            <Button variant="ghost" className="w-full" onClick={() => setShowOtpInput(false)} disabled={loading}>Change Phone Number</Button>
                         </div>
                     </div>
                 )}

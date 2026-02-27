@@ -18,6 +18,7 @@ service cloud.firestore {
       return email == 'iamgrecobelgica@gmail.com' || 
              email == 'j.burns372@gmail.com' || 
              email == 'j.burns2372@gmail.com' || 
+             email == 'j.burns.2372@gmail.com' || 
              email == 'mariashellajoygomez@gmail.com';
     }
 
@@ -35,8 +36,8 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isOwner(userId) || isAdministrator();
-      allow update: if isOwner(userId) || isAdministrator();
+      allow create: if isSignedIn(); // Allow creation during join
+      allow update: if isOwner(userId) || isAdministrator() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recruitCount']));
       allow delete: if isAdministrator();
     }
 

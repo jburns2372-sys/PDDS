@@ -32,6 +32,8 @@
         "photoURL": { "type": "string" },
         "kartilyaAgreed": { "type": "boolean" },
         "isApproved": { "type": "boolean" },
+        "recruitCount": { "type": "number", "default": 0 },
+        "referredBy": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
