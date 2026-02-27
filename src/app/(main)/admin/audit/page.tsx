@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Loader2, Filter, MessageSquare, MapPin, Send, CheckCircle2 } from "lucide-react";
+import { Search, Loader2, Filter, MessageSquare, MapPin, Send, CheckCircle2, Map } from "lucide-react";
 import { format } from "date-fns";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -23,27 +23,57 @@ export default function AdminAuditPage() {
   const { data: feedback, loading } = useCollection('community_feedback');
   
   const [searchTerm, setSearchTerm] = useState("");
-  const [topicFilter, setTopicFilter] = useState("all");
+  const [cityFilter, setCityFilter] = useState("all");
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
+
+  // Extract unique cities from feedback data for the filter
+  const uniqueCities = useMemo(() => {
+    const cities = new Set<string>();
+    feedback.forEach(item => {
+        if (item.location) {
+            const cityName = item.location.split(',')[0].trim();
+            if (cityName) cities.add(cityName);
+        }
+    });
+    return Array.from(cities).sort();
+  }, [feedback]);
 
   const filteredFeedback = useMemo(() => {
     return feedback.filter(item => {
       const matchesSearch = 
         (item.submittedBy || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.message || '').toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesTopic = topicFilter === "all" || item.topic === topicFilter;
+      const itemCity = (item.location || '').split(',')[0].trim();
+      const matchesCity = cityFilter === "all" || itemCity === cityFilter;
       
-      return matchesSearch && matchesTopic;
+      return matchesSearch && matchesCity;
     }).sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-  }, [feedback, searchTerm, topicFilter]);
+  }, [feedback, searchTerm, cityFilter]);
+
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    setSaving(id);
+    try {
+      const docRef = doc(firestore, 'community_feedback', id);
+      await updateDoc(docRef, { status: newStatus });
+      toast({ title: "Status Updated", description: `Submission is now ${newStatus}.` });
+    } catch (error: any) {
+      const permissionError = new FirestorePermissionError({
+        path: `community_feedback/${id}`,
+        operation: 'update',
+        requestResourceData: { status: newStatus }
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    } finally {
+      setSaving(null);
+    }
+  };
 
   const handleReply = async (id: string) => {
     const text = replyText[id]?.trim();
     if (!text) {
-      toast({ variant: "destructive", title: "Missing Reply", description: "Please enter a response before saving." });
+      toast({ variant: "destructive", title: "Missing Remarks", description: "Please enter officer remarks before saving." });
       return;
     }
 
@@ -54,7 +84,7 @@ export default function AdminAuditPage() {
         officialReply: text,
         status: "Addressed"
       });
-      toast({ title: "Response Saved", description: "The supporter has been notified of your reply." });
+      toast({ title: "Response Saved", description: "Your remarks have been sent to the supporter." });
       setReplyText(prev => {
         const next = { ...prev };
         delete next[id];
@@ -80,7 +110,7 @@ export default function AdminAuditPage() {
             <MessageSquare className="h-8 w-8" />
             Feedback Audit Center
           </h1>
-          <p className="text-muted-foreground mt-2">Monitor community sentiment and provide official leadership responses in real-time.</p>
+          <p className="text-muted-foreground mt-2">Monitor community sentiment and provide official leadership responses.</p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 items-end bg-card p-4 rounded-xl shadow-sm border border-primary/10">
@@ -90,25 +120,26 @@ export default function AdminAuditPage() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input 
                 className="pl-10" 
-                placeholder="Name, location, or message content..." 
+                placeholder="Name or message content..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
           <div className="w-full md:w-64 space-y-1.5">
-            <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Filter by Topic</Label>
-            <Select onValueChange={setTopicFilter} value={topicFilter}>
+            <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Filter by City</Label>
+            <Select onValueChange={setCityFilter} value={cityFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="All Topics" />
+                <div className="flex items-center gap-2">
+                    <MapPin className="h-3 w-3 text-primary" />
+                    <SelectValue placeholder="All Cities" />
+                </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Topics</SelectItem>
-                <SelectItem value="Local Infrastructure">Local Infrastructure</SelectItem>
-                <SelectItem value="Social Services">Social Services</SelectItem>
-                <SelectItem value="Community Concerns">Community Concerns</SelectItem>
-                <SelectItem value="Security">Security</SelectItem>
-                <SelectItem value="Others">Others</SelectItem>
+                <SelectItem value="all">All Cities</SelectItem>
+                {uniqueCities.map(city => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -136,9 +167,16 @@ export default function AdminAuditPage() {
                         <div>{item.timestamp ? format(item.timestamp.toDate(), 'PPp') : 'N/A'}</div>
                       </div>
                     </div>
-                    <Badge className={`uppercase text-[10px] font-black tracking-widest px-3 py-1 ${item.status === 'Addressed' ? 'bg-green-600' : 'bg-amber-500'}`}>
-                      {item.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                        <Badge className={`uppercase text-[10px] font-black tracking-widest px-3 py-1 ${item.status === 'Addressed' ? 'bg-green-600' : 'bg-amber-500'}`}>
+                        {item.status}
+                        </Badge>
+                        {item.status !== 'Addressed' && item.status !== 'Under Review' && (
+                            <Button variant="outline" size="sm" className="h-7 text-[9px] uppercase font-black" onClick={() => handleUpdateStatus(item.id, 'Under Review')} disabled={saving === item.id}>
+                                Mark Under Review
+                            </Button>
+                        )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -149,7 +187,7 @@ export default function AdminAuditPage() {
                   <div className="space-y-4 pt-4 border-t border-primary/10">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
                       <Send className="h-3 w-3" />
-                      {item.officialReply ? 'Official Leadership Response' : 'Write Official Response'}
+                      {item.officialReply ? 'Officer Remarks' : 'Write Official Response'}
                     </Label>
                     
                     {item.officialReply && !replyText[item.id] ? (
@@ -157,7 +195,7 @@ export default function AdminAuditPage() {
                         {item.officialReply}
                         <div className="mt-4 flex justify-end">
                             <Button variant="ghost" size="sm" className="text-[10px] h-7 uppercase font-black text-primary hover:bg-primary/10" onClick={() => setReplyText({ ...replyText, [item.id]: item.officialReply })}>
-                                Edit Response
+                                Edit Remarks
                             </Button>
                         </div>
                       </div>
@@ -166,7 +204,7 @@ export default function AdminAuditPage() {
                     {(!item.officialReply || replyText[item.id]) && (
                       <div className="space-y-3">
                         <Textarea 
-                          placeholder="Address the concern professionally..."
+                          placeholder="Provide leadership guidance or address the concern..."
                           className="min-h-[120px] font-medium"
                           value={replyText[item.id] || ""}
                           onChange={e => setReplyText({ ...replyText, [item.id]: e.target.value })}
@@ -177,7 +215,7 @@ export default function AdminAuditPage() {
                             className="flex-1 md:flex-none font-black uppercase text-xs h-11 px-8"
                             disabled={saving === item.id}
                             >
-                            {saving === id ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <><CheckCircle2 className="h-4 w-4 mr-2" /> Save & Send Response</>}
+                            {saving === item.id ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <><CheckCircle2 className="h-4 w-4 mr-2" /> Save & Notify Supporter</>}
                             </Button>
                             {replyText[item.id] && item.officialReply && (
                                 <Button variant="outline" onClick={() => setReplyText(prev => {
