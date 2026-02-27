@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info, UserX, UserCheck, Beaker, Zap } from "lucide-react";
+import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info, UserX, UserCheck, Beaker, Zap, ArrowRightLeft } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc, writeBatch, query, limit, getDocs } from "firebase/firestore";
 import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
 import {
@@ -191,7 +191,24 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             await updateUserDocument(firestore, user.id, { isApproved: newStatus });
-            toast({ title: "Status Updated", description: `${user.fullName} is now ${newStatus ? 'Approved' : 'Suspended'}. Access is updated in real-time.` });
+            toast({ title: "Status Updated", description: `${user.fullName} is now ${newStatus ? 'Approved' : 'Suspended'}.` });
+        } catch (error: any) {
+             toast({ variant: "destructive", title: "Update Error", description: error.message });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleToggleRole = async (user: any) => {
+        if (user.id === currentUser?.uid) {
+            toast({ variant: "destructive", title: "Action Restricted", description: "You cannot change your own role." });
+            return;
+        }
+        const newRole = user.role === 'Officer' ? 'Supporter' : 'Officer';
+        setLoading(true);
+        try {
+            await updateUserDocument(firestore, user.id, { role: newRole });
+            toast({ title: "Role Updated", description: `${user.fullName} is now a ${newRole}.` });
         } catch (error: any) {
              toast({ variant: "destructive", title: "Update Error", description: error.message });
         } finally {
@@ -208,7 +225,7 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             await deleteUserDocument(firestore, user.id);
-            toast({ title: "Success", description: "Account removed from registry. Bouncer has revoked their active session." });
+            toast({ title: "Success", description: "Account removed from registry." });
         } catch (error: any) {
              toast({ variant: "destructive", title: "Revocation Error", description: error.message });
         } finally {
@@ -241,7 +258,7 @@ export default function AdminDashboard() {
                     barangay: "MOCK BARANGAY",
                     isApproved: true,
                     kartilyaAgreed: true,
-                    recruitCount: Math.floor(Math.random() * 5), // Basic count
+                    recruitCount: Math.floor(Math.random() * 5),
                     createdAt: serverTimestamp(),
                 });
             }
@@ -301,7 +318,6 @@ export default function AdminDashboard() {
             let uid = selectedUser?.id;
 
             if (isEditMode && selectedUser) {
-                // Handle Password Update if provided
                 if (password) {
                     try {
                         if (selectedUser.id === currentUser?.uid) {
@@ -317,14 +333,12 @@ export default function AdminDashboard() {
                     }
                 }
 
-                // Photo Upload
                 if (selectedFile) {
                     const storageRef = ref(storage, `users/${uid}/profile`);
                     const uploadResult = await uploadBytes(storageRef, selectedFile);
                     finalPhotoURL = await getDownloadURL(uploadResult.ref);
                 }
 
-                // Resume Upload
                 if (resumeFile) {
                     const resumeRef = ref(storage, `users/${uid}/resume_${Date.now()}`);
                     const uploadResult = await uploadBytes(resumeRef, resumeFile);
@@ -348,7 +362,6 @@ export default function AdminDashboard() {
                 toast({ title: "Updated", description: "Officer record has been updated." });
                 resetForm();
             } else {
-                // New Registration
                 const tempApp = createTemporaryApp();
                 const tempAuth = getAuth(tempApp);
                 try {
@@ -647,41 +660,15 @@ export default function AdminDashboard() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right pr-6 space-x-1">
-                                                {(member.resumeURL || member.resumeText) && (
-                                                    <Dialog>
-                                                        <DialogTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title="View Resume">
-                                                                <FileText className="h-4 w-4" />
-                                                            </Button>
-                                                        </DialogTrigger>
-                                                        <DialogContent className="max-w-2xl">
-                                                            <DialogHeader>
-                                                                <DialogTitle>Member Resume: {member.fullName}</DialogTitle>
-                                                            </DialogHeader>
-                                                            <div className="mt-4 space-y-4">
-                                                                {member.resumeURL && (
-                                                                    <div className="p-4 bg-muted rounded-md flex items-center justify-between">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <FileText className="h-5 w-5 text-primary" />
-                                                                            <span className="text-sm font-medium">Resume Document</span>
-                                                                        </div>
-                                                                        <Button variant="outline" size="sm" asChild>
-                                                                            <a href={member.resumeURL} target="_blank" rel="noopener noreferrer">Download</a>
-                                                                        </Button>
-                                                                    </div>
-                                                                )}
-                                                                {member.resumeText && (
-                                                                    <div className="space-y-2">
-                                                                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Resume Content</h4>
-                                                                        <div className="p-4 bg-muted rounded-md text-xs whitespace-pre-wrap max-h-[400px] overflow-y-auto font-mono">
-                                                                            {member.resumeText}
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </DialogContent>
-                                                    </Dialog>
-                                                )}
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    onClick={() => handleToggleRole(member)} 
+                                                    className="h-8 w-8 text-primary"
+                                                    title={member.role === 'Officer' ? "Make Supporter" : "Make Officer"}
+                                                >
+                                                    <ArrowRightLeft className="h-4 w-4" />
+                                                </Button>
                                                 <Button 
                                                     variant="ghost" 
                                                     size="icon" 

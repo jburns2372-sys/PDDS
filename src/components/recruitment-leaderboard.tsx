@@ -21,9 +21,9 @@ export function RecruitmentLeaderboard() {
 
   const getRankBadge = (count: number, index: number) => {
     if (index === 0) return { label: "Lead Organizer", color: "bg-yellow-500", icon: Crown };
-    if (count >= 21) return { label: "Senior Advocate", color: "bg-primary", icon: Award };
-    if (count >= 6) return { label: "Active Mobilizer", color: "bg-accent text-accent-foreground", icon: Trophy };
-    return { label: "Local Supporter", color: "bg-muted text-muted-foreground", icon: Users };
+    if (count >= 21) return { label: "Gold (Senior Advocate)", color: "bg-yellow-600 text-white", icon: Award };
+    if (count >= 6) return { label: "Silver (Active Mobilizer)", color: "bg-gray-400 text-white", icon: Trophy };
+    return { label: "Bronze (Local Supporter)", color: "bg-amber-700 text-white", icon: Users };
   };
 
   if (loading) {

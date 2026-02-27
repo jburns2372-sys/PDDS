@@ -22,6 +22,12 @@ service cloud.firestore {
              email == 'mariashellajoygomez@gmail.com';
     }
 
+    function hasRole(role) {
+      if (!isSignedIn()) return false;
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(userPath) && get(userPath).data.role == role;
+    }
+
     function isOfficerOrAdmin() {
       if (!isSignedIn()) return false;
       if (isPrivilegedEmail()) return true;
