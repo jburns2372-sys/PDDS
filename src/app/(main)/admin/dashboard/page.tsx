@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -9,14 +10,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { useFirestore, useUser, createTemporaryApp, deleteTemporaryApp, useStorage } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff } from "lucide-react";
+import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc } from "firebase/firestore";
 import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const allAssignableRoles = [
   ...pddsLeadershipRoles,
@@ -44,11 +55,15 @@ export default function AdminDashboard() {
     const [assignedLocation, setAssignedLocation] = useState("");
     const [photoURL, setPhotoURL] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [resumeFile, setResumeFile] = useState<File | null>(null);
+    const [resumeText, setResumeText] = useState("");
+    const [resumeURL, setResumeURL] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const resumeInputRef = useRef<HTMLInputElement>(null);
 
     // Real-time Registry Sync
     useEffect(() => {
@@ -72,11 +87,10 @@ export default function AdminDashboard() {
 
     const activeOfficers = useMemo(() => {
         return allUsers.filter(user => {
-            const isPoliticalRole = pddsLeadershipRoles.includes(user.role);
             const matchesSearch = 
                 (user.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (user.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-            return isPoliticalRole && matchesSearch;
+            return matchesSearch;
         });
     }, [allUsers, searchTerm]);
 
@@ -90,6 +104,9 @@ export default function AdminDashboard() {
         setAssignedLocation("");
         setPhotoURL(null);
         setSelectedFile(null);
+        setResumeFile(null);
+        setResumeText("");
+        setResumeURL(null);
         setPassword("");
         setConfirmPassword("");
     };
@@ -103,7 +120,10 @@ export default function AdminDashboard() {
         setJurisdictionLevel(user.jurisdictionLevel || "National");
         setAssignedLocation(user.assignedLocation || "");
         setPhotoURL(user.photoURL || null);
+        setResumeURL(user.resumeURL || null);
+        setResumeText(user.resumeText || "");
         setSelectedFile(null);
+        setResumeFile(null);
         setPassword("");
         setConfirmPassword("");
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -118,6 +138,13 @@ export default function AdminDashboard() {
                 setPhotoURL(reader.result as string);
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleResumeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setResumeFile(file);
         }
     };
 
@@ -154,6 +181,7 @@ export default function AdminDashboard() {
 
         try {
             let finalPhotoURL = photoURL;
+            let finalResumeURL = resumeURL;
             let uid = selectedUser?.id;
 
             if (isEditMode && selectedUser) {
@@ -164,27 +192,27 @@ export default function AdminDashboard() {
                             const auth = getAuth();
                             if (auth.currentUser) await updatePassword(auth.currentUser, password);
                         } else {
-                            toast({ variant: "default", title: "Auth Note", description: "Passwords for other users must be managed via Admin Tools." });
+                            toast({ variant: "default", title: "Auth Note", description: "Remote password resets must be done via Firebase Console." });
                         }
                     } catch (authError: any) {
-                        toast({ variant: "destructive", title: "Auth Failed", description: "Could not update credentials." });
+                        toast({ variant: "destructive", title: "Auth Failed", description: "Password update failed." });
                         setLoading(false);
                         return;
                     }
                 }
 
-                // Handle Image Upload if new file selected
+                // Photo Upload
                 if (selectedFile) {
-                    try {
-                        const storageRef = ref(storage, `users/${uid}/profile`);
-                        const uploadResult = await uploadBytes(storageRef, selectedFile);
-                        finalPhotoURL = await getDownloadURL(uploadResult.ref);
-                    } catch (storageError: any) {
-                        console.error("Storage upload failed:", storageError);
-                        toast({ variant: "destructive", title: "Upload Failed", description: "Could not upload profile picture to storage." });
-                        setLoading(false);
-                        return;
-                    }
+                    const storageRef = ref(storage, `users/${uid}/profile`);
+                    const uploadResult = await uploadBytes(storageRef, selectedFile);
+                    finalPhotoURL = await getDownloadURL(uploadResult.ref);
+                }
+
+                // Resume Upload
+                if (resumeFile) {
+                    const resumeRef = ref(storage, `users/${uid}/resume_${Date.now()}`);
+                    const uploadResult = await uploadBytes(resumeRef, resumeFile);
+                    finalResumeURL = await getDownloadURL(uploadResult.ref);
                 }
 
                 const dataPayload: any = { 
@@ -193,47 +221,52 @@ export default function AdminDashboard() {
                     jurisdictionLevel, 
                     assignedLocation: assignedLocation.trim(), 
                     photoURL: finalPhotoURL,
+                    resumeURL: finalResumeURL,
+                    resumeText: resumeText.trim(),
                     isApproved: true,
                     kartilyaAgreed: true
                 };
 
                 await updateUserDocument(firestore, uid, dataPayload);
-                toast({ title: "Updated", description: "Officer record has been updated successfully." });
+                toast({ title: "Updated", description: "Officer record has been updated." });
                 resetForm();
             } else {
-                // New Registration Flow
+                // New Registration
                 const tempApp = createTemporaryApp();
                 const tempAuth = getAuth(tempApp);
                 try {
                     const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
                     uid = userCredential.user.uid;
 
-                    // Handle Image Upload for new user
                     if (selectedFile) {
-                        try {
-                            const storageRef = ref(storage, `users/${uid}/profile`);
-                            const uploadResult = await uploadBytes(storageRef, selectedFile);
-                            finalPhotoURL = await getDownloadURL(uploadResult.ref);
-                        } catch (storageError: any) {
-                            console.error("Storage upload failed:", storageError);
-                        }
+                        const storageRef = ref(storage, `users/${uid}/profile`);
+                        const uploadResult = await uploadBytes(storageRef, selectedFile);
+                        finalPhotoURL = await getDownloadURL(uploadResult.ref);
+                    }
+
+                    if (resumeFile) {
+                        const resumeRef = ref(storage, `users/${uid}/resume_${Date.now()}`);
+                        const uploadResult = await uploadBytes(resumeRef, resumeFile);
+                        finalResumeURL = await getDownloadURL(uploadResult.ref);
                     }
 
                     const dataPayload = {
                         uid: uid,
+                        email: email.trim().toLowerCase(),
                         fullName: fullName.trim(), 
-                        email: email.trim().toLowerCase(), 
                         role, 
                         jurisdictionLevel, 
                         assignedLocation: assignedLocation.trim(), 
                         photoURL: finalPhotoURL,
+                        resumeURL: finalResumeURL,
+                        resumeText: resumeText.trim(),
                         isApproved: true,
                         kartilyaAgreed: true,
                         createdAt: serverTimestamp(),
                     };
                     
                     await setDoc(doc(firestore, 'users', uid), dataPayload);
-                    toast({ title: "Registered", description: "New officer added to registry." });
+                    toast({ title: "Registered", description: "New officer has been registered." });
                     resetForm();
                 } catch (regError: any) {
                     toast({ variant: "destructive", title: "Registration Failed", description: regError.message });
@@ -242,6 +275,7 @@ export default function AdminDashboard() {
                 }
             }
         } catch (error: any) {
+            console.error("Process error:", error);
             toast({ variant: "destructive", title: "Process Error", description: error.message });
         } finally {
             setLoading(false);
@@ -262,7 +296,7 @@ export default function AdminDashboard() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1">
-                    <Card className="shadow-lg border-t-4 border-accent sticky top-6">
+                    <Card className="shadow-lg border-t-4 border-accent sticky top-6 max-h-[90vh] overflow-y-auto">
                         <form onSubmit={handleFormSubmit}>
                             <CardHeader>
                                 <CardTitle className="text-xl font-headline flex items-center gap-2">
@@ -272,7 +306,7 @@ export default function AdminDashboard() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex flex-col items-center gap-4">
-                                    <Avatar className="h-24 w-24 border-4 border-accent shadow-md">
+                                    <Avatar className="h-24 w-24 border-4 border-accent shadow-md bg-background">
                                         <AvatarImage src={photoURL || ""} className="object-cover" />
                                         <AvatarFallback><Camera className="h-8 w-8 text-muted-foreground" /></AvatarFallback>
                                     </Avatar>
@@ -344,6 +378,36 @@ export default function AdminDashboard() {
                                         <Input required placeholder="City or Province" value={assignedLocation} onChange={e => setAssignedLocation(e.target.value)} />
                                     </div>
                                 </div>
+
+                                <div className="space-y-2 pt-4 border-t">
+                                    <Label className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4" />
+                                        Officer Resume
+                                    </Label>
+                                    <Tabs defaultValue="file" className="w-full">
+                                        <TabsList className="grid w-full grid-cols-2 mb-2">
+                                            <TabsTrigger value="file" className="text-xs"><Upload className="h-3 w-3 mr-1" /> File</TabsTrigger>
+                                            <TabsTrigger value="text" className="text-xs"><Type className="h-3 w-3 mr-1" /> Text</TabsTrigger>
+                                        </TabsList>
+                                        <TabsContent value="file" className="space-y-2">
+                                            <div className="flex flex-col gap-2">
+                                                <Button type="button" variant="outline" size="sm" onClick={() => resumeInputRef.current?.click()} className="w-full">
+                                                    {resumeFile ? resumeFile.name : (resumeURL ? "Change Attached Resume" : "Upload PDF/Word")}
+                                                </Button>
+                                                <input type="file" ref={resumeInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={handleResumeFileChange} />
+                                                {resumeURL && !resumeFile && <p className="text-[10px] text-primary text-center">Existing resume file detected.</p>}
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="text">
+                                            <Textarea 
+                                                placeholder="Paste resume details here..." 
+                                                value={resumeText} 
+                                                onChange={e => setResumeText(e.target.value)}
+                                                className="min-h-[120px] text-xs"
+                                            />
+                                        </TabsContent>
+                                    </Tabs>
+                                </div>
                             </CardContent>
                             <CardFooter className="flex flex-col gap-2">
                                 <Button type="submit" className="w-full" disabled={loading}>
@@ -360,7 +424,7 @@ export default function AdminDashboard() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             className="pl-10 h-12 shadow-sm" 
-                            placeholder="Search by name or email..." 
+                            placeholder="Search registry..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -394,7 +458,7 @@ export default function AdminDashboard() {
                                     ) : activeOfficers.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center py-24 text-muted-foreground">
-                                                No political officers found in registry.
+                                                No results found in registry.
                                             </TableCell>
                                         </TableRow>
                                     ) : activeOfficers.map(officer => (
@@ -425,6 +489,42 @@ export default function AdminDashboard() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right pr-6 space-x-1">
+                                                {(officer.resumeURL || officer.resumeText) && (
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary">
+                                                                <FileText className="h-4 w-4" />
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-2xl">
+                                                            <DialogHeader>
+                                                                <DialogTitle>Officer Resume: {officer.fullName}</DialogTitle>
+                                                                <DialogDescription>Review background and credentials.</DialogDescription>
+                                                            </DialogHeader>
+                                                            <div className="mt-4 space-y-4">
+                                                                {officer.resumeURL && (
+                                                                    <div className="p-4 bg-muted rounded-md flex items-center justify-between">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <FileText className="h-5 w-5 text-primary" />
+                                                                            <span className="text-sm font-medium">Resume Document</span>
+                                                                        </div>
+                                                                        <Button variant="outline" size="sm" asChild>
+                                                                            <a href={officer.resumeURL} target="_blank" rel="noopener noreferrer">Download/View</a>
+                                                                        </Button>
+                                                                    </div>
+                                                                )}
+                                                                {officer.resumeText && (
+                                                                    <div className="space-y-2">
+                                                                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Resume Content</h4>
+                                                                        <div className="p-4 bg-muted rounded-md text-xs whitespace-pre-wrap max-h-[400px] overflow-y-auto font-mono">
+                                                                            {officer.resumeText}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                )}
                                                 <Button variant="ghost" size="icon" onClick={() => handleEditClick(officer)} className="h-8 w-8 text-primary">
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>

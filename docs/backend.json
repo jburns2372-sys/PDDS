@@ -60,6 +60,14 @@
           "type": "string",
           "description": "The URL or data URI of the user's profile picture."
         },
+        "resumeURL": {
+          "type": "string",
+          "description": "The URL of the user's uploaded resume file."
+        },
+        "resumeText": {
+          "type": "string",
+          "description": "The text-based content of the user's resume."
+        },
         "kartilyaAgreed": {
           "type": "boolean",
           "description": "Whether the user has agreed to the Kartilya."
