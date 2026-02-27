@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PddsLogo from "@/components/icons/pdds-logo";
 import { useAuth, useFirestore, useStorage } from "@/firebase";
 import { 
@@ -21,7 +23,7 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Phone, Loader2, Mail, Lock, User, Home as HomeIcon, Camera, X } from "lucide-react";
+import { Phone, Loader2, Mail, Lock, User, Home as HomeIcon, Camera, X, RefreshCw, Check } from "lucide-react";
 
 declare global {
   interface Window {
@@ -46,10 +48,16 @@ export default function JoinPage() {
     const [zipCode, setZipCode] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("+63");
     
-    // Photo State
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    // Photo & Camera State
+    const [selectedFile, setSelectedFile] = useState<File | Blob | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+    
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
 
     // UI State
     const [otp, setOtp] = useState("");
@@ -64,7 +72,59 @@ export default function JoinPage() {
                 'size': 'invisible',
             });
         }
+        return () => {
+            stopCamera();
+        };
     }, [auth]);
+
+    // Camera Logic
+    const startCamera = async () => {
+        setIsCameraOpen(true);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            streamRef.current = stream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+            setHasCameraPermission(true);
+        } catch (error) {
+            console.error('Error accessing camera:', error);
+            setHasCameraPermission(false);
+            toast({
+                variant: 'destructive',
+                title: 'Camera Access Denied',
+                description: 'Please enable camera permissions or upload a file manually.',
+            });
+        }
+    };
+
+    const stopCamera = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        setIsCameraOpen(false);
+    };
+
+    const capturePhoto = () => {
+        if (videoRef.current && canvasRef.current) {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            if (context) {
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        setSelectedFile(blob);
+                        setPhotoPreview(canvas.toDataURL('image/jpeg'));
+                        stopCamera();
+                    }
+                }, 'image/jpeg', 0.95);
+            }
+        }
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -75,6 +135,7 @@ export default function JoinPage() {
                 setPhotoPreview(reader.result as string);
             };
             reader.readAsDataURL(file);
+            setIsCameraOpen(false);
         }
     };
 
@@ -127,16 +188,15 @@ export default function JoinPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Step 3: Handle Photo Upload if any
+            // Step 3: Handle Photo Upload
             let finalPhotoURL = null;
             if (selectedFile) {
                 try {
-                    const storageRef = ref(storage, `users/${user.uid}/profile`);
+                    const storageRef = ref(storage, `users/${user.uid}/profile.jpg`);
                     const uploadResult = await uploadBytes(storageRef, selectedFile);
                     finalPhotoURL = await getDownloadURL(uploadResult.ref);
                 } catch (storageError) {
-                    console.error("Storage upload failed:", storageError);
-                    // Continue registration even if photo fails
+                    console.error("Storage upload failed (Check CORS settings):", storageError);
                 }
             }
 
@@ -191,7 +251,7 @@ export default function JoinPage() {
                 </h1>
             </div>
 
-            <Card className="w-full max-w-lg shadow-2xl border-t-4 border-primary">
+            <Card className="w-full max-w-lg shadow-2xl border-t-4 border-primary overflow-hidden">
                 {!showOtpInput ? (
                     <form onSubmit={handleInitialSubmit}>
                         <CardHeader>
@@ -199,41 +259,70 @@ export default function JoinPage() {
                             <CardDescription className="text-center">Secure your place in the Federalismo ng Dugong Dakilang Samahan.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {/* Photo Upload Section */}
-                            <div className="flex flex-col items-center gap-3 pb-4 border-b">
+                            {/* Photo & Camera Section */}
+                            <div className="flex flex-col items-center gap-4 pb-6 border-b">
                                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                                    Upload Profile Photo (Optional)
+                                    Profile Photo (Optional)
                                 </Label>
+                                
                                 <div className="relative">
-                                    <Avatar className="h-24 w-24 border-4 border-white shadow-lg bg-muted">
+                                    <Avatar className="h-32 w-32 border-4 border-white shadow-xl bg-muted">
                                         <AvatarImage src={photoPreview || ""} className="object-cover" />
-                                        <AvatarFallback><Camera className="h-8 w-8 text-muted-foreground/40" /></AvatarFallback>
+                                        <AvatarFallback><Camera className="h-10 w-10 text-muted-foreground/30" /></AvatarFallback>
                                     </Avatar>
                                     {photoPreview && (
                                         <button 
                                             type="button" 
                                             onClick={removePhoto}
-                                            className="absolute -top-1 -right-1 p-1 bg-destructive text-destructive-foreground rounded-full shadow-md hover:bg-destructive/90"
+                                            className="absolute -top-2 -right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full shadow-lg hover:bg-destructive/90 transition-transform hover:scale-110"
                                         >
-                                            <X className="h-3 w-3" />
+                                            <X className="h-4 w-4" />
                                         </button>
                                     )}
-                                    <button 
-                                        type="button"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="absolute -bottom-1 -right-1 p-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90"
-                                    >
-                                        <Camera className="h-4 w-4" />
-                                    </button>
                                 </div>
-                                <input 
-                                    type="file" 
-                                    ref={fileInputRef} 
-                                    className="hidden" 
-                                    accept="image/*" 
-                                    onChange={handleFileChange} 
-                                    disabled={loading}
-                                />
+
+                                {isCameraOpen ? (
+                                    <div className="w-full space-y-3">
+                                        <div className="relative rounded-lg overflow-hidden bg-black aspect-video shadow-inner">
+                                            <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                                            {hasCameraPermission === false && (
+                                                <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
+                                                    <Alert variant="destructive">
+                                                        <AlertTitle>Camera Access Required</AlertTitle>
+                                                        <AlertDescription>Please enable camera access or use file upload.</AlertDescription>
+                                                    </Alert>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button type="button" onClick={capturePhoto} className="flex-1 font-bold">
+                                                <Check className="mr-2 h-4 w-4" /> Capture Selfie
+                                            </Button>
+                                            <Button type="button" variant="outline" onClick={stopCamera}>
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                        <canvas ref={canvasRef} className="hidden" />
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-wrap justify-center gap-2">
+                                        <Button type="button" variant="outline" size="sm" onClick={startCamera} className="font-bold">
+                                            <Camera className="mr-2 h-4 w-4" /> 
+                                            {photoPreview ? "Retake Photo" : "Open Camera"}
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                            <RefreshCw className="mr-2 h-4 w-4" /> Upload from Device
+                                        </Button>
+                                        <input 
+                                            type="file" 
+                                            ref={fileInputRef} 
+                                            className="hidden" 
+                                            accept="image/*" 
+                                            onChange={handleFileChange} 
+                                            disabled={loading}
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
