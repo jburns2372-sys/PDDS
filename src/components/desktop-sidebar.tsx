@@ -9,6 +9,7 @@ import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
 import { AboutPddsDialog } from "./about-pdds-dialog";
 import { useUserData } from "@/context/user-data-context";
+import { pddsLeadershipRoles } from "@/lib/data";
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
@@ -24,18 +25,18 @@ const adminNavItems = [
 export function DesktopSidebar() {
   const pathname = usePathname();
   const { user, userData, loading: isLoadingRole } = useUserData();
-  const userRole = userData?.role;
+  const userRole = userData?.role || '';
   const userEmail = (user?.email || '').toLowerCase();
 
-  const isPrivileged = !isLoadingRole && (
-    userRole === 'President' || 
-    userRole === 'Admin' || 
-    userRole === 'System Admin' ||
+  const isOfficer = pddsLeadershipRoles.includes(userRole);
+  const isAdmin = userRole === 'Admin' || userRole === 'System Admin';
+  const isPrivilegedEmail = 
     userEmail === 'iamgrecobelgica@gmail.com' ||
     userEmail === 'j.burns372@gmail.com' ||
     userEmail === 'j.burns2372@gmail.com' ||
-    userEmail === 'mariashellajoygomez@gmail.com'
-  );
+    userEmail === 'mariashellajoygomez@gmail.com';
+
+  const isPrivileged = !isLoadingRole && (isOfficer || isAdmin || isPrivilegedEmail);
   
   return (
     <aside className="hidden w-64 flex-shrink-0 flex-col border-r bg-card md:flex">

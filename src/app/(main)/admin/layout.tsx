@@ -5,6 +5,7 @@ import { useUserData } from "@/context/user-data-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { pddsLeadershipRoles } from "@/lib/data";
 
 export default function AdminLayout({
   children,
@@ -15,17 +16,19 @@ export default function AdminLayout({
   const router = useRouter();
 
   const userEmail = (user?.email || '').toLowerCase();
+  const userRole = userData?.role || '';
   
-  // Consolidated admin check including the specific user email from the screenshot
-  const isAuthorized = 
-    userData?.role === 'Admin' || 
-    userData?.role === 'President' || 
-    userData?.role === 'System Admin' || 
+  // Authorized if user is in the leadership roles list or is an Admin/System Admin
+  const isOfficer = pddsLeadershipRoles.includes(userRole);
+  const isAdmin = userRole === 'Admin' || userRole === 'System Admin';
+  const isPrivilegedEmail = 
     userEmail === 'iamgrecobelgica@gmail.com' ||
     userEmail === 'j.burns2372@gmail.com' ||
     userEmail === 'j.burns.2372@gmail.com' ||
     userEmail === 'j.burns372@gmail.com' ||
     userEmail === 'mariashellajoygomez@gmail.com';
+
+  const isAuthorized = isOfficer || isAdmin || isPrivilegedEmail;
 
   useEffect(() => {
     if (!loading && !isAuthorized) {

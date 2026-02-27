@@ -27,16 +27,18 @@ service cloud.firestore {
       if (isPrivilegedEmail()) return true;
       
       let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
-      return exists(userPath) && (
-        get(userPath).data.role == 'Admin' || 
-        get(userPath).data.role == 'System Admin' || 
-        get(userPath).data.role == 'President'
-      );
+      let leadershipRoles = [
+        'President', 'Chairman', 'Vice Chairman', 'VP', 'Secretary General',
+        'Treasurer', 'Auditor', 'VP Ways & Means Chair', 'VP Media Comms',
+        'VP Soc Med Comms', 'VP Events and Programs', 'VP Membership',
+        'VP legal affairs', 'Admin', 'System Admin'
+      ];
+      return exists(userPath) && get(userPath).data.role in leadershipRoles;
     }
 
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn(); // Allow creation during join
+      allow create: if isSignedIn();
       allow update: if isOwner(userId) || isAdministrator() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recruitCount']));
       allow delete: if isAdministrator();
     }
