@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -110,6 +109,16 @@ export default function AdminDashboard() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Firestore document limit is 1MiB. We should check size.
+            if (file.size > 1024 * 700) { // Limit to ~700KB to be safe with Base64 overhead
+                toast({
+                    variant: "destructive",
+                    title: "Image too large",
+                    description: "Please select an image smaller than 700KB."
+                });
+                return;
+            }
+
             const reader = new FileReader();
             reader.onloadend = () => {
                 const base64String = reader.result as string;
@@ -162,12 +171,20 @@ export default function AdminDashboard() {
         };
 
         if (isEditMode && selectedUser) {
-            // Update Auth Password if provided
+            // 1. Update Auth Password if provided (Only if user matches or admin has rights)
             if (password) {
                 try {
+                    // Note: Update password only works for the currently logged-in user in client SDK.
+                    // For other users, this requires Admin SDK (not available here).
                     if (selectedUser.id === currentUser?.uid) {
                         const auth = getAuth();
                         if (auth.currentUser) await updatePassword(auth.currentUser, password);
+                    } else {
+                        toast({ 
+                            variant: "default", 
+                            title: "Auth Note", 
+                            description: "Passwords for other users can only be managed by administrators via System Admin tools." 
+                        });
                     }
                 } catch (authError: any) {
                     toast({ variant: "destructive", title: "Auth Failed", description: "Could not update credentials." });
@@ -177,7 +194,7 @@ export default function AdminDashboard() {
             }
 
             try {
-                // Isolated Firestore Update
+                // 2. Isolated Firestore Update
                 await updateUserDocument(firestore, selectedUser.id, dataPayload);
                 toast({ title: "Updated", description: "Profile synchronized with registry." });
                 resetForm();

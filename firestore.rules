@@ -13,15 +13,17 @@ service cloud.firestore {
     }
 
     function isPrivilegedEmail() {
-      return request.auth.token.email == 'iamgrecobelgica@gmail.com' || 
-             request.auth.token.email == 'j.burns2372@gmail.com';
+      let email = request.auth.token.email;
+      return email == 'iamgrecobelgica@gmail.com' || 
+             email == 'j.burns2372@gmail.com' || 
+             email == 'j.burns.2372@gmail.com';
     }
 
     function isAdministrator() {
       if (!isSignedIn()) return false;
       if (isPrivilegedEmail()) return true;
       
-      // Simple role check to avoid recursive depth issues
+      // Simple role check to allow administrative roles to manage the registry
       let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
       return exists(userPath) && (
         get(userPath).data.role == 'Admin' || 
@@ -34,19 +36,15 @@ service cloud.firestore {
     match /users/{userId} {
       // Allow any authenticated member to read the directory
       allow read: if isSignedIn();
-      // Allow profile creation if it's the owner or a privileged email
+      
+      // Allow profile creation if it's the owner, a privileged email, or an administrator
       allow create: if isOwner(userId) || isPrivilegedEmail() || isAdministrator();
-      // Allow updates if owner or admin
+      
+      // Allow updates if owner, a privileged email, or an administrator
       allow update: if isOwner(userId) || isPrivilegedEmail() || isAdministrator();
+      
       // Only an Admin can delete users
       allow delete: if isAdministrator();
-    }
-
-    // Rules for 'chapters' collection
-    match /chapters/{chapterId} {
-      allow read: if isSignedIn();
-      allow create, update: if isAdministrator();
-      allow delete: if false; 
     }
   }
 }
