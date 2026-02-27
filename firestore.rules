@@ -22,7 +22,7 @@ service cloud.firestore {
              email == 'mariashellajoygomez@gmail.com';
     }
 
-    function isAdministrator() {
+    function isOfficerOrAdmin() {
       if (!isSignedIn()) return false;
       if (isPrivilegedEmail()) return true;
       
@@ -31,7 +31,7 @@ service cloud.firestore {
         'President', 'Chairman', 'Vice Chairman', 'VP', 'Secretary General',
         'Treasurer', 'Auditor', 'VP Ways & Means Chair', 'VP Media Comms',
         'VP Soc Med Comms', 'VP Events and Programs', 'VP Membership',
-        'VP legal affairs', 'Admin', 'System Admin'
+        'VP legal affairs', 'Officer', 'Admin', 'System Admin'
       ];
       return exists(userPath) && get(userPath).data.role in leadershipRoles;
     }
@@ -39,14 +39,14 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isOwner(userId) || isAdministrator() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recruitCount']));
-      allow delete: if isAdministrator();
+      allow update: if isOwner(userId) || isOfficerOrAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recruitCount']));
+      allow delete: if isOfficerOrAdmin();
     }
 
     match /campaign_actions/{actionId} {
       allow read: if isSignedIn();
       allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signedBy']);
-      allow write: if isAdministrator();
+      allow write: if isOfficerOrAdmin();
     }
 
     match /polls/{pollId} {
@@ -54,13 +54,13 @@ service cloud.firestore {
       allow update: if isSignedIn() && 
                     !resource.data.votedBy.contains(request.auth.uid) &&
                     request.resource.data.votedBy.contains(request.auth.uid);
-      allow write: if isAdministrator();
+      allow write: if isOfficerOrAdmin();
     }
 
     match /community_feedback/{feedbackId} {
-      allow read: if isSignedIn() && (resource.data.submitterUid == request.auth.uid || isAdministrator());
+      allow read: if isSignedIn() && (resource.data.submitterUid == request.auth.uid || isOfficerOrAdmin());
       allow create: if isSignedIn() && request.resource.data.submitterUid == request.auth.uid;
-      allow update, delete: if isAdministrator();
+      allow update, delete: if isOfficerOrAdmin();
     }
   }
 }

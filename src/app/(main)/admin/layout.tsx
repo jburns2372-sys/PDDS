@@ -18,8 +18,8 @@ export default function AdminLayout({
   const userEmail = (user?.email || '').toLowerCase();
   const userRole = userData?.role || '';
   
-  // Authorized if user is in the leadership roles list or is an Admin/System Admin
-  const isOfficer = pddsLeadershipRoles.includes(userRole);
+  // Authorized if user is in the leadership roles list or is an Officer/Admin/System Admin
+  const isOfficer = pddsLeadershipRoles.includes(userRole) || userRole === 'Officer';
   const isAdmin = userRole === 'Admin' || userRole === 'System Admin';
   const isPrivilegedEmail = 
     userEmail === 'iamgrecobelgica@gmail.com' ||
