@@ -16,7 +16,7 @@ export default function AdminLayout({
 
   const userEmail = (user?.email || '').toLowerCase();
   
-  // System Admin shares identical administrative privileges with President and Admin roles
+  // Consolidated admin check including the specific user email from the screenshot
   const isAuthorized = 
     userData?.role === 'Admin' || 
     userData?.role === 'President' || 

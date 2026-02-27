@@ -39,22 +39,29 @@ export function AppShell({ children }: { children: ReactNode }) {
     setUserDataLoading(true);
     const docRef = doc(firestore, "users", user.uid);
 
-    // Use onSnapshot for real-time synchronization and "Bouncer" security logic
+    // BOUNCER SECURITY LOGIC: Real-time synchronization and access revocation
     const unsubscribe = onSnapshot(docRef, async (docSnap) => {
       const userEmail = (user.email || '').toLowerCase();
+      
+      // Admin/President Fail-Safe List
       const isPresidentEmail = userEmail === 'iamgrecobelgica@gmail.com';
-      const isAdminEmail = userEmail === 'j.burns2372@gmail.com' || userEmail === 'j.burns.2372@gmail.com' || userEmail === 'j.burns372@gmail.com';
+      const isAdminEmail = 
+        userEmail === 'j.burns2372@gmail.com' || 
+        userEmail === 'j.burns.2372@gmail.com' || 
+        userEmail === 'j.burns372@gmail.com' ||
+        userEmail === 'mariashellajoygomez@gmail.com';
+      
       const isPrivileged = isPresidentEmail || isAdminEmail;
 
       if (docSnap.exists()) {
         const data = docSnap.data();
 
-        // BOUNCER CHECK: Suspend account if isApproved is explicitly set to false
+        // KICK-OUT RULE 1: If an admin has explicitly disabled the account
         if (data.isApproved === false && !isPrivileged) {
           await auth.signOut();
           toast({
             variant: "destructive",
-            title: "Access Denied",
+            title: "Access Revoked",
             description: "Your account has been disabled by an Administrator."
           });
           router.push('/login');
@@ -63,10 +70,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         setUserData({ id: docSnap.id, ...data });
         
-        // Ensure privileged users have correct schema and roles if they exist but are misconfigured
+        // Auto-heal logic for privileged users to prevent accidental lockout
         if (isPrivileged) {
           const targetRole = isPresidentEmail ? 'President' : 'Admin';
-          if (data.role !== targetRole || data.jurisdictionLevel !== 'National' || !data.isApproved) {
+          if (data.role !== targetRole || data.jurisdictionLevel !== 'National' || data.isApproved === false) {
             const update = { 
               role: targetRole, 
               jurisdictionLevel: 'National',
@@ -78,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           }
         }
       } else {
-        // BOUNCER CHECK: Sign out if the document doesn't exist (unless it's a privileged user)
+        // KICK-OUT RULE 2: If the document was deleted (Ghost Account protection)
         if (!isPrivileged) {
           await auth.signOut();
           toast({
@@ -90,12 +97,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Initialize new user document for privileged emails if it somehow got deleted
+        // Auto-Regenerate privileged user if document is missing
         const targetRole = isPresidentEmail ? 'President' : 'Admin';
         const newUserProfile = {
           uid: user.uid,
           email: userEmail,
-          fullName: user.displayName || userEmail.split('@')[0] || 'Member',
+          fullName: user.displayName?.toUpperCase() || userEmail.split('@')[0].toUpperCase() || 'MEMBER',
           role: targetRole,
           jurisdictionLevel: 'National',
           assignedLocation: 'National Headquarters',
@@ -110,16 +117,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
       setUserDataLoading(false);
     }, (error) => {
-      console.error("Critical error in AppShell profile sync:", error);
-      setUserData({
-        uid: user.uid,
-        email: user.email || '',
-        fullName: 'Authenticated Member',
-        role: 'Member',
-        jurisdictionLevel: 'National',
-        isApproved: true,
-        isFallback: true
-      });
+      console.error("Critical error in Bouncer profile sync:", error);
+      // Fallback state if read fails (e.g. initial setup)
       setUserDataLoading(false);
     });
 
