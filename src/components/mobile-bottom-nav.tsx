@@ -16,7 +16,6 @@ const baseNavItems = [
 ];
 
 const profileNavItem = { href: "/profile", icon: UserCircle, label: "Profile" };
-const adminNavItem = { href: "/admin/dashboard", icon: Shield, label: "Admin" };
 const auditNavItem = { href: "/admin/audit", icon: MessageSquare, label: "Audit" };
 
 export function MobileBottomNav() {
@@ -31,6 +30,7 @@ export function MobileBottomNav() {
     userRole === 'System Admin' ||
     userEmail === 'iamgrecobelgica@gmail.com' ||
     userEmail === 'j.burns372@gmail.com' ||
+    userEmail === 'j.burns2372@gmail.com' ||
     userEmail === 'mariashellajoygomez@gmail.com'
   );
   
@@ -51,7 +51,7 @@ export function MobileBottomNav() {
                   "flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors hover:text-primary"
                 )}>
                   <item.icon className="h-5 w-5" />
-                  <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest">{item.label}</span>
                 </button>
               </AboutPddsDialog>
             );
@@ -68,7 +68,7 @@ export function MobileBottomNav() {
               )}
             >
               <item.icon className="h-5 w-5" />
-              <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">{item.label}</span>
             </Link>
           );
         })}

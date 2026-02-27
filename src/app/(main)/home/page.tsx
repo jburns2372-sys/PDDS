@@ -18,12 +18,12 @@ function UserHeader({userData}: {userData: any}) {
   return (
     <div className="bg-card p-6 md:p-8 border-b">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary uppercase">
+        <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary uppercase tracking-tight">
           Welcome, {userData?.fullName?.split(' ')[0] || 'MEMBER'}
         </h1>
         <div className="mt-2 flex items-center gap-2">
-          <Badge variant="secondary" className="bg-primary/10 text-primary font-bold uppercase">{userData?.role}</Badge>
-          <Badge variant="secondary" className="bg-accent/20 text-accent-foreground font-bold uppercase">{userData?.jurisdictionLevel || 'National'}</Badge>
+          <Badge variant="secondary" className="bg-primary/10 text-primary font-black uppercase tracking-widest text-[10px]">{userData?.role}</Badge>
+          <Badge variant="secondary" className="bg-accent/20 text-accent-foreground font-black uppercase tracking-widest text-[10px]">{userData?.jurisdictionLevel || 'National'}</Badge>
         </div>
       </div>
     </div>
@@ -34,15 +34,15 @@ function StatCards() {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {mockStats.map((stat) => (
-        <Card key={stat.title} className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-medium text-muted-foreground uppercase">
+        <Card key={stat.title} className="shadow-sm border-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
               {stat.title}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stat.value}</div>
-            <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
+            <div className="text-3xl font-bold text-primary">{stat.value}</div>
+            <p className="text-xs font-bold text-green-600 mt-1">{stat.change}</p>
           </CardContent>
         </Card>
       ))}
@@ -74,7 +74,7 @@ export default function HomePage() {
         </div>
         <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
             <section>
-                <h2 className="text-xl font-semibold mb-4 font-headline">Quick Stats</h2>
+                <h2 className="text-xl font-semibold mb-4 font-headline uppercase tracking-tight">Quick Stats</h2>
                 <div className="grid gap-4 md:grid-cols-3">
                     <Skeleton className="h-32 w-full" />
                     <Skeleton className="h-32 w-full" />
@@ -82,7 +82,7 @@ export default function HomePage() {
                 </div>
             </section>
             <section>
-                <h2 className="text-xl font-semibold mb-4 font-headline">Recent Announcements</h2>
+                <h2 className="text-xl font-semibold mb-4 font-headline uppercase tracking-tight">Recent Announcements</h2>
                   <Skeleton className="h-64 w-full" />
             </section>
         </div>
@@ -101,15 +101,15 @@ export default function HomePage() {
             <div className="grid gap-8 lg:grid-cols-12 items-start">
                 <div className="lg:col-span-4 flex flex-col gap-8">
                     <div>
-                      <h2 className="text-xl font-bold font-headline text-primary mb-4 uppercase">Member ID</h2>
+                      <h2 className="text-xl font-bold font-headline text-primary mb-4 uppercase tracking-tight">Member ID</h2>
                       <DigitalIdCard userData={userData} />
                     </div>
                     
                     <DailyPulse />
 
-                    <div className="bg-accent/10 p-4 rounded-lg border border-accent/20">
-                        <p className="text-[10px] font-black uppercase text-accent-foreground tracking-widest mb-1">Status Note</p>
-                        <p className="text-xs text-accent-foreground/80 leading-tight">Your digital ID is your official credential for LEADCON and local party events. Ensure your profile photo is up to date.</p>
+                    <div className="bg-accent/10 p-5 rounded-lg border border-accent/20">
+                        <p className="text-[10px] font-black uppercase text-accent-foreground tracking-widest mb-2">Status Note</p>
+                        <p className="text-xs text-accent-foreground/80 leading-relaxed font-medium">Your digital ID is your official credential for LEADCON and local party events. Ensure your profile photo is up to date.</p>
                     </div>
                 </div>
                 <div className="lg:col-span-8 space-y-12">
@@ -121,14 +121,14 @@ export default function HomePage() {
 
         {!isSupporter && (
             <section>
-                <h2 className="text-xl font-semibold mb-4 font-headline uppercase text-primary">Quick Stats</h2>
+                <h2 className="text-xl font-semibold mb-6 font-headline uppercase text-primary tracking-tight">Quick Stats</h2>
                 <StatCards />
             </section>
         )}
 
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold font-headline text-primary uppercase">Recent Announcements</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold font-headline text-primary uppercase tracking-tight">Recent Announcements</h2>
           </div>
           <AnnouncementCard 
             title="LEADCON 2024 Highlights"

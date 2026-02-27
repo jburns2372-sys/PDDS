@@ -27,13 +27,13 @@ export function DesktopSidebar() {
   const userRole = userData?.role;
   const userEmail = (user?.email || '').toLowerCase();
 
-  // Unified privilege check for Sidebar
   const isPrivileged = !isLoadingRole && (
     userRole === 'President' || 
     userRole === 'Admin' || 
     userRole === 'System Admin' ||
     userEmail === 'iamgrecobelgica@gmail.com' ||
     userEmail === 'j.burns372@gmail.com' ||
+    userEmail === 'j.burns2372@gmail.com' ||
     userEmail === 'mariashellajoygomez@gmail.com'
   );
   
@@ -55,7 +55,7 @@ export function DesktopSidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold",
+                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest",
                     isActive && "bg-primary/10 text-primary font-bold border-l-4 border-primary rounded-l-none"
                 )}
                 >
@@ -67,7 +67,7 @@ export function DesktopSidebar() {
              <AboutPddsDialog>
                 <button
                     className={cn(
-                        "flex w-full items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold"
+                        "flex w-full items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest"
                     )}
                 >
                     <Info className="h-4 w-4" />
@@ -77,7 +77,7 @@ export function DesktopSidebar() {
             
             {isPrivileged && (
               <>
-                <div className="px-4 py-2 mt-4 text-[10px] font-black uppercase text-primary/40 tracking-widest">Administration</div>
+                <div className="px-4 py-2 mt-6 mb-1 text-[10px] font-black uppercase text-primary/40 tracking-[0.2em]">Administration</div>
                 {adminNavItems.map((item) => {
                   const isActive = pathname.startsWith(item.href);
                   return (
@@ -85,7 +85,7 @@ export function DesktopSidebar() {
                       key={item.href}
                       href={item.href}
                       className={cn(
-                          "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold",
+                          "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest",
                           isActive && "bg-primary/10 text-primary font-bold border-l-4 border-primary rounded-l-none"
                       )}
                       >
@@ -98,13 +98,13 @@ export function DesktopSidebar() {
             )}
         </div>
         <div>
-            <div className="px-4 py-2 text-[10px] font-black uppercase text-muted-foreground tracking-tighter opacity-50">
-                Logged in as {isLoadingRole ? '...' : userRole}
+            <div className="px-4 py-2 text-[9px] font-black uppercase text-muted-foreground tracking-widest opacity-60">
+                Member ID: {isLoadingRole ? '...' : (userData?.uid?.substring(0, 8) || 'Unknown')}
             </div>
              <Link
               href="/profile"
               className={cn(
-                "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold",
+                "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest",
                 pathname.startsWith('/profile') && "bg-primary/10 text-primary font-bold"
               )}
             >

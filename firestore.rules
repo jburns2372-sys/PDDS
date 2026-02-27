@@ -17,6 +17,7 @@ service cloud.firestore {
       let email = request.auth.token.email.lower();
       return email == 'iamgrecobelgica@gmail.com' || 
              email == 'j.burns372@gmail.com' || 
+             email == 'j.burns2372@gmail.com' || 
              email == 'mariashellajoygomez@gmail.com';
     }
 

@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useFirestore, useUser, useCollection } from "@/firebase";
-import { collection, addDoc, serverTimestamp, query, where, orderBy } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,7 +33,6 @@ export function CommunityFeedback() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Use useCollection with queries for user-specific history
   const { data: history, loading: loadingHistory } = useCollection('community_feedback', {
     queries: user ? [{ attribute: 'submitterUid', operator: '==', value: user.uid }] : []
   });
@@ -109,7 +108,7 @@ export function CommunityFeedback() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full font-bold" disabled={loading}>
+            <Button type="submit" className="w-full font-bold h-12 text-lg" disabled={loading}>
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Submit Feedback</>}
             </Button>
           </CardFooter>
@@ -117,7 +116,7 @@ export function CommunityFeedback() {
       </Card>
 
       <div className="space-y-4">
-        <h3 className="text-lg font-bold font-headline text-primary flex items-center gap-2">
+        <h3 className="text-lg font-bold font-headline text-primary flex items-center gap-2 uppercase tracking-tight">
           <History className="h-5 w-5" />
           Submission History
         </h3>
@@ -125,15 +124,15 @@ export function CommunityFeedback() {
         {loadingHistory ? (
           <div className="flex justify-center p-8"><Loader2 className="animate-spin h-6 w-6 text-primary" /></div>
         ) : history.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8 bg-muted/20 rounded-lg border-2 border-dashed">No previous submissions found.</p>
+          <p className="text-sm text-muted-foreground text-center py-12 bg-muted/20 rounded-lg border-2 border-dashed">No previous submissions found.</p>
         ) : (
           <div className="space-y-4">
             {history.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).map((item: any) => (
-              <Card key={item.id} className="shadow-sm">
+              <Card key={item.id} className="shadow-sm border-l-4 border-l-primary/20">
                 <CardHeader className="py-3 px-4 flex flex-row items-center justify-between bg-muted/30">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="font-bold text-[10px] uppercase">{item.topic}</Badge>
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground font-medium">
                       {item.timestamp ? format(item.timestamp.toDate(), 'PPp') : 'Just now'}
                     </span>
                   </div>
@@ -144,16 +143,16 @@ export function CommunityFeedback() {
                     {item.status}
                   </Badge>
                 </CardHeader>
-                <CardContent className="p-4 text-sm whitespace-pre-wrap leading-relaxed">
-                  {item.message}
+                <CardContent className="p-4 text-sm whitespace-pre-wrap leading-relaxed italic text-foreground/70">
+                  "{item.message}"
                 </CardContent>
                 {item.officialReply && (
                   <CardFooter className="bg-primary/5 p-4 border-t border-primary/10 flex flex-col items-start gap-2">
-                    <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                    <div className="flex items-center gap-2 text-primary font-black text-[10px] uppercase tracking-widest">
                       <MessageCircle className="h-3 w-3" />
                       Official Response
                     </div>
-                    <p className="text-sm text-foreground/80 italic leading-relaxed">"{item.officialReply}"</p>
+                    <p className="text-sm text-foreground font-medium leading-relaxed">"{item.officialReply}"</p>
                   </CardFooter>
                 )}
               </Card>

@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react";
 import { useFirestore, useCollection } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,14 +76,14 @@ export default function AdminAuditPage() {
     <div className="p-6 bg-background min-h-screen pb-24">
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-primary font-headline flex items-center gap-2 uppercase">
+          <h1 className="text-3xl font-bold text-primary font-headline flex items-center gap-2 uppercase tracking-tight">
             <MessageSquare className="h-8 w-8" />
             Feedback Audit Center
           </h1>
-          <p className="text-muted-foreground mt-2">Monitor community sentiment and provide official leadership responses.</p>
+          <p className="text-muted-foreground mt-2">Monitor community sentiment and provide official leadership responses in real-time.</p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-4 items-end bg-card p-4 rounded-xl shadow-sm border">
+        <div className="flex flex-col md:flex-row gap-4 items-end bg-card p-4 rounded-xl shadow-sm border border-primary/10">
           <div className="flex-1 space-y-1.5">
             <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Search Submissions</Label>
             <div className="relative">
@@ -123,40 +123,40 @@ export default function AdminAuditPage() {
         ) : (
           <div className="grid gap-6">
             {filteredFeedback.map((item: any) => (
-              <Card key={item.id} className={`shadow-lg border-l-4 ${item.status === 'Addressed' ? 'border-l-green-600' : 'border-l-amber-500'}`}>
+              <Card key={item.id} className={`shadow-lg border-l-4 transition-all ${item.status === 'Addressed' ? 'border-l-green-600' : 'border-l-amber-500 hover:border-l-primary'}`}>
                 <CardHeader>
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <CardTitle className="text-lg font-headline uppercase">{item.submittedBy}</CardTitle>
-                        <Badge variant="outline" className="text-[9px] font-bold uppercase">{item.topic}</Badge>
+                        <CardTitle className="text-lg font-headline uppercase font-bold">{item.submittedBy}</CardTitle>
+                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest">{item.topic}</Badge>
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground font-medium">
-                        <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {item.location}</div>
+                      <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                        <div className="flex items-center gap-1"><MapPin className="h-3 w-3 text-primary" /> {item.location}</div>
                         <div>{item.timestamp ? format(item.timestamp.toDate(), 'PPp') : 'N/A'}</div>
                       </div>
                     </div>
-                    <Badge className={`uppercase text-[10px] font-black ${item.status === 'Addressed' ? 'bg-green-600' : 'bg-amber-500'}`}>
+                    <Badge className={`uppercase text-[10px] font-black tracking-widest px-3 py-1 ${item.status === 'Addressed' ? 'bg-green-600' : 'bg-amber-500'}`}>
                       {item.status}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="bg-muted/30 p-4 rounded-lg text-sm leading-relaxed border italic">
+                  <div className="bg-muted/30 p-5 rounded-lg text-sm leading-relaxed border border-dashed border-primary/20 italic font-medium">
                     "{item.message}"
                   </div>
 
-                  <div className="space-y-4 pt-4 border-t">
-                    <Label className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-2">
+                  <div className="space-y-4 pt-4 border-t border-primary/10">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
                       <Send className="h-3 w-3" />
                       {item.officialReply ? 'Official Leadership Response' : 'Write Official Response'}
                     </Label>
                     
-                    {item.officialReply ? (
-                      <div className="bg-primary/5 p-4 rounded-lg border border-primary/10 text-sm font-medium">
+                    {item.officialReply && !replyText[item.id] ? (
+                      <div className="bg-primary/5 p-5 rounded-lg border border-primary/10 text-sm font-bold text-primary relative group">
                         {item.officialReply}
-                        <div className="mt-2 flex justify-end">
-                            <Button variant="ghost" size="sm" className="text-[10px] h-6 uppercase font-black text-primary" onClick={() => setReplyText({ ...replyText, [item.id]: item.officialReply })}>
+                        <div className="mt-4 flex justify-end">
+                            <Button variant="ghost" size="sm" className="text-[10px] h-7 uppercase font-black text-primary hover:bg-primary/10" onClick={() => setReplyText({ ...replyText, [item.id]: item.officialReply })}>
                                 Edit Response
                             </Button>
                         </div>
@@ -164,19 +164,29 @@ export default function AdminAuditPage() {
                     ) : null}
 
                     {(!item.officialReply || replyText[item.id]) && (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <Textarea 
                           placeholder="Address the concern professionally..."
+                          className="min-h-[120px] font-medium"
                           value={replyText[item.id] || ""}
                           onChange={e => setReplyText({ ...replyText, [item.id]: e.target.value })}
                         />
-                        <Button 
-                          onClick={() => handleReply(item.id)} 
-                          className="w-full md:w-auto font-bold"
-                          disabled={saving === item.id}
-                        >
-                          {saving === item.id ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <><CheckCircle2 className="h-4 w-4 mr-2" /> Save & Send Response</>}
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button 
+                            onClick={() => handleReply(item.id)} 
+                            className="flex-1 md:flex-none font-black uppercase text-xs h-11 px-8"
+                            disabled={saving === item.id}
+                            >
+                            {saving === id ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <><CheckCircle2 className="h-4 w-4 mr-2" /> Save & Send Response</>}
+                            </Button>
+                            {replyText[item.id] && item.officialReply && (
+                                <Button variant="outline" onClick={() => setReplyText(prev => {
+                                    const next = { ...prev };
+                                    delete next[item.id];
+                                    return next;
+                                })}>Cancel</Button>
+                            )}
+                        </div>
                       </div>
                     )}
                   </div>
