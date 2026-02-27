@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCollection } from '@/firebase';
@@ -8,14 +9,13 @@ import { Loader2, Users } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 
 export function DirectoryClient() {
-  // Real-time listener on the 'users' collection (The Registry)
   const { data: users, loading } = useCollection('users');
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground font-medium animate-pulse">Synchronizing with registry...</p>
+        <p className="text-muted-foreground font-medium animate-pulse">Syncing Structure...</p>
       </div>
     );
   }
@@ -28,7 +28,7 @@ export function DirectoryClient() {
             <TabsTrigger 
               key={level} 
               value={level} 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold transition-all px-6"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold px-6"
             >
               {level}
             </TabsTrigger>
@@ -37,7 +37,7 @@ export function DirectoryClient() {
         
         <div className="text-sm font-medium text-muted-foreground bg-white px-4 py-2 rounded-full border shadow-sm flex items-center gap-2">
             <Users className="h-4 w-4 text-primary" />
-            Registry Total: {users?.length || 0} Members
+            Registry Count: {users?.length || 0}
         </div>
       </div>
 
@@ -52,10 +52,8 @@ export function DirectoryClient() {
                 <CardContent className="px-0">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {pddsLeadershipRoles.map((role) => {
-                            // Find the officer for this specific role and level from the Registry
-                            // Ensure strict comparison of role and level strings
                             const officer = (users || []).find(u => 
-                                u.role?.trim() === role.trim() && u.level?.trim() === level.trim()
+                                u.role === role && u.jurisdictionLevel === level
                             );
                             
                             return (
@@ -63,7 +61,7 @@ export function DirectoryClient() {
                                     key={`${level}-${role}`} 
                                     role={role} 
                                     name={officer?.fullName || ""} 
-                                    avatarUrl={officer?.avatarUrl || ""}
+                                    photoURL={officer?.photoURL || ""}
                                 />
                             );
                         })}

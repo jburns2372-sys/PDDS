@@ -1,27 +1,27 @@
+
 export const mockStats = [
   { title: "Total Verified Members", value: "1,250,321", change: "+12.5%" },
   { title: "Pending Approvals", value: "47", change: "+2" },
   { title: "Upcoming Events", value: "3", change: "This week" },
 ];
 
-// Centralized source of truth for PDDS leadership roles
+// Exact 13 official PDDS leadership roles requested for filtering
 export const pddsLeadershipRoles = [
   "President",
   "Chairman",
   "Vice Chairman",
-  "Vice President",
-  "Secretary General",
+  "VP",
+  "Sec Gen",
   "Treasurer",
   "Auditor",
-  "VP Ways & Means",
+  "VP Ways & Means Chair",
   "VP Media Comms",
   "VP Soc Med Comms",
   "VP Events and Programs",
   "VP Membership",
-  "VP Legal Affairs",
+  "VP legal affairs"
 ];
 
-// Centralized source of truth for geographical levels
 export const jurisdictionLevels = [
   "National",
   "Regional",

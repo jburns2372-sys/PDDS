@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { UserCircle } from 'lucide-react';
@@ -5,18 +6,18 @@ import { UserCircle } from 'lucide-react';
 type OfficerCardProps = {
   role: string;
   name: string;
-  avatarUrl?: string;
+  photoURL?: string;
 };
 
-export function OfficerCard({ role, name, avatarUrl }: OfficerCardProps) {
+export function OfficerCard({ role, name, photoURL }: OfficerCardProps) {
   const isVacant = !name;
 
   return (
     <Card className={`overflow-hidden transition-all duration-300 border-primary/10 ${isVacant ? 'bg-muted/5' : 'hover:scale-105 hover:shadow-xl hover:border-primary/30'}`}>
       <CardContent className="flex items-center gap-4 p-5">
         <Avatar className={`h-16 w-16 border-2 shadow-sm ${isVacant ? 'border-muted bg-muted/10' : 'border-accent bg-background'}`}>
-          {avatarUrl && !isVacant ? (
-            <AvatarImage src={avatarUrl} alt={name} className="object-cover" />
+          {photoURL && !isVacant ? (
+            <AvatarImage src={photoURL} alt={name} className="object-cover" />
           ) : null}
           <AvatarFallback className="bg-transparent">
             {isVacant ? (
@@ -34,14 +35,13 @@ export function OfficerCard({ role, name, avatarUrl }: OfficerCardProps) {
             {role}
           </p>
           <div className="h-7 flex items-center">
-            {isVacant ? (
-              <span className="text-sm font-medium text-muted-foreground/20 italic tracking-tight">
-                Position Vacant
-              </span>
-            ) : (
+            {!isVacant && (
               <p className="text-lg font-bold text-foreground truncate leading-none">
                 {name}
               </p>
+            )}
+            {isVacant && (
+              <span className="text-xs text-muted-foreground/30 italic">Position Vacant</span>
             )}
           </div>
         </div>

@@ -1,24 +1,16 @@
+
 "use client";
 import { doc, setDoc, updateDoc, Firestore, FieldValue, deleteDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
+/**
+ * Isolated creation using setDoc
+ */
 export function createUserDocument(
   db: Firestore, 
   userId: string, 
-  data: { 
-    uid: string;
-    fullName: string;
-    email: string;
-    role: string;
-    level: string;
-    locationName: string;
-    avatarUrl?: string;
-    kartilyaAgreed: boolean;
-    isApproved?: boolean;
-    passwordIsTemporary: boolean;
-    createdAt: FieldValue;
-  }
+  data: any
 ) {
     const userRef = doc(db, 'users', userId);
     return setDoc(userRef, data)
@@ -33,7 +25,9 @@ export function createUserDocument(
       });
 }
 
-
+/**
+ * Isolated update using updateDoc
+ */
 export function updateUserDocument(
   db: Firestore,
   userId: string,
@@ -52,6 +46,9 @@ export function updateUserDocument(
     });
 }
 
+/**
+ * Isolated deletion
+ */
 export function deleteUserDocument(
     db: Firestore,
     userId: string

@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "user": {
@@ -22,25 +23,25 @@
           "type": "string",
           "description": "The user's role in the party.",
           "enum": [
-            "System Admin",
-            "Admin",
+            "President",
             "Chairman",
             "Vice Chairman",
-            "President",
-            "Vice President",
-            "Secretary General",
+            "VP",
+            "Sec Gen",
             "Treasurer",
             "Auditor",
-            "VP Ways & Means",
+            "VP Ways & Means Chair",
             "VP Media Comms",
             "VP Soc Med Comms",
             "VP Events and Programs",
             "VP Membership",
-            "VP Legal Affairs",
-            "Member"
+            "VP legal affairs",
+            "Member",
+            "Admin",
+            "System Admin"
           ]
         },
-        "level": {
+        "jurisdictionLevel": {
           "type": "string",
           "description": "The user's jurisdiction level.",
           "enum": [
@@ -51,11 +52,11 @@
             "Barangay"
           ]
         },
-        "locationName": {
+        "assignedLocation": {
           "type": "string",
-          "description": "The name of the user's location (e.g., province, city)."
+          "description": "The name of the user's assigned location (e.g., province, city)."
         },
-        "avatarUrl": {
+        "photoURL": {
           "type": "string",
           "description": "The URL or data URI of the user's profile picture."
         },
@@ -67,50 +68,17 @@
           "type": "boolean",
           "description": "Whether the user needs to change their temporary password."
         },
+        "isApproved": {
+          "type": "boolean",
+          "description": "Whether the user is approved."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
           "description": "The timestamp when the user document was created."
         }
       },
-      "required": ["uid", "email", "fullName", "role", "level", "kartilyaAgreed"]
-    },
-    "chapter": {
-      "title": "Chapter",
-      "description": "An organizational chapter of the party.",
-      "type": "object",
-      "properties": {
-        "level": {
-          "type": "string",
-          "description": "The geographical level of the chapter.",
-          "enum": [
-            "National",
-            "Regional",
-            "Provincial",
-            "City/Municipal",
-            "Barangay"
-          ]
-        },
-        "officers": {
-          "type": "object",
-          "properties": {
-            "chairman": { "type": "string", "description": "UID of the Chairman" },
-            "viceChairman": { "type": "string", "description": "UID of the Vice Chairman" },
-            "president": { "type": "string", "description": "UID of the President" },
-            "vicePresident": { "type": "string", "description": "UID of the Vice President" },
-            "secretaryGeneral": { "type": "string", "description": "UID of the Secretary General" },
-            "treasurer": { "type": "string", "description": "UID of the Treasurer" },
-            "auditor": { "type": "string", "description": "UID of the Auditor" },
-            "vpWaysAndMeans": { "type": "string", "description": "UID of the VP Ways & Means" },
-            "vpMediaComms": { "type": "string", "description": "UID of the VP Media Comms" },
-            "vpSocMedComms": { "type": "string", "description": "UID of the VP Soc Med Comms" },
-            "vpEvents": { "type": "string", "description": "UID of the VP Events" },
-            "vpMembership": { "type": "string", "description": "UID of the VP Membership" },
-            "vpLegalAffairs": { "type": "string", "description": "UID of the VP Legal Affairs" }
-          }
-        }
-      },
-      "required": ["level", "officers"]
+      "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
     }
   },
   "auth": {
@@ -120,10 +88,6 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/user" },
       "description": "Stores user profile information."
-    },
-    "/chapters/{chapterId}": {
-      "schema": { "$ref": "#/entities/chapter" },
-      "description": "Stores organizational chapter information and leadership roles."
     }
   }
 }
