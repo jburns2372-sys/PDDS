@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "user": {
@@ -22,13 +23,17 @@
           "type": "string",
           "description": "The user's verified phone number."
         },
-        "address": {
+        "streetAddress": {
           "type": "string",
-          "description": "The user's street address."
+          "description": "The user's street name, building, or house number."
+        },
+        "barangay": {
+          "type": "string",
+          "description": "The user's barangay."
         },
         "city": {
           "type": "string",
-          "description": "The user's city."
+          "description": "The user's city or municipality."
         },
         "province": {
           "type": "string",

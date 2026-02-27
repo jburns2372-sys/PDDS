@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PddsLogo from "@/components/icons/pdds-logo";
 import { useAuth, useFirestore, useStorage } from "@/firebase";
 import { 
@@ -23,7 +24,7 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Phone, Loader2, Mail, Lock, User, Home as HomeIcon, Camera, X, RefreshCw, Check } from "lucide-react";
+import { Phone, Loader2, Mail, Lock, User, Home as HomeIcon, Camera, X, Check, MapPin } from "lucide-react";
 
 declare global {
   interface Window {
@@ -42,12 +43,19 @@ export default function JoinPage() {
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [address, setAddress] = useState("");
-    const [city, setCity] = useState("");
-    const [province, setProvince] = useState("");
-    const [zipCode, setZipCode] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("+63");
+    const [zipCode, setZipCode] = useState("");
+    const [streetAddress, setStreetAddress] = useState("");
     
+    // Cascading Location State
+    const [provinces, setProvinces] = useState<any[]>([]);
+    const [cities, setCities] = useState<any[]>([]);
+    const [barangays, setBarangays] = useState<any[]>([]);
+    
+    const [selectedProvince, setSelectedProvince] = useState<string>("");
+    const [selectedCity, setSelectedCity] = useState<string>("");
+    const [selectedBarangay, setSelectedBarangay] = useState<string>("");
+
     // Photo & Camera State
     const [selectedFile, setSelectedFile] = useState<File | Blob | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -65,6 +73,65 @@ export default function JoinPage() {
     const [showOtpInput, setShowOtpInput] = useState(false);
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
     const [agreed, setAgreed] = useState(false);
+
+    // Fetch Provinces on Load
+    useEffect(() => {
+        const fetchProvinces = async () => {
+            try {
+                const response = await fetch('https://psgc.gitlab.io/api/provinces/');
+                const data = await response.json();
+                setProvinces(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+            } catch (error) {
+                console.error("Error fetching provinces:", error);
+            }
+        };
+        fetchProvinces();
+    }, []);
+
+    // Fetch Cities when Province Changes
+    useEffect(() => {
+        if (!selectedProvince) {
+            setCities([]);
+            return;
+        }
+        const fetchCities = async () => {
+            try {
+                const province = provinces.find(p => p.name === selectedProvince);
+                if (province) {
+                    const response = await fetch(`https://psgc.gitlab.io/api/provinces/${province.code}/cities-municipalities/`);
+                    const data = await response.json();
+                    setCities(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+                }
+            } catch (error) {
+                console.error("Error fetching cities:", error);
+            }
+        };
+        fetchCities();
+        setSelectedCity("");
+        setSelectedBarangay("");
+    }, [selectedProvince, provinces]);
+
+    // Fetch Barangays when City Changes
+    useEffect(() => {
+        if (!selectedCity) {
+            setBarangays([]);
+            return;
+        }
+        const fetchBarangays = async () => {
+            try {
+                const city = cities.find(c => c.name === selectedCity);
+                if (city) {
+                    const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
+                    const data = await response.json();
+                    setBarangays(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+                }
+            } catch (error) {
+                console.error("Error fetching barangays:", error);
+            }
+        };
+        fetchBarangays();
+        setSelectedBarangay("");
+    }, [selectedCity, cities]);
 
     useEffect(() => {
         if (typeof window !== "undefined" && !window.recaptchaVerifier) {
@@ -139,12 +206,6 @@ export default function JoinPage() {
         }
     };
 
-    const removePhoto = () => {
-        setSelectedFile(null);
-        setPhotoPreview(null);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-    };
-
     const handleInitialSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -155,6 +216,11 @@ export default function JoinPage() {
 
         if (phoneNumber.length < 10) {
             toast({ variant: "destructive", title: "Invalid Phone", description: "Please enter a valid phone number." });
+            return;
+        }
+
+        if (!selectedProvince || !selectedCity || !selectedBarangay) {
+            toast({ variant: "destructive", title: "Incomplete Address", description: "Please select your Province, City, and Barangay." });
             return;
         }
 
@@ -196,7 +262,7 @@ export default function JoinPage() {
                     const uploadResult = await uploadBytes(storageRef, selectedFile);
                     finalPhotoURL = await getDownloadURL(uploadResult.ref);
                 } catch (storageError) {
-                    console.error("Storage upload failed (Check CORS settings):", storageError);
+                    console.error("Storage upload failed:", storageError);
                 }
             }
 
@@ -209,14 +275,15 @@ export default function JoinPage() {
                 email: email.trim().toLowerCase(),
                 fullName: fullName.trim().toUpperCase(),
                 phoneNumber: phoneNumber,
-                address: address.trim(),
-                city: city.trim(),
-                province: province.trim(),
+                streetAddress: streetAddress.trim().toUpperCase(),
+                barangay: selectedBarangay,
+                city: selectedCity,
+                province: selectedProvince,
                 zipCode: zipCode.trim(),
                 photoURL: finalPhotoURL,
                 role: "Supporter",
                 jurisdictionLevel: "City/Municipal",
-                assignedLocation: city.trim() || province.trim() || "National",
+                assignedLocation: selectedCity,
                 isApproved: true,
                 isVerified: true,
                 isEmailVerified: false,
@@ -273,8 +340,8 @@ export default function JoinPage() {
                                     {photoPreview && (
                                         <button 
                                             type="button" 
-                                            onClick={removePhoto}
-                                            className="absolute -top-2 -right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full shadow-lg hover:bg-destructive/90 transition-transform hover:scale-110"
+                                            onClick={() => { setSelectedFile(null); setPhotoPreview(null); }}
+                                            className="absolute -top-2 -right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full shadow-lg"
                                         >
                                             <X className="h-4 w-4" />
                                         </button>
@@ -311,7 +378,7 @@ export default function JoinPage() {
                                             {photoPreview ? "Retake Photo" : "Open Camera"}
                                         </Button>
                                         <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                                            <RefreshCw className="mr-2 h-4 w-4" /> Upload from Device
+                                            Upload File
                                         </Button>
                                         <input 
                                             type="file" 
@@ -350,44 +417,97 @@ export default function JoinPage() {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="password">Password</Label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input id="password" data-mask-password="true" className="pl-9" type="password" required value={password} onChange={e => setPassword(e.target.value)} minLength={6} disabled={loading} />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="phoneNumber">Phone Number</Label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input id="phoneNumber" className="pl-9" placeholder="+639123456789" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} disabled={loading} />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="address">Address</Label>
-                                <div className="relative">
-                                    <HomeIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                                    <Input id="address" className="pl-10" placeholder="Street, Barangay" required value={address} onChange={e => setAddress(e.target.value)} disabled={loading} />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="city">City</Label>
-                                    <Input id="city" placeholder="City" required value={city} onChange={e => setCity(e.target.value)} disabled={loading} />
+                                    <Label htmlFor="password">Password</Label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <Input id="password" data-mask-password="true" className="pl-9" type="password" required value={password} onChange={e => setPassword(e.target.value)} minLength={6} disabled={loading} />
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="province">Province</Label>
-                                    <Input id="province" placeholder="Province" required value={province} onChange={e => setProvince(e.target.value)} disabled={loading} />
+                                    <Label htmlFor="phoneNumber">Phone Number</Label>
+                                    <div className="relative">
+                                        <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <Input id="phoneNumber" className="pl-9" placeholder="+639123456789" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} disabled={loading} />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="zipCode">Zip Code</Label>
-                                <Input id="zipCode" placeholder="0000" required value={zipCode} onChange={e => setZipCode(e.target.value)} disabled={loading} />
+                            <div className="space-y-4 pt-2 border-t">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <MapPin className="h-4 w-4 text-primary" />
+                                    <span className="text-xs font-bold uppercase tracking-wider text-primary">Residence Information</span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Province</Label>
+                                        <Select onValueChange={setSelectedProvince} value={selectedProvince}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Province" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {provinces.map((p) => (
+                                                    <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>City / Municipality</Label>
+                                        <Select 
+                                            onValueChange={setSelectedCity} 
+                                            value={selectedCity}
+                                            disabled={!selectedProvince}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={!selectedProvince ? "Select Province First" : "Select City"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {cities.map((c) => (
+                                                    <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Barangay</Label>
+                                        <Select 
+                                            onValueChange={setSelectedBarangay} 
+                                            value={selectedBarangay}
+                                            disabled={!selectedCity}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={!selectedCity ? "Select City First" : "Select Barangay"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {barangays.map((b) => (
+                                                    <SelectItem key={b.code} value={b.name}>{b.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="zipCode">Zip Code</Label>
+                                        <Input id="zipCode" placeholder="0000" required value={zipCode} onChange={e => setZipCode(e.target.value)} disabled={loading} />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="streetAddress">Street Address / House No.</Label>
+                                    <Input 
+                                        id="streetAddress" 
+                                        placeholder="Block No., Street Name, Phase" 
+                                        required 
+                                        value={streetAddress} 
+                                        onChange={e => setStreetAddress(e.target.value.toUpperCase())} 
+                                        disabled={loading} 
+                                    />
+                                </div>
                             </div>
 
                             <div className="flex items-start space-x-3 pt-2">
