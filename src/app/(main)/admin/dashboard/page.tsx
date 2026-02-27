@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -16,13 +17,12 @@ import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info } from "lucide-react";
+import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info, UserX, UserCheck } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc } from "firebase/firestore";
 import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -30,7 +30,7 @@ import {
 
 const allAssignableRoles = [
   ...pddsLeadershipRoles,
-  "Member", "Admin", "System Admin"
+  "Member", "Admin", "System Admin", "Supporter"
 ];
 
 export default function AdminDashboard() {
@@ -131,39 +131,33 @@ export default function AdminDashboard() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setSelectedFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPhotoURL(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+    const handleToggleStatus = async (user: any) => {
+        if (user.id === currentUser?.uid) {
+            toast({ variant: "destructive", title: "Action Restricted", description: "You cannot suspend your own access." });
+            return;
         }
-    };
-
-    const handleResumeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setResumeFile(file);
+        const newStatus = user.isApproved === false;
+        setLoading(true);
+        try {
+            await updateUserDocument(firestore, user.id, { isApproved: newStatus });
+            toast({ title: "Status Updated", description: `${user.fullName} is now ${newStatus ? 'Approved' : 'Suspended'}. Access is updated in real-time.` });
+        } catch (error: any) {
+             toast({ variant: "destructive", title: "Update Error", description: error.message });
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleRevoke = async (user: any) => {
         if (user.id === currentUser?.uid) {
-            toast({
-                variant: "destructive",
-                title: "Action Restricted",
-                description: "You cannot revoke your own access."
-            });
+            toast({ variant: "destructive", title: "Action Restricted", description: "You cannot revoke your own access." });
             return;
         }
-        if (!confirm(`Revoke access for ${user.fullName || user.email}?`)) return;
+        if (!confirm(`Revoke all access for ${user.fullName || user.email}? This will trigger the security bouncer and log them out instantly.`)) return;
         setLoading(true);
         try {
             await deleteUserDocument(firestore, user.id);
-            toast({ title: "Success", description: "Officer record removed from registry." });
+            toast({ title: "Success", description: "Account removed from registry. Bouncer has revoked their active session." });
         } catch (error: any) {
              toast({ variant: "destructive", title: "Revocation Error", description: error.message });
         } finally {
@@ -226,7 +220,7 @@ export default function AdminDashboard() {
                     resumeURL: finalResumeURL,
                     resumeText: resumeText.trim(),
                     aboutText: aboutText.trim(),
-                    isApproved: true,
+                    isApproved: selectedUser.isApproved !== false,
                     kartilyaAgreed: true
                 };
 
@@ -292,7 +286,7 @@ export default function AdminDashboard() {
                 <div>
                     <h1 className="text-3xl font-bold text-primary flex items-center gap-2 font-headline">
                         <Shield className="h-8 w-8" />
-                        Officer Management
+                        Officer & Supporter Management
                     </h1>
                     <p className="text-muted-foreground mt-2">Maintain the official leadership registry and access levels.</p>
                 </div>
@@ -305,7 +299,7 @@ export default function AdminDashboard() {
                             <CardHeader>
                                 <CardTitle className="text-xl font-headline flex items-center gap-2">
                                     <UserPlus className="h-5 w-5" />
-                                    {isEditMode ? `Edit Officer` : 'Register New Officer'}
+                                    {isEditMode ? `Edit Profile` : 'Register New User'}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -322,7 +316,7 @@ export default function AdminDashboard() {
                                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Officer Full Name</Label>
+                                    <Label>Full Name</Label>
                                     <Input 
                                         required 
                                         value={fullName} 
@@ -394,7 +388,7 @@ export default function AdminDashboard() {
                                         About Information
                                     </Label>
                                     <Textarea 
-                                        placeholder="Write a brief bio or description of the officer..." 
+                                        placeholder="Write a brief bio or description..." 
                                         value={aboutText} 
                                         onChange={e => setAboutText(e.target.value)}
                                         className="min-h-[100px] text-xs"
@@ -404,7 +398,7 @@ export default function AdminDashboard() {
                                 <div className="space-y-2 pt-4 border-t">
                                     <Label className="flex items-center gap-2">
                                         <FileText className="h-4 w-4" />
-                                        Officer Resume
+                                        Resume (Officers)
                                     </Label>
                                     <Tabs defaultValue="file" className="w-full">
                                         <TabsList className="grid w-full grid-cols-2 mb-2">
@@ -433,7 +427,7 @@ export default function AdminDashboard() {
                             </CardContent>
                             <CardFooter className="flex flex-col gap-2">
                                 <Button type="submit" className="w-full" disabled={loading}>
-                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isEditMode ? 'Save Changes' : 'Register Officer')}
+                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isEditMode ? 'Save Changes' : 'Register Member')}
                                 </Button>
                                 {isEditMode && <Button variant="ghost" type="button" onClick={resetForm} className="w-full">Cancel Edit</Button>}
                             </CardFooter>
@@ -446,7 +440,7 @@ export default function AdminDashboard() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             className="pl-10 h-12 shadow-sm" 
-                            placeholder="Search registry..." 
+                            placeholder="Search members by name or email..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -456,7 +450,7 @@ export default function AdminDashboard() {
                         <CardHeader className="bg-primary/5 py-3 border-b">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Users className="h-5 w-5 text-primary" />
-                                Active Officers Registry
+                                Member Registry
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
@@ -464,8 +458,8 @@ export default function AdminDashboard() {
                                 <TableHeader>
                                     <TableRow className="bg-muted/30">
                                         <TableHead className="w-[80px] pl-6">Photo</TableHead>
-                                        <TableHead>Officer</TableHead>
-                                        <TableHead>Role</TableHead>
+                                        <TableHead>Member</TableHead>
+                                        <TableHead>Role / Status</TableHead>
                                         <TableHead>Jurisdiction</TableHead>
                                         <TableHead className="text-right pr-6">Actions</TableHead>
                                     </TableRow>
@@ -483,63 +477,67 @@ export default function AdminDashboard() {
                                                 No results found in registry.
                                             </TableCell>
                                         </TableRow>
-                                    ) : activeOfficers.map(officer => (
-                                        <TableRow key={officer.id} className="hover:bg-muted/20">
+                                    ) : activeOfficers.map(member => (
+                                        <TableRow key={member.id} className={`hover:bg-muted/20 ${member.isApproved === false ? 'bg-destructive/5' : ''}`}>
                                             <TableCell className="pl-6">
                                                 <Avatar className="h-10 w-10 border shadow-sm bg-background">
-                                                    <AvatarImage src={officer.photoURL || ""} className="object-cover" />
+                                                    <AvatarImage src={member.photoURL || ""} className="object-cover" />
                                                     <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold uppercase">
-                                                        {officer.fullName?.charAt(0) || '?'}
+                                                        {member.fullName?.charAt(0) || '?'}
                                                     </AvatarFallback>
                                                 </Avatar>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="font-bold text-sm uppercase">{officer.fullName}</div>
-                                                <div className="text-[11px] text-muted-foreground">{officer.email}</div>
+                                                <div className="font-bold text-sm uppercase">{member.fullName}</div>
+                                                <div className="text-[11px] text-muted-foreground">{member.email}</div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] font-bold uppercase tracking-tighter">
-                                                    {officer.role}
-                                                </Badge>
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] font-bold uppercase tracking-tighter">
+                                                        {member.role}
+                                                    </Badge>
+                                                    {member.isApproved === false && (
+                                                        <Badge variant="destructive" className="text-[9px] font-black uppercase">Suspended</Badge>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="text-[11px] font-bold">
-                                                    {officer.jurisdictionLevel}
+                                                    {member.jurisdictionLevel}
                                                 </div>
                                                 <div className="text-[10px] text-muted-foreground">
-                                                    {officer.assignedLocation}
+                                                    {member.assignedLocation}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right pr-6 space-x-1">
-                                                {(officer.resumeURL || officer.resumeText) && (
+                                                {(member.resumeURL || member.resumeText) && (
                                                     <Dialog>
                                                         <DialogTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary">
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title="View Resume">
                                                                 <FileText className="h-4 w-4" />
                                                             </Button>
                                                         </DialogTrigger>
                                                         <DialogContent className="max-w-2xl">
                                                             <DialogHeader>
-                                                                <DialogTitle>Officer Resume: {officer.fullName}</DialogTitle>
-                                                                <DialogDescription>Review background and credentials.</DialogDescription>
+                                                                <DialogTitle>Member Resume: {member.fullName}</DialogTitle>
                                                             </DialogHeader>
                                                             <div className="mt-4 space-y-4">
-                                                                {officer.resumeURL && (
+                                                                {member.resumeURL && (
                                                                     <div className="p-4 bg-muted rounded-md flex items-center justify-between">
                                                                         <div className="flex items-center gap-2">
                                                                             <FileText className="h-5 w-5 text-primary" />
                                                                             <span className="text-sm font-medium">Resume Document</span>
                                                                         </div>
                                                                         <Button variant="outline" size="sm" asChild>
-                                                                            <a href={officer.resumeURL} target="_blank" rel="noopener noreferrer">Download/View</a>
+                                                                            <a href={member.resumeURL} target="_blank" rel="noopener noreferrer">Download</a>
                                                                         </Button>
                                                                     </div>
                                                                 )}
-                                                                {officer.resumeText && (
+                                                                {member.resumeText && (
                                                                     <div className="space-y-2">
                                                                         <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Resume Content</h4>
                                                                         <div className="p-4 bg-muted rounded-md text-xs whitespace-pre-wrap max-h-[400px] overflow-y-auto font-mono">
-                                                                            {officer.resumeText}
+                                                                            {member.resumeText}
                                                                         </div>
                                                                     </div>
                                                                 )}
@@ -547,15 +545,25 @@ export default function AdminDashboard() {
                                                         </DialogContent>
                                                     </Dialog>
                                                 )}
-                                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(officer)} className="h-8 w-8 text-primary">
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    onClick={() => handleToggleStatus(member)} 
+                                                    className={`h-8 w-8 ${member.isApproved === false ? 'text-green-600' : 'text-amber-600'}`}
+                                                    title={member.isApproved === false ? "Approve Access" : "Suspend Access"}
+                                                >
+                                                    {member.isApproved === false ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(member)} className="h-8 w-8 text-primary" title="Edit Profile">
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
                                                 <Button 
                                                     variant="ghost" 
                                                     size="icon" 
                                                     className="h-8 w-8 text-destructive" 
-                                                    onClick={() => handleRevoke(officer)}
-                                                    disabled={officer.id === currentUser?.uid}
+                                                    onClick={() => handleRevoke(member)}
+                                                    disabled={member.id === currentUser?.uid}
+                                                    title="Permanently Remove"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
