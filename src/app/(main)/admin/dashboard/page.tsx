@@ -14,14 +14,24 @@ import { useToast } from "@/hooks/use-toast";
 import { createUserDocument, updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search } from "lucide-react";
-import { collection, onSnapshot, query, orderBy, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, query, serverTimestamp } from "firebase/firestore";
 import { createTemporaryApp, deleteTemporaryApp } from "@/firebase";
 
-// Official 13 PDDS roles for Registry visibility
+// Official 13 PDDS roles for Registry visibility (Standardized strings)
 const pddsLeadershipRoles = [
-  'President', 'Chairman', 'Vice Chairman', 'VP', 'Sec Gen', 'Treasurer', 'Auditor', 
-  'VP Ways & Means Chair', 'VP Media Comms', 'VP Soc Med Comms', 'VP Events and Programs', 
-  'VP Membership', 'VP legal affairs'
+  'President', 
+  'Vice President',
+  'Chairman', 
+  'Vice Chairman', 
+  'Secretary General', 
+  'Treasurer', 
+  'Auditor', 
+  'VP Ways & Means', 
+  'VP Media Comms', 
+  'VP Soc Med Comms', 
+  'VP Events and Programs', 
+  'VP Membership', 
+  'VP Legal Affairs'
 ];
 
 // All roles available for assignment
@@ -55,9 +65,10 @@ export default function AdminDashboard() {
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 100% Reliable Real-time Sync for Registry
+    // Initial Sync & Real-time Listener
     useEffect(() => {
-        const q = query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
+        // Querying without orderBy initially to ensure records without 'createdAt' are visible
+        const q = query(collection(firestore, 'users'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const users = snapshot.docs.map(doc => ({ 
                 id: doc.id, 
@@ -77,8 +88,7 @@ export default function AdminDashboard() {
         return () => unsubscribe();
     }, [firestore, toast]);
 
-    // Filtering: Only official 13 PDDS roles, EXCLUDING System Admin
-    // NO "HIDDEN SELF" BLOCK: The President must always be visible.
+    // Filtering: Only official 13 PDDS roles. DO NOT filter out the current user.
     const activeOfficers = useMemo(() => {
         return allUsers.filter(user => {
             const isPoliticalOfficer = pddsLeadershipRoles.includes(user.role);
@@ -108,7 +118,7 @@ export default function AdminDashboard() {
         setEmail(user.email || "");
         setRole(user.role || "Member");
         setLevel(user.level || "National");
-        setLocationName(user.locationName || user.assignedLocation || "");
+        setLocationName(user.locationName || "");
         setPhotoURL(user.photoURL || user.avatarUrl || null);
         setPassword("");
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -212,7 +222,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-2">
                     <Badge variant="outline" className="h-10 px-4 bg-white shadow-sm border-primary/20 flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{activeOfficers.length} Officers Found</span>
+                        <span className="font-semibold">{activeOfficers.length} Officers in Registry</span>
                     </Badge>
                 </div>
             </div>
@@ -317,14 +327,14 @@ export default function AdminDashboard() {
                                             <TableCell colSpan={5} className="text-center py-24">
                                                 <div className="flex flex-col items-center gap-3">
                                                     <Loader2 className="animate-spin h-10 w-10 text-primary" />
-                                                    <span className="text-muted-foreground font-medium">Syncing...</span>
+                                                    <span className="text-muted-foreground font-medium">Syncing Registry...</span>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
                                     ) : activeOfficers.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center py-24 text-muted-foreground">
-                                                {searchTerm ? "No matches found." : "The Registry is currently empty."}
+                                                {searchTerm ? "No matches found." : "No PDDS leadership records found in the Registry."}
                                             </TableCell>
                                         </TableRow>
                                     ) : activeOfficers.map(officer => (
@@ -348,10 +358,10 @@ export default function AdminDashboard() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="text-sm font-semibold text-foreground">
-                                                    {officer.level || officer.jurisdictionLevel || "National"}
+                                                    {officer.level || "National"}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground italic">
-                                                    {officer.locationName || officer.assignedLocation || "Headquarters"}
+                                                    {officer.locationName || "Headquarters"}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right pr-6 space-x-1">

@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 const data = docSnap.data();
                 setUserData({ id: docSnap.id, ...data });
                 
-                // Keep privileged status updated and sync schema fields (level, locationName)
+                // Keep privileged status updated and sync schema fields
                 if (isPrivileged) {
                     const targetRole = isPresidentEmail ? 'President' : 'Admin';
                     if (data.role !== targetRole || !data.kartilyaAgreed) {
@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     }
                 }
             } else {
-                // Creation flow for first-time login using standardized schema fields
+                // Creation flow for first-time login
                 const targetRole = isPresidentEmail ? 'President' : (isAdminEmail ? 'Admin' : 'Member');
                 const newUserProfile = {
                     uid: user.uid,
