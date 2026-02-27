@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -14,14 +13,24 @@ import { useFirestore, useUser, createTemporaryApp, deleteTemporaryApp } from "@
 import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
-import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search } from "lucide-react";
-import { collection, onSnapshot, query, serverTimestamp, doc, setDoc } from "firebase/firestore";
+import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff } from "lucide-react";
+import { collection, onSnapshot, serverTimestamp, doc, setDoc } from "firebase/firestore";
 
-// Strict role list as requested
+// Official PDDS roles aligned with backend.json
 const pddsLeadershipRoles = [
-  'President', 'Chairman', 'Vice Chairman', 'VP', 'Sec Gen', 'Treasurer', 'Auditor', 
-  'VP Ways & Means Chair', 'VP Media Comms', 'VP Soc Med Comms', 'VP Events and Programs', 
-  'VP Membership', 'VP legal affairs'
+  'President', 
+  'Chairman', 
+  'Vice Chairman', 
+  'Vice President', 
+  'Secretary General', 
+  'Treasurer', 
+  'Auditor', 
+  'VP Ways & Means', 
+  'VP Media Comms', 
+  'VP Soc Med Comms', 
+  'VP Events and Programs', 
+  'VP Membership', 
+  'VP Legal Affairs'
 ];
 
 const allAssignableRoles = [
@@ -39,6 +48,7 @@ export default function AdminDashboard() {
     const [allUsers, setAllUsers] = useState<any[]>([]);
     const [usersLoading, setUsersLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     // Form State
     const [fullName, setFullName] = useState("");
@@ -55,12 +65,11 @@ export default function AdminDashboard() {
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Initial Sync & Real-time Listener (Simplified as requested)
+    // Real-time Registry Listener: 100% Reliable Sync
     useEffect(() => {
         setUsersLoading(true);
         const usersCollection = collection(firestore, 'users');
         
-        // Listen to the entire collection to ensure 100% sync
         const unsubscribe = onSnapshot(usersCollection, (snapshot) => {
             const users = snapshot.docs.map(doc => ({ 
                 id: doc.id, 
@@ -76,7 +85,7 @@ export default function AdminDashboard() {
         return () => unsubscribe();
     }, [firestore]);
 
-    // Filtering: Only requested roles. Admin/President are NOT hidden.
+    // Filtering: Exactly the 13 political roles. No one is hidden if they match.
     const activeOfficers = useMemo(() => {
         return allUsers.filter(user => {
             const hasPddsRole = pddsLeadershipRoles.includes(user.role);
@@ -108,7 +117,7 @@ export default function AdminDashboard() {
         setRole(user.role || "Member");
         setLevel(user.level || "National");
         setLocationName(user.locationName || "");
-        setPhotoURL(user.photoURL || user.avatarUrl || null);
+        setPhotoURL(user.avatarUrl || user.photoURL || null);
         setPassword("");
         setConfirmPassword("");
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -169,6 +178,7 @@ export default function AdminDashboard() {
             try {
                 if (password) {
                     dataPayload.passwordIsTemporary = true;
+                    // If user is editing themselves, we can update password via SDK directly
                     if (selectedUser.id === currentUser?.uid) {
                         const auth = getAuth();
                         if (auth.currentUser) await updatePassword(auth.currentUser, password);
@@ -183,6 +193,7 @@ export default function AdminDashboard() {
                 setLoading(false);
             }
         } else {
+            // New Registration with Guaranteed Firestore Write
             const tempApp = createTemporaryApp();
             const tempAuth = getAuth(tempApp);
             try {
@@ -204,7 +215,7 @@ export default function AdminDashboard() {
                     createdAt: serverTimestamp(),
                 });
 
-                toast({ title: "Success", description: "New officer registered in Auth and Firestore." });
+                toast({ title: "Success", description: "New officer registered and synced to registry." });
                 resetForm();
             } catch (error: any) {
                 toast({ variant: "destructive", title: "Registration Error", description: error.message });
@@ -223,12 +234,12 @@ export default function AdminDashboard() {
                         <Shield className="h-8 w-8" />
                         Officer Management
                     </h1>
-                    <p className="text-muted-foreground mt-2">Manage the 13 PDDS leadership roles.</p>
+                    <p className="text-muted-foreground mt-2">Manage the PDDS leadership registry.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Badge variant="outline" className="h-10 px-4 bg-white shadow-sm border-primary/20 flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{activeOfficers.length} Officers Online</span>
+                        <span className="font-semibold">{activeOfficers.length} Active Officers</span>
                     </Badge>
                 </div>
             </div>
@@ -240,7 +251,7 @@ export default function AdminDashboard() {
                             <CardHeader>
                                 <CardTitle className="text-xl font-headline flex items-center gap-2">
                                     <UserPlus className="h-5 w-5" />
-                                    {isEditMode ? `Edit Officer` : 'Register Officer'}
+                                    {isEditMode ? `Edit Record` : 'Register New Officer'}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -263,25 +274,32 @@ export default function AdminDashboard() {
                                     <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={isEditMode} placeholder="officer@pdds.ph" />
                                 </div>
                                 
-                                <div className="space-y-2">
-                                    <Label>{isEditMode ? 'New Password (Optional)' : 'Temporary Password'}</Label>
-                                    <Input 
-                                        required={!isEditMode} 
-                                        type="password" 
-                                        value={password} 
-                                        onChange={e => setPassword(e.target.value)} 
-                                        placeholder={isEditMode ? "Leave blank to keep current" : ""}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Confirm Password</Label>
-                                    <Input 
-                                        required={!isEditMode || password !== ""} 
-                                        type="password" 
-                                        value={confirmPassword} 
-                                        onChange={e => setConfirmPassword(e.target.value)} 
-                                        placeholder={isEditMode ? "Leave blank to keep current" : ""}
-                                    />
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="flex items-center justify-between">
+                                            <span>{isEditMode ? 'New Password (Optional)' : 'Temporary Password'}</span>
+                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-xs text-primary hover:underline">
+                                                {showPassword ? <EyeOff className="h-3 w-3 inline" /> : <Eye className="h-3 w-3 inline" />} {showPassword ? 'Hide' : 'Show'}
+                                            </button>
+                                        </Label>
+                                        <Input 
+                                            required={!isEditMode} 
+                                            type={showPassword ? "text" : "password"} 
+                                            value={password} 
+                                            onChange={e => setPassword(e.target.value)} 
+                                            placeholder={isEditMode ? "Leave blank to keep current" : ""}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Confirm Password</Label>
+                                        <Input 
+                                            required={!isEditMode || password !== ""} 
+                                            type={showPassword ? "text" : "password"} 
+                                            value={confirmPassword} 
+                                            onChange={e => setConfirmPassword(e.target.value)} 
+                                            placeholder={isEditMode ? "Leave blank to keep current" : ""}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -293,25 +311,27 @@ export default function AdminDashboard() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Jurisdiction Level</Label>
-                                    <Select onValueChange={setLevel} value={level}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {levels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Location Name</Label>
-                                    <Input required placeholder="Province, City, or Barangay" value={locationName} onChange={e => setLocationName(e.target.value)} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Level</Label>
+                                        <Select onValueChange={setLevel} value={level}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                {levels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Location</Label>
+                                        <Input required placeholder="Province/City" value={locationName} onChange={e => setLocationName(e.target.value)} />
+                                    </div>
                                 </div>
                             </CardContent>
                             <CardFooter className="flex flex-col gap-2">
                                 <Button type="submit" className="w-full" disabled={loading}>
-                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isEditMode ? 'Update Record' : 'Create Registry Record')}
+                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isEditMode ? 'Save Changes' : 'Create Registry Record')}
                                 </Button>
-                                {isEditMode && <Button variant="ghost" onClick={resetForm} className="w-full">Cancel</Button>}
+                                {isEditMode && <Button variant="ghost" type="button" onClick={resetForm} className="w-full">Cancel</Button>}
                             </CardFooter>
                         </form>
                     </Card>
@@ -321,16 +341,19 @@ export default function AdminDashboard() {
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
-                            className="pl-10 h-12" 
-                            placeholder="Search active officers by name..." 
+                            className="pl-10 h-12 shadow-sm" 
+                            placeholder="Search registry by name or email..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
                     
-                    <Card className="shadow-lg">
-                        <CardHeader className="bg-primary/5">
-                            <CardTitle className="text-lg">Active Officers Registry</CardTitle>
+                    <Card className="shadow-lg overflow-hidden">
+                        <CardHeader className="bg-primary/5 py-3">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Users className="h-5 w-5 text-primary" />
+                                Active Officers Registry
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
                             <Table>
@@ -349,14 +372,14 @@ export default function AdminDashboard() {
                                             <TableCell colSpan={5} className="text-center py-24">
                                                 <div className="flex flex-col items-center gap-3">
                                                     <Loader2 className="animate-spin h-10 w-10 text-primary" />
-                                                    <span className="text-muted-foreground font-medium">Syncing Registry...</span>
+                                                    <span className="text-muted-foreground font-medium">Synchronizing Registry...</span>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
                                     ) : activeOfficers.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center py-24 text-muted-foreground">
-                                                {searchTerm ? "No matches found." : "No PDDS leadership records found in the Registry."}
+                                                {searchTerm ? "No matches found." : "No PDDS leadership records found in the registry."}
                                             </TableCell>
                                         </TableRow>
                                     ) : activeOfficers.map(officer => (
@@ -382,7 +405,7 @@ export default function AdminDashboard() {
                                                 <div className="text-sm font-semibold text-foreground">
                                                     {officer.level}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground italic">
+                                                <div className="text-xs text-muted-foreground">
                                                     {officer.locationName}
                                                 </div>
                                             </TableCell>

@@ -15,7 +15,7 @@ export const officerRoles = [
   { id: 8, role: "VP Ways & Means", name: "Ma. “Marichu” C. Mauro", avatarId: "avatar-vp-ways-means" },
   { id: 9, role: "VP Media Comms", name: "Gen. Abraham “Abe” F. Bagasin", avatarId: "avatar-vp-media-comms" },
   { id: 10, role: "VP Soc Med Comms", name: "Jamal Ashley Yahya", avatarId: "avatar-vp-soc-med-comms" },
-  { id: 11, role: "VP Events & Programs", name: "Gen. Thompson C. Lantion", avatarId: "avatar-vp-events" },
+  { id: 11, role: "VP Events and Programs", name: "Gen. Thompson C. Lantion", avatarId: "avatar-vp-events" },
   { id: 12, role: "VP Membership", name: "Audie “APT” A. Pacia", avatarId: "avatar-vp-membership" },
   { id: 13, role: "VP Legal Affairs", name: "Atty. Jose “Joe” C. Malvar", avatarId: "avatar-vp-legal-affairs" },
 ];
