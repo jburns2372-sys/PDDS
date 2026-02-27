@@ -39,7 +39,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isOwner(userId) || isOfficerOrAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recruitCount']));
+      allow update: if isOwner(userId) || isOfficerOrAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recruitCount', 'fcmToken']));
       allow delete: if isOfficerOrAdmin();
     }
 
@@ -61,6 +61,11 @@ service cloud.firestore {
       allow read: if isSignedIn() && (resource.data.submitterUid == request.auth.uid || isOfficerOrAdmin());
       allow create: if isSignedIn() && request.resource.data.submitterUid == request.auth.uid;
       allow update, delete: if isOfficerOrAdmin();
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if isSignedIn();
+      allow write: if isOfficerOrAdmin();
     }
   }
 }

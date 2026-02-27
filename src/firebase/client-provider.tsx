@@ -1,9 +1,11 @@
+
 "use client";
 import React, { ReactNode, useEffect, useState } from "react";
 import { FirebaseApp } from "firebase/app";
 import { Auth } from "firebase/auth";
 import { Firestore } from "firebase/firestore";
 import { FirebaseStorage } from "firebase/storage";
+import { Messaging } from "firebase/messaging";
 import { initializeFirebase, FirebaseProvider } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -19,12 +21,19 @@ export function FirebaseClientProvider({
     auth: Auth;
     firestore: Firestore;
     storage: FirebaseStorage;
+    messaging: Messaging | null;
   } | null>(null);
 
   useEffect(() => {
     try {
-      const app = initializeFirebase();
-      setFirebase(app);
+      const result = initializeFirebase();
+      setFirebase({
+        app: result.app,
+        auth: result.auth,
+        firestore: result.firestore,
+        storage: result.storage,
+        messaging: result.messaging
+      });
     } catch (error) {
       console.error("Firebase initialization failed:", error);
     }
@@ -54,6 +63,7 @@ export function FirebaseClientProvider({
       auth={firebase.auth}
       firestore={firebase.firestore}
       storage={firebase.storage}
+      messaging={firebase.messaging}
     >
       {children}
     </FirebaseProvider>

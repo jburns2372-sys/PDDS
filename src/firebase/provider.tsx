@@ -1,3 +1,4 @@
+
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
@@ -5,6 +6,7 @@ import { FirebaseApp } from "firebase/app";
 import { Auth } from "firebase/auth";
 import { Firestore } from "firebase/firestore";
 import { FirebaseStorage } from "firebase/storage";
+import { Messaging } from "firebase/messaging";
 import { FirebaseErrorListener } from "@/components/FirebaseErrorListener";
 
 type FirebaseContextValue = {
@@ -12,6 +14,7 @@ type FirebaseContextValue = {
   auth: Auth;
   firestore: Firestore;
   storage: FirebaseStorage;
+  messaging: Messaging | null;
 };
 
 const FirebaseContext = createContext<FirebaseContextValue | undefined>(
@@ -24,6 +27,7 @@ type FirebaseProviderProps = {
   auth: Auth;
   firestore: Firestore;
   storage: FirebaseStorage;
+  messaging: Messaging | null;
 };
 
 export function FirebaseProvider({
@@ -32,9 +36,10 @@ export function FirebaseProvider({
   auth,
   firestore,
   storage,
+  messaging,
 }: FirebaseProviderProps) {
   return (
-    <FirebaseContext.Provider value={{ firebaseApp, auth, firestore, storage }}>
+    <FirebaseContext.Provider value={{ firebaseApp, auth, firestore, storage, messaging }}>
       {children}
       <FirebaseErrorListener />
     </FirebaseContext.Provider>
@@ -63,4 +68,8 @@ export function useFirestore() {
 
 export function useStorage() {
   return useFirebase().storage;
+}
+
+export function useMessaging() {
+  return useFirebase().messaging;
 }

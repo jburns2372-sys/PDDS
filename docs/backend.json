@@ -34,6 +34,7 @@
         "isApproved": { "type": "boolean" },
         "recruitCount": { "type": "number", "default": 0 },
         "referredBy": { "type": "string" },
+        "fcmToken": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
@@ -76,6 +77,20 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["topic", "message", "status", "submittedBy", "submitterUid", "location", "timestamp"]
+    },
+    "announcement": {
+      "title": "Announcement",
+      "description": "Official party broadcasts and updates.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "targetGroup": { "type": "string" },
+        "documentLink": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["title", "message", "targetGroup", "timestamp", "createdBy"]
     }
   },
   "auth": {
@@ -97,6 +112,10 @@
     "/community_feedback/{feedbackId}": {
       "schema": { "$ref": "#/backend/entities/community_feedback" },
       "description": "Stores member feedback and official replies."
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/backend/entities/announcement" },
+      "description": "Stores official party broadcasts."
     }
   }
 }

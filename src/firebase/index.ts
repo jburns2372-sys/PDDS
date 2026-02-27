@@ -1,9 +1,11 @@
+
 "use client";
 
 import { initializeApp, getApps, getApp, FirebaseApp, deleteApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { initializeFirestore, memoryLocalCache, getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getMessaging, Messaging, isSupported } from "firebase/messaging";
 import { firebaseConfig } from "./config";
 
 import { useUser } from "./auth/use-user";
@@ -16,6 +18,7 @@ import {
   useFirestore,
   useAuth,
   useStorage,
+  useMessaging,
 } from "./provider";
 import { FirebaseClientProvider } from "./client-provider";
 
@@ -44,7 +47,17 @@ export function initializeFirebase() {
   const auth = getAuth(app);
   const storage = getStorage(app);
   
-  return { app, auth, firestore, storage };
+  // Messaging might not be supported in all environments (e.g. SSR or specific browsers)
+  let messaging: Messaging | null = null;
+  if (typeof window !== "undefined") {
+    isSupported().then(supported => {
+      if (supported) {
+        messaging = getMessaging(app);
+      }
+    });
+  }
+  
+  return { app, auth, firestore, storage, messaging };
 }
 
 export const createTemporaryApp = () => {
@@ -68,4 +81,5 @@ export {
   useFirestore,
   useAuth,
   useStorage,
+  useMessaging,
 };

@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -19,6 +19,7 @@ const navItems = [
 
 const adminNavItems = [
     { href: '/admin/dashboard', label: 'Officer Panel', icon: Shield },
+    { href: '/admin/broadcast', label: 'Broadcast', icon: Megaphone },
     { href: '/admin/audit', label: 'Feedback Audit', icon: MessageSquare }
 ];
 
