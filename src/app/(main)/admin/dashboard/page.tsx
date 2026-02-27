@@ -3,7 +3,7 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,8 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info, UserX, UserCheck } from "lucide-react";
-import { collection, onSnapshot, serverTimestamp, doc, setDoc } from "firebase/firestore";
+import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info, UserX, UserCheck, Beaker, Zap } from "lucide-react";
+import { collection, onSnapshot, serverTimestamp, doc, setDoc, writeBatch, query, limit, getDocs } from "firebase/firestore";
 import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
 import {
   Dialog,
@@ -33,6 +33,28 @@ const allAssignableRoles = [
   "Member", "Admin", "System Admin", "Supporter"
 ];
 
+const MOCK_NAMES = ["Juan Dela Cruz", "Maria Clara", "Jose Rizal", "Andres Bonifacio", "Emilio Aguinaldo", "Melchora Aquino", "Gabriela Silang", "Antonio Luna", "Marcelo del Pilar", "Gregorio del Pilar", "Liza Araneta", "Sara Duterte", "Bongbong Marcos", "Risa Hontiveros", "Raffy Tulfo", "Robin Padilla", "Loren Legarda", "Francis Escudero", "Alan Cayetano", "Pia Cayetano"];
+const MOCK_TOPICS = ["Local Infrastructure", "Social Services", "Community Concerns", "Security", "Others"];
+const MOCK_MESSAGES = [
+    "We need better road lighting in our barangay.",
+    "The local clinic needs more medicine supply.",
+    "Trash collection is delayed by 3 days.",
+    "Requesting for more police visibility at night.",
+    "Thank you for the recent scholarship program!",
+    "The water pressure in our area is very low.",
+    "Internet connectivity is poor in the community hall.",
+    "Suggesting a community garden for the elderly.",
+    "There are too many stray dogs in the main street.",
+    "Requesting for a seminar on federalism."
+];
+const MOCK_LOCATIONS = [
+    { city: "Quezon City", province: "Metro Manila (NCR)", code: "NCR" },
+    { city: "Manila", province: "Metro Manila (NCR)", code: "NCR" },
+    { city: "Cebu City", province: "Cebu", code: "CEB" },
+    { city: "Davao City", province: "Davao del Sur", code: "DVO" },
+    { city: "Iloilo City", province: "Iloilo", code: "ILO" }
+];
+
 export default function AdminDashboard() {
     const firestore = useFirestore();
     const storage = useStorage();
@@ -43,6 +65,7 @@ export default function AdminDashboard() {
     const [usersLoading, setUsersLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [simulating, setSimulating] = useState(false);
 
     // Form State
     const [fullName, setFullName] = useState("");
@@ -64,6 +87,15 @@ export default function AdminDashboard() {
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const resumeInputRef = useRef<HTMLInputElement>(null);
+
+    const isPrivileged = useMemo(() => {
+        const email = currentUser?.email?.toLowerCase() || '';
+        return email === 'iamgrecobelgica@gmail.com' || 
+               email === 'j.burns372@gmail.com' || 
+               email === 'j.burns2372@gmail.com' || 
+               email === 'j.burns.2372@gmail.com' || 
+               email === 'mariashellajoygomez@gmail.com';
+    }, [currentUser]);
 
     // Real-time Registry Sync
     useEffect(() => {
@@ -181,6 +213,75 @@ export default function AdminDashboard() {
              toast({ variant: "destructive", title: "Revocation Error", description: error.message });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const runGrowthSimulator = async () => {
+        if (!isPrivileged) return;
+        setSimulating(true);
+        const batch = writeBatch(firestore);
+
+        try {
+            // 1. Generate 100 Mock Supporters
+            for (let i = 0; i < 100; i++) {
+                const randomName = MOCK_NAMES[Math.floor(Math.random() * MOCK_NAMES.length)];
+                const randomLoc = MOCK_LOCATIONS[Math.floor(Math.random() * MOCK_LOCATIONS.length)];
+                const uid = `mock-user-${Date.now()}-${i}`;
+                const userRef = doc(firestore, "users", uid);
+                
+                batch.set(userRef, {
+                    uid: uid,
+                    email: `mock.${i}@example.com`,
+                    fullName: `${randomName} #${i}`.toUpperCase(),
+                    role: "Supporter",
+                    jurisdictionLevel: "City/Municipal",
+                    assignedLocation: randomLoc.city,
+                    city: randomLoc.city,
+                    province: randomLoc.province,
+                    barangay: "MOCK BARANGAY",
+                    isApproved: true,
+                    kartilyaAgreed: true,
+                    recruitCount: Math.floor(Math.random() * 5), // Basic count
+                    createdAt: serverTimestamp(),
+                });
+            }
+
+            // 2. Generate 50 Mock Feedbacks
+            for (let i = 0; i < 50; i++) {
+                const randomName = MOCK_NAMES[Math.floor(Math.random() * MOCK_NAMES.length)];
+                const randomTopic = MOCK_TOPICS[Math.floor(Math.random() * MOCK_TOPICS.length)];
+                const randomMsg = MOCK_MESSAGES[Math.floor(Math.random() * MOCK_MESSAGES.length)];
+                const randomLoc = MOCK_LOCATIONS[Math.floor(Math.random() * MOCK_LOCATIONS.length)];
+                const fid = `mock-feedback-${Date.now()}-${i}`;
+                const feedbackRef = doc(firestore, "community_feedback", fid);
+
+                batch.set(feedbackRef, {
+                    topic: randomTopic,
+                    message: randomMsg,
+                    status: Math.random() > 0.5 ? "Received" : "Under Review",
+                    submittedBy: randomName,
+                    submitterUid: `mock-sub-${i}`,
+                    location: `${randomLoc.city}, ${randomLoc.province}`,
+                    timestamp: serverTimestamp(),
+                    officialReply: ""
+                });
+            }
+
+            // 3. Randomize Growth for 10 users to test Leaderboard
+            const existingUsers = allUsers.filter(u => u.role === "Supporter").slice(0, 10);
+            existingUsers.forEach((u, index) => {
+                const userRef = doc(firestore, "users", u.id);
+                batch.update(userRef, {
+                    recruitCount: 10 + (index * 5) + Math.floor(Math.random() * 10)
+                });
+            });
+
+            await batch.commit();
+            toast({ title: "Simulation Complete", description: "100 supporters, 50 sentiments, and growth randomized." });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Simulation Failed", description: error.message });
+        } finally {
+            setSimulating(false);
         }
     };
 
@@ -309,6 +410,23 @@ export default function AdminDashboard() {
                     </h1>
                     <p className="text-muted-foreground mt-2">Maintain the official leadership registry and access levels.</p>
                 </div>
+                {isPrivileged && (
+                    <Card className="bg-primary/5 border-primary/20 shadow-none border-dashed max-w-xs">
+                        <CardHeader className="p-3 pb-0">
+                            <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                                <Beaker className="h-3 w-3 text-primary" />
+                                Growth Simulator
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-2">
+                            <p className="text-[9px] text-muted-foreground mb-2">Inject mock supporters, sentiments, and growth data for testing.</p>
+                            <Button size="sm" variant="outline" className="w-full h-8 text-[10px] font-black uppercase tracking-wider bg-white" onClick={runGrowthSimulator} disabled={simulating}>
+                                {simulating ? <Loader2 className="animate-spin h-3 w-3 mr-1" /> : <Zap className="h-3 w-3 mr-1 text-accent" />}
+                                Run Full Simulation
+                            </Button>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
