@@ -24,13 +24,15 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Phone, Loader2, Mail, Lock, User, Home as HomeIcon, Camera, X, Check, MapPin } from "lucide-react";
+import { Phone, Loader2, Mail, Lock, User, Home as HomeIcon, Camera, X, Check, MapPin, Eye, EyeOff } from "lucide-react";
 
 declare global {
   interface Window {
     recaptchaVerifier: RecaptchaVerifier;
   }
 }
+
+const NCR_CODE = "130000000";
 
 export default function JoinPage() {
     const auth = useAuth();
@@ -43,6 +45,7 @@ export default function JoinPage() {
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState("+63");
     const [zipCode, setZipCode] = useState("");
     const [streetAddress, setStreetAddress] = useState("");
@@ -74,19 +77,31 @@ export default function JoinPage() {
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
     const [agreed, setAgreed] = useState(false);
 
-    // Fetch Provinces on Load
+    // Fetch Provinces on Load (Plus NCR Fix)
     useEffect(() => {
-        const fetchProvinces = async () => {
+        const fetchProvincesAndNCR = async () => {
             try {
-                const response = await fetch('https://psgc.gitlab.io/api/provinces/');
-                const data = await response.json();
-                setProvinces(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+                // Fetch regular provinces
+                const pResp = await fetch('https://psgc.gitlab.io/api/provinces/');
+                const pData = await pResp.json();
+                
+                // Fetch NCR specifically from regions
+                const ncrResp = await fetch(`https://psgc.gitlab.io/api/regions/${NCR_CODE}`);
+                const ncrData = await ncrResp.json();
+                
+                const combined = [
+                    { ...ncrData, name: "METRO MANILA (NCR)", isNCR: true },
+                    ...pData
+                ].sort((a: any, b: any) => a.name.localeCompare(b.name));
+                
+                setProvinces(combined);
             } catch (error) {
                 console.error("Error fetching provinces:", error);
+                toast({ variant: "destructive", title: "Location Error", description: "Failed to load provinces. Please refresh." });
             }
         };
-        fetchProvinces();
-    }, []);
+        fetchProvincesAndNCR();
+    }, [toast]);
 
     // Fetch Cities when Province Changes
     useEffect(() => {
@@ -98,7 +113,12 @@ export default function JoinPage() {
             try {
                 const province = provinces.find(p => p.name === selectedProvince);
                 if (province) {
-                    const response = await fetch(`https://psgc.gitlab.io/api/provinces/${province.code}/cities-municipalities/`);
+                    // Use NCR regions endpoint for Metro Manila, otherwise use provinces endpoint
+                    const endpoint = province.isNCR 
+                        ? `https://psgc.gitlab.io/api/regions/${NCR_CODE}/cities-municipalities/`
+                        : `https://psgc.gitlab.io/api/provinces/${province.code}/cities-municipalities/`;
+                    
+                    const response = await fetch(endpoint);
                     const data = await response.json();
                     setCities(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
                 }
@@ -214,7 +234,8 @@ export default function JoinPage() {
             return;
         }
 
-        if (phoneNumber.length < 10) {
+        const phoneTrimmed = phoneNumber.trim();
+        if (phoneTrimmed.length < 10) {
             toast({ variant: "destructive", title: "Invalid Phone", description: "Please enter a valid phone number." });
             return;
         }
@@ -227,7 +248,7 @@ export default function JoinPage() {
         setLoading(true);
         try {
             const appVerifier = window.recaptchaVerifier;
-            const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            const result = await signInWithPhoneNumber(auth, phoneTrimmed, appVerifier);
             setConfirmationResult(result);
             setShowOtpInput(true);
             toast({ title: "SMS Sent", description: "Verification code sent to your phone." });
@@ -251,7 +272,8 @@ export default function JoinPage() {
             await confirmationResult.confirm(otp);
             
             // Step 2: Create Email/Password account
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const trimmedEmail = email.trim().toLowerCase();
+            const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
             const user = userCredential.user;
 
             // Step 3: Handle Photo Upload
@@ -272,9 +294,9 @@ export default function JoinPage() {
             // Step 5: Save to Firestore
             const supporterData = {
                 uid: user.uid,
-                email: email.trim().toLowerCase(),
+                email: trimmedEmail,
                 fullName: fullName.trim().toUpperCase(),
-                phoneNumber: phoneNumber,
+                phoneNumber: phoneNumber.trim(),
                 streetAddress: streetAddress.trim().toUpperCase(),
                 barangay: selectedBarangay,
                 city: selectedCity,
@@ -422,7 +444,23 @@ export default function JoinPage() {
                                     <Label htmlFor="password">Password</Label>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input id="password" data-mask-password="true" className="pl-9" type="password" required value={password} onChange={e => setPassword(e.target.value)} minLength={6} disabled={loading} />
+                                        <Input 
+                                            id="password" 
+                                            className="pl-9 pr-9" 
+                                            type={showPassword ? "text" : "password"} 
+                                            required 
+                                            value={password} 
+                                            onChange={e => setPassword(e.target.value)} 
+                                            minLength={6} 
+                                            disabled={loading} 
+                                        />
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-3"
+                                        >
+                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
@@ -442,7 +480,7 @@ export default function JoinPage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label>Province</Label>
+                                        <Label>Province / Region</Label>
                                         <Select onValueChange={setSelectedProvince} value={selectedProvince}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select Province" />
