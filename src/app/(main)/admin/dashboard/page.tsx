@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info, UserX, UserCheck, ArrowRightLeft, MapPin, Phone, Database } from "lucide-react";
+import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info, UserX, UserCheck, ArrowRightLeft, MapPin, Phone, Database, PlusCircle } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
 
@@ -219,6 +219,47 @@ export default function AdminDashboard() {
         }
     };
 
+    const handlePopulateSupporters = async () => {
+        setLoading(true);
+        try {
+            const batch = writeBatch(firestore);
+            const mockSupporters = [
+                { id: 'mock-1', name: 'JUAN DELA CRUZ', city: 'QUEZON CITY', province: 'METRO MANILA (NCR)', brgy: 'COMMONWEALTH' },
+                { id: 'mock-2', name: 'MARIA CLARA', city: 'CITY OF MANILA', province: 'METRO MANILA (NCR)', brgy: 'SAMPALOC' },
+                { id: 'mock-3', name: 'JOSE RIZAL', city: 'CITY OF CALAMBA', province: 'LAGUNA', brgy: 'POBLACION' },
+                { id: 'mock-4', name: 'ANDRES BONIFACIO', city: 'PASAY CITY', province: 'METRO MANILA (NCR)', brgy: 'BARANGAY 183' },
+                { id: 'mock-5', name: 'EMILIO AGUINALDO', city: 'CITY OF IMUS', province: 'CAVITE', brgy: 'POBLACION IV-A' },
+            ];
+
+            mockSupporters.forEach(s => {
+                const ref = doc(firestore, 'users', s.id);
+                batch.set(ref, {
+                    uid: s.id,
+                    fullName: s.name,
+                    email: `${s.id.toLowerCase()}@pdds-test.com`,
+                    phoneNumber: '+639000000000',
+                    role: 'Supporter',
+                    province: s.province,
+                    city: s.city,
+                    barangay: s.brgy,
+                    zipCode: '0000',
+                    isApproved: true,
+                    kartilyaAgreed: true,
+                    recruitCount: Math.floor(Math.random() * 50),
+                    createdAt: serverTimestamp(),
+                });
+            });
+
+            await batch.commit();
+            toast({ title: "Registry Populated", description: "5 Mock Supporters added for development testing." });
+        } catch (error: any) {
+            console.error("Populate Error:", error);
+            toast({ variant: "destructive", title: "Populate Failed", description: error.message });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleBulkDeleteSupporters = async () => {
         const confirmation = window.prompt('Type DELETE to confirm wiping all supporters from the database. This action is IRREVERSIBLE and intended for cleaning test data.');
         if (confirmation !== 'DELETE') return;
@@ -383,15 +424,26 @@ export default function AdminDashboard() {
                     </h1>
                     <p className="text-muted-foreground mt-2">Maintain the official leadership and supporter database.</p>
                 </div>
-                <Button 
-                    variant="destructive" 
-                    onClick={handleBulkDeleteSupporters}
-                    className="font-black uppercase tracking-widest text-[10px] h-9 shadow-lg"
-                    disabled={loading}
-                >
-                    <Database className="h-3.5 w-3.5 mr-2" />
-                    Wipe Test Supporters
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button 
+                        variant="outline"
+                        onClick={handlePopulateSupporters}
+                        className="font-black uppercase tracking-widest text-[10px] h-9 shadow-sm border-accent text-accent-foreground hover:bg-accent/10"
+                        disabled={loading}
+                    >
+                        <PlusCircle className="h-3.5 w-3.5 mr-2" />
+                        Write Test Supporters
+                    </Button>
+                    <Button 
+                        variant="destructive" 
+                        onClick={handleBulkDeleteSupporters}
+                        className="font-black uppercase tracking-widest text-[10px] h-9 shadow-lg"
+                        disabled={loading}
+                    >
+                        <Database className="h-3.5 w-3.5 mr-2" />
+                        Wipe Test Supporters
+                    </Button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
