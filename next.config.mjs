@@ -1,11 +1,14 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
+  experimental: {
+    serverComponentsExternalPackages: [
+      'genkit', 
+      '@genkit-ai/google-genai', 
+      '@genkit-ai/ai', 
+      '@genkit-ai/core', 
+      '@genkit-ai/flow',
+      'require-in-the-middle'
     ],
   },
 };

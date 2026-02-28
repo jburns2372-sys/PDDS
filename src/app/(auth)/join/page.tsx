@@ -511,7 +511,7 @@ export default function JoinPage() {
             <div className="mb-8 flex items-center gap-4">
                 <PddsLogo className="h-12 w-12 text-primary" />
                 <h1 className="text-3xl font-bold tracking-tighter text-primary font-headline">
-                    Join the Movement
+                    PDDS Portal
                 </h1>
             </div>
 
