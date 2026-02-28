@@ -43,8 +43,10 @@ export function DesktopSidebar() {
   return (
     <aside className="hidden w-64 flex-shrink-0 flex-col border-r bg-card md:flex">
       <div className="flex h-16 items-center gap-3 px-6">
-        <PddsLogo className="h-8 w-8 text-primary" />
-        <span className="text-xl font-bold tracking-tight text-primary font-headline uppercase">
+        <div className="bg-white p-1 rounded-full shadow-sm">
+            <PddsLogo className="h-8 w-8" />
+        </div>
+        <span className="text-xl font-black tracking-tight text-primary font-headline uppercase">
           PDDS PORTAL
         </span>
       </div>

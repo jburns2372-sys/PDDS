@@ -41,20 +41,22 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-gray-100 p-4">
         <div className="mb-8 flex items-center gap-4">
-            <PddsLogo className="h-16 w-16 text-primary" />
-            <h1 className="text-4xl font-bold tracking-tighter text-primary font-headline">
-            PDDS Portal
+            <div className="bg-white p-2 rounded-full shadow-sm">
+                <PddsLogo className="h-16 w-16" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tighter text-primary font-headline uppercase">
+                PDDS Portal
             </h1>
       </div>
-      <Card className="w-full max-w-md shadow-2xl">
+      <Card className="w-full max-w-md shadow-2xl border-t-4 border-primary">
         <form onSubmit={handleLogin}>
             <CardHeader>
-            <CardTitle className="text-2xl text-center font-headline">Member Login</CardTitle>
-            <CardDescription className="text-center">Enter your credentials to access the portal.</CardDescription>
+            <CardTitle className="text-2xl text-center font-headline uppercase">Member Login</CardTitle>
+            <CardDescription className="text-center">Enter your credentials to access the PDDS War Room.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
             <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email Address</Label>
                 <Input id="email" type="email" placeholder="m.delacruz@example.com" required value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             <div className="space-y-2">
@@ -63,12 +65,12 @@ export default function LoginPage() {
             </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Signing In..." : "Sign In"}
+                <Button type="submit" className="w-full h-12 font-bold text-lg" disabled={loading}>
+                    {loading ? "Verifying Access..." : "Sign In"}
                 </Button>
                 <div className="text-center w-full">
                     <p className="text-sm text-muted-foreground">
-                        Not a member yet? <Link href="/join" className="text-primary font-bold hover:underline">Join as Supporter</Link>
+                        Not a member yet? <Link href="/join" className="text-primary font-bold hover:underline">Join the Movement</Link>
                     </p>
                 </div>
             </CardFooter>
