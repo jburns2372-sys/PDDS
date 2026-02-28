@@ -78,7 +78,9 @@ export function DigitalIdCard({ userData }: { userData: any }) {
             {/* Header Area */}
             <div className="flex w-full items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <PddsLogo className="h-7 w-7 text-[#F9CB0D]" />
+                <div className="bg-white p-1 rounded-full shadow-sm">
+                  <PddsLogo className="h-8 w-8 mix-blend-normal" />
+                </div>
                 <div className="flex flex-col">
                   <span className="text-[13px] font-black tracking-tighter uppercase leading-none font-headline">Federalismo</span>
                   <span className="text-[8px] font-black tracking-[0.2em] uppercase opacity-70">Official ID</span>
@@ -104,7 +106,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full w-full bg-[#194278]/20">
-                    <PddsLogo className="h-16 w-16 text-[#194278]/20" />
+                    <PddsLogo className="h-16 w-16 opacity-20" />
                   </div>
                 )}
               </div>

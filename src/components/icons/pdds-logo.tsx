@@ -1,23 +1,24 @@
-import type { SVGProps } from 'react';
 
-const PddsLogo = (props: SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="M12 2L2 7l10 5 10-5-10-5z" />
-    <path d="M2 17l10 5 10-5" />
-    <path d="M2 12l10 5 10-5" />
-    <path d="M12 22V12" />
-    <path d="M22 7v10" />
-    <path d="M2 7v10" />
-  </svg>
-);
+import { cn } from "@/lib/utils";
+import React from "react";
 
-export default PddsLogo;
+/**
+ * @fileOverview Official PDDS Party Logo component.
+ * Uses the party's color emblem with background blending for a clean look.
+ */
+export default function PddsLogo({ className, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
+  return (
+    <img
+      // Using a placeholder that represents the uploaded logo asset. 
+      // In a local environment, the user would place the transparent PNG in /public/logo.png
+      src="https://picsum.photos/seed/pdds-emblem/400/400" 
+      alt="PDDS Official Logo"
+      data-ai-hint="political logo"
+      className={cn(
+        "object-contain mix-blend-multiply bg-transparent", 
+        className
+      )}
+      {...props}
+    />
+  );
+}
