@@ -1,7 +1,7 @@
 
 /**
  * @fileOverview Firebase Cloud Functions for PatriotLink Automation.
- * Handles server-side triggers for mobilization alerts.
+ * Handles server-side triggers for mobilization and induction alerts.
  */
 
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
@@ -9,6 +9,64 @@ const { getFirestore } = require("firebase-admin/firestore");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
+
+/**
+ * Trigger: On Supporter Created
+ * Logic: Sends an automated Welcome SMS if a phone number is available.
+ *        Otherwise, logs a task for a Welcome Email.
+ */
+exports.onSupporterCreated = onDocumentCreated("users/{userId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const data = snapshot.data();
+
+    // 1. Gate: Only trigger for new users with the 'Supporter' role
+    if (data.role !== 'Supporter') return;
+
+    const db = getFirestore();
+    const fullName = data.fullName || "Member";
+    const phoneNumber = data.phoneNumber;
+
+    try {
+        if (phoneNumber && phoneNumber.trim() !== "") {
+            // 2. DISPATCH WELCOME SMS
+            const welcomeMessage = `Mabuhay ${fullName}! Welcome to the PDDS movement. 🇵🇭 Your account is now active in the National Registry. Log in to download your Digital ID and view the National Calendar: [Portal-Link.ph]`;
+
+            console.log(`[WELCOME SMS DISPATCH] Target: ${phoneNumber} | Message: ${welcomeMessage}`);
+
+            /**
+             * PRODUCTION INTEGRATION (e.g., Twilio / Movider)
+             * 
+             * await fetch('https://api.sms-gateway.com/send', {
+             *   method: 'POST',
+             *   body: JSON.stringify({ to: phoneNumber, message: welcomeMessage })
+             * });
+             */
+
+            // Audit log the SMS notification
+            await db.collection("communication_audit").add({
+                type: "Welcome SMS",
+                recipient: phoneNumber,
+                recipientName: fullName,
+                status: "Dispatched",
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            // 3. FAILOVER: QUEUE WELCOME EMAIL
+            console.log(`[WELCOME EMAIL QUEUED] User ${fullName} (${event.params.userId}) has no phone number. Queueing induction email.`);
+            
+            await db.collection("communication_audit").add({
+                type: "Welcome Email Queue",
+                recipientEmail: data.email,
+                recipientName: fullName,
+                status: "Queued (Missing Phone)",
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    } catch (error) {
+        console.error("Cloud Function Error (onSupporterCreated):", error);
+    }
+});
 
 /**
  * Trigger: On Activity Created
@@ -51,15 +109,6 @@ exports.onActivityCreated = onDocumentCreated("calendar_activities/{activityId}"
 
         console.log(`[SMS DISPATCH] Target: ${presidentPhone} | Message: ${alertMessage}`);
 
-        /**
-         * PRODUCTION INTEGRATION (e.g., Twilio / iSMS)
-         * 
-         * const response = await fetch('https://api.your-sms-gateway.com/send', {
-         *   method: 'POST',
-         *   body: JSON.stringify({ to: presidentPhone, message: alertMessage, priority: 'high' })
-         * });
-         */
-        
         // Audit log the notification
         await db.collection("communication_audit").add({
             type: "Presidential SMS Alert",
