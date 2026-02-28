@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -186,7 +185,7 @@ export default function HomePage() {
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-2xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-3">
                                 <Megaphone className="h-6 w-6" />
-                                Party Updates
+                                National Bulletin
                                 {hasNewAnnouncements && (
                                     <Badge variant="destructive" className="animate-pulse font-black text-[9px] uppercase tracking-widest px-2">New</Badge>
                                 )}
@@ -200,7 +199,7 @@ export default function HomePage() {
                                     <p className="text-muted-foreground font-medium">No official updates at this moment.</p>
                                 </Card>
                             ) : (
-                                announcements.map((item: any) => (
+                                announcements.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).map((item: any) => (
                                     <AnnouncementCard 
                                         key={item.id}
                                         title={item.title}
@@ -225,7 +224,7 @@ export default function HomePage() {
                 <section>
                     <h2 className="text-2xl font-bold font-headline text-primary uppercase tracking-tight mb-6 flex items-center gap-3">
                         <Megaphone className="h-6 w-6" />
-                        National Announcements
+                        National Bulletin
                     </h2>
                     <div className="space-y-6">
                         {announcementsLoading ? (
@@ -235,7 +234,7 @@ export default function HomePage() {
                                 <p className="text-muted-foreground font-medium">No official updates at this moment.</p>
                             </Card>
                         ) : (
-                            announcements.map((item: any) => (
+                            announcements.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).map((item: any) => (
                                 <AnnouncementCard 
                                     key={item.id}
                                     title={item.title}
