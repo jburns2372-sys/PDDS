@@ -12,6 +12,7 @@ import { ActionCenter } from "@/components/action-center";
 import { DailyPulse } from "@/components/daily-pulse";
 import { CommunityFeedback } from "@/components/community-feedback";
 import { RecruitmentLeaderboard } from "@/components/recruitment-leaderboard";
+import { VipVerificationBanner } from "@/components/vip-verification-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,7 +112,7 @@ export default function HomePage() {
   const referralLink = `${domain}/join?ref=${userData?.uid}`;
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);
-    toast({ title: "Link Copied", description: "Share this link to recruit new supporters!" });
+    toast({ title: "Link Copies", description: "Share this link to recruit new supporters!" });
   };
 
   const hasNewAnnouncements = announcements.length > 0 && announcements[0].id !== lastSeenAnnouncement;
@@ -121,6 +122,8 @@ export default function HomePage() {
       <UserHeader userData={userData} />
       <div className="p-4 md:p-8 space-y-12 max-w-7xl mx-auto w-full">
         
+        <VipVerificationBanner />
+
         {isSupporter && (
             <div className="grid gap-8 lg:grid-cols-12 items-start">
                 <div className="lg:col-span-4 flex flex-col gap-8">
