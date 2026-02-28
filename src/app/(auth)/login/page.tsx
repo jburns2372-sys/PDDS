@@ -18,7 +18,7 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, User } from "lucide-react";
 
 export default function LoginPage() {
     const auth = useAuth();
@@ -43,32 +43,18 @@ export default function LoginPage() {
                     const docSnap = await getDoc(docRef);
 
                     if (!docSnap.exists()) {
-                        // Create baseline record if missing
-                        const supporterData = {
-                            uid: user.uid,
-                            email: user.email || "",
-                            fullName: user.displayName?.toUpperCase() || "MEMBER",
-                            role: "Supporter",
-                            isApproved: true,
-                            kartilyaAgreed: true,
-                            recruitCount: 0,
-                            createdAt: serverTimestamp(),
-                            phoneNumber: "",
-                            city: "NATIONAL",
-                            province: "NATIONAL HQ"
-                        };
-                        await setDoc(docRef, supporterData);
+                        // Redirect to Join page to complete Induction if record missing
+                        toast({ title: "Social Verified", description: "Completing registration..." });
+                        router.push("/join?induction=pending");
+                        return;
                     }
 
-                    // 2. Add Navigation Buffer to allow DB to propagate
+                    // 2. Success path
+                    toast({ title: "Welcome Back!", description: "Authenticated successfully." });
                     setTimeout(() => {
-                        toast({ 
-                            title: docSnap.exists() ? "Welcome Back!" : "Success!", 
-                            description: docSnap.exists() ? "Authenticated." : "Registered in the National Registry." 
-                        });
                         router.push("/home");
                     }, 500);
-                    return; // Prevent setLoading(false) from firing immediately
+                    return; 
                 }
             } catch (error: any) {
                 console.error("Login Redirect Error:", error);
@@ -117,7 +103,7 @@ export default function LoginPage() {
         {loading && (
             <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                <p className="text-lg font-black uppercase tracking-widest text-primary animate-pulse text-center px-4">
+                <p className="text-lg font-black uppercase tracking-widest text-primary animate-pulse text-center px-4 font-headline">
                     Authenticating credentials...
                 </p>
             </div>
@@ -129,7 +115,7 @@ export default function LoginPage() {
                 PDDS Portal
             </h1>
       </div>
-      <Card className="w-full max-md shadow-2xl border-t-4 border-primary bg-white">
+      <Card className="w-full max-w-md shadow-2xl border-t-4 border-primary bg-white">
         <CardHeader>
             <CardTitle className="text-2xl text-center font-headline uppercase">Member Login</CardTitle>
             <CardDescription className="text-center font-medium text-muted-foreground">Access your PDDS War Room account.</CardDescription>
@@ -139,18 +125,20 @@ export default function LoginPage() {
             <div className="grid grid-cols-1 gap-3">
                 <Button 
                     variant="outline" 
-                    className="w-full bg-[#4285F4] text-white hover:bg-[#357ae8] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md"
+                    className="w-full bg-[#4285F4] text-white hover:bg-[#357ae8] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md flex items-center justify-center gap-2"
                     onClick={() => handleSocialLogin(new GoogleAuthProvider())}
                     disabled={loading}
                 >
+                    <Mail className="h-4 w-4" />
                     Continue with Google
                 </Button>
                 <Button 
                     variant="outline" 
-                    className="w-full bg-[#1877F2] text-white hover:bg-[#166fe5] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md"
+                    className="w-full bg-[#1877F2] text-white hover:bg-[#166fe5] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md flex items-center justify-center gap-2"
                     onClick={() => handleSocialLogin(new FacebookAuthProvider())}
                     disabled={loading}
                 >
+                    <User className="h-4 w-4" />
                     Continue with Facebook
                 </Button>
             </div>

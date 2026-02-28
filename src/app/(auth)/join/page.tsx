@@ -24,7 +24,7 @@ import {
 import { doc, setDoc, serverTimestamp, increment, updateDoc, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Loader2, User, Phone, Globe, ShieldCheck } from "lucide-react";
+import { Loader2, User, Phone, Globe, ShieldCheck, Mail } from "lucide-react";
 
 const NCR_CODE = "130000000";
 
@@ -63,6 +63,7 @@ export default function JoinPage() {
     // Handle Redirect Result on Mount
     useEffect(() => {
         const handleAuthRedirect = async () => {
+            // Check for potential redirect result
             setLoading(true);
             try {
                 const result = await getRedirectResult(auth);
@@ -74,8 +75,8 @@ export default function JoinPage() {
 
                     if (docSnap.exists()) {
                         // User exists, move to dashboard with buffer
+                        toast({ title: "Welcome Back!", description: "Authenticated via social profile." });
                         setTimeout(() => {
-                            toast({ title: "Welcome Back!" });
                             router.push("/home");
                         }, 500);
                         return;
@@ -89,9 +90,23 @@ export default function JoinPage() {
                         photoURL: user.photoURL || null
                     });
                     
-                    setFullName(user.displayName || "");
+                    setFullName(user.displayName?.toUpperCase() || "");
                     setEmail(user.email || "");
-                    toast({ title: "Authenticated", description: "Complete your location to finalize membership." });
+                    toast({ title: "Social Identity Verified", description: "Complete your location details to finalize membership." });
+                } else if (auth.currentUser) {
+                    // Check if already logged in but doc missing (interrupted session)
+                    const docRef = doc(firestore, "users", auth.currentUser.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (!docSnap.exists()) {
+                        setSocialUser({
+                            uid: auth.currentUser.uid,
+                            email: auth.currentUser.email || "",
+                            fullName: auth.currentUser.displayName || "MEMBER",
+                            photoURL: auth.currentUser.photoURL || null
+                        });
+                        setFullName(auth.currentUser.displayName?.toUpperCase() || "");
+                        setEmail(auth.currentUser.email || "");
+                    }
                 }
             } catch (error: any) {
                 console.error("Redirect Error:", error);
@@ -175,8 +190,8 @@ export default function JoinPage() {
                 updateDoc(referrerRef, { recruitCount: increment(1) }).catch(e => console.error(e));
             }
 
+            toast({ title: "Welcome to PDDS!", description: "Membership officially confirmed." });
             setTimeout(() => {
-                toast({ title: "Welcome to PDDS!", description: "Membership officially confirmed." });
                 router.push("/home?registered=true");
             }, 500);
         } catch (error: any) {
@@ -237,8 +252,8 @@ export default function JoinPage() {
                 updateDoc(referrerRef, { recruitCount: increment(1) }).catch(e => console.error(e));
             }
 
+            toast({ title: "Welcome!", description: "Registry record created." });
             setTimeout(() => {
-                toast({ title: "Welcome!", description: "Registry record created." });
                 router.push("/home?registered=true");
             }, 500);
         } catch (error: any) {
@@ -252,7 +267,7 @@ export default function JoinPage() {
             {loading && (
                 <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                    <p className="text-lg font-black uppercase tracking-widest text-primary animate-pulse text-center px-4">
+                    <p className="text-lg font-black uppercase tracking-widest text-primary animate-pulse text-center px-4 font-headline">
                         Securing your place in the national registry...
                     </p>
                 </div>
@@ -280,7 +295,7 @@ export default function JoinPage() {
                                 </Avatar>
                                 <p className="font-bold text-primary flex items-center gap-2">
                                     <ShieldCheck className="h-4 w-4" />
-                                    {socialUser.fullName}
+                                    {fullName || socialUser.fullName}
                                 </p>
                             </div>
 
@@ -299,6 +314,11 @@ export default function JoinPage() {
                                         <SelectContent>{cities.map((c) => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-primary">Phone Number (Optional)</Label>
+                                <Input placeholder="+639..." className="h-12 font-bold" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
                             </div>
 
                             <div className="flex items-start space-x-3 pt-2">
@@ -323,26 +343,28 @@ export default function JoinPage() {
                                 <Button 
                                     type="button" 
                                     variant="outline" 
-                                    className="w-full bg-[#4285F4] text-white hover:bg-[#357ae8] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md"
+                                    className="w-full bg-[#4285F4] text-white hover:bg-[#357ae8] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md flex items-center justify-center gap-2"
                                     onClick={() => handleSocialLogin(new GoogleAuthProvider())}
                                     disabled={loading}
                                 >
+                                    <Mail className="h-4 w-4" />
                                     Continue with Google
                                 </Button>
                                 <Button 
                                     type="button" 
                                     variant="outline" 
-                                    className="w-full bg-[#1877F2] text-white hover:bg-[#166fe5] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md"
+                                    className="w-full bg-[#1877F2] text-white hover:bg-[#166fe5] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md flex items-center justify-center gap-2"
                                     onClick={() => handleSocialLogin(new FacebookAuthProvider())}
                                     disabled={loading}
                                 >
+                                    <User className="h-4 w-4" />
                                     Continue with Facebook
                                 </Button>
                             </div>
 
                             <div className="relative">
                                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                                <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-white px-4 text-muted-foreground font-black tracking-[0.2em]">Or Join with Email</span></div>
+                                <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-white px-4 text-muted-foreground font-black tracking-[0.2em]">Or Join with Credentials</span></div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
