@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -29,7 +30,10 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
-    // Handle Redirect Result on Mount
+    /**
+     * Step 1 & 2: Critical Sync Logic
+     * Handle Redirect Result and Guarantee Document Creation BEFORE navigation.
+     */
     useEffect(() => {
         const checkRedirect = async () => {
             setLoading(true);
@@ -38,18 +42,33 @@ export default function LoginPage() {
                 if (result) {
                     const user = result.user;
                     
-                    // 1. Sync Firestore synchronously
+                    // Critical Firestore Check (Step 1)
                     const docRef = doc(firestore, "users", user.uid);
                     const docSnap = await getDoc(docRef);
 
                     if (!docSnap.exists()) {
-                        // Redirect to Join page to complete Induction if record missing
-                        toast({ title: "Social Verified", description: "Completing registration..." });
+                        // Guaranteed Document Creation (Step 2)
+                        const newUserProfile = {
+                            uid: user.uid,
+                            email: user.email || "",
+                            fullName: user.displayName?.toUpperCase() || "MEMBER",
+                            photoURL: user.photoURL || null,
+                            role: "Supporter",
+                            isApproved: true,
+                            kartilyaAgreed: true,
+                            createdAt: serverTimestamp(),
+                        };
+                        
+                        // Wait for write confirmation before proceeding
+                        await setDoc(docRef, newUserProfile);
+                        
+                        toast({ title: "Welcome!", description: "Account provisioned. Please finalize your induction." });
+                        // Redirect to induction to capture missing location details
                         router.push("/join?induction=pending");
                         return;
                     }
 
-                    // 2. Success path
+                    // Step 3: Success path - Navigation with sync buffer
                     toast({ title: "Welcome Back!", description: "Authenticated successfully." });
                     setTimeout(() => {
                         router.push("/home");
@@ -87,6 +106,7 @@ export default function LoginPage() {
     const handleSocialLogin = async (provider: any) => {
         setLoading(true);
         try {
+            // Using redirect mode for maximum stability in dev/cloud environments
             await signInWithRedirect(auth, provider);
         } catch (error: any) {
             toast({
@@ -104,7 +124,7 @@ export default function LoginPage() {
             <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
                 <p className="text-lg font-black uppercase tracking-widest text-primary animate-pulse text-center px-4 font-headline">
-                    Authenticating credentials...
+                    Securing your place in the national registry...
                 </p>
             </div>
         )}

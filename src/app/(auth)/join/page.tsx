@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -60,10 +61,11 @@ export default function JoinPage() {
 
     const verifierRef = useRef<RecaptchaVerifier | null>(null);
 
-    // Handle Redirect Result on Mount
+    /**
+     * Step 1 & 2: Handle Redirect Result and Guarantee Document Creation
+     */
     useEffect(() => {
         const handleAuthRedirect = async () => {
-            // Check for potential redirect result
             setLoading(true);
             try {
                 const result = await getRedirectResult(auth);
@@ -74,7 +76,7 @@ export default function JoinPage() {
                     const docSnap = await getDoc(docRef);
 
                     if (docSnap.exists()) {
-                        // User exists, move to dashboard with buffer
+                        // User already has a record, navigate to home with sync buffer
                         toast({ title: "Welcome Back!", description: "Authenticated via social profile." });
                         setTimeout(() => {
                             router.push("/home");
@@ -82,7 +84,7 @@ export default function JoinPage() {
                         return;
                     }
 
-                    // New User - Hold for Induction Completion
+                    // New Social User - Capture info and hold for Induction completion
                     setSocialUser({
                         uid: user.uid,
                         email: user.email || "",
@@ -94,7 +96,7 @@ export default function JoinPage() {
                     setEmail(user.email || "");
                     toast({ title: "Social Identity Verified", description: "Complete your location details to finalize membership." });
                 } else if (auth.currentUser) {
-                    // Check if already logged in but doc missing (interrupted session)
+                    // Fail-safe: Check if already logged in but doc missing
                     const docRef = doc(firestore, "users", auth.currentUser.uid);
                     const docSnap = await getDoc(docRef);
                     if (!docSnap.exists()) {
@@ -183,6 +185,7 @@ export default function JoinPage() {
                 createdAt: serverTimestamp(),
             };
 
+            // Guaranteed Document Creation BEFORE navigation (Step 2)
             await setDoc(doc(firestore, "users", socialUser.uid), supporterData);
             
             if (referralUid) {
@@ -191,6 +194,7 @@ export default function JoinPage() {
             }
 
             toast({ title: "Welcome to PDDS!", description: "Membership officially confirmed." });
+            // Step 3: Global sync buffer
             setTimeout(() => {
                 router.push("/home?registered=true");
             }, 500);

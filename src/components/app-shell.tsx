@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -31,6 +32,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     setIsClient(true);
   }, []);
 
+  /**
+   * Step 4: Robust Route Guard
+   * Wait for profile synchronization before rendering children or redirecting.
+   */
   useEffect(() => {
     if (!user || userLoading) {
       if (!userLoading) {
@@ -84,12 +89,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             await setDoc(docRef, update, { merge: true });
           }
         }
+        setUserDataLoading(false);
       } else {
-        // If authenticated but no Firestore doc, redirect to induction
+        // Step 4 Fail-safe: Stay in loading state until redirect to induction happens
         if (!isPrivileged) {
           console.log("Account record missing, redirecting to induction...");
           router.push('/join?induction=pending');
-          setUserDataLoading(false);
+          // Do NOT set loading false here to prevent flicker
           return;
         }
 
@@ -109,8 +115,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         };
 
         await setDoc(docRef, newUserProfile);
+        setUserDataLoading(false);
       }
-      setUserDataLoading(false);
     }, (error) => {
       console.error("Critical error in profile sync:", error);
       setUserDataLoading(false);
@@ -127,7 +133,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
   }, [loading, user, router]);
 
-  // Loading state for profile synchronization
+  // Loading screen for sync (Step 4 UI)
   if (loading || (user && userDataLoading)) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
@@ -136,7 +142,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="flex flex-col items-center gap-2">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">
-                    Syncing National Profile...
+                    Securing your place in the national registry...
                 </p>
             </div>
         </div>
