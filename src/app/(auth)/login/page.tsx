@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PddsLogo from "@/components/icons/pdds-logo";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { 
     signInWithEmailAndPassword, 
     GoogleAuthProvider, 
@@ -15,12 +15,14 @@ import {
     signInWithRedirect,
     getRedirectResult 
 } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
     const auth = useAuth();
+    const firestore = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
     const [email, setEmail] = useState("");
@@ -30,21 +32,50 @@ export default function LoginPage() {
     // Handle Redirect Result on Mount
     useEffect(() => {
         const checkRedirect = async () => {
+            setLoading(true);
             try {
                 const result = await getRedirectResult(auth);
                 if (result) {
-                    toast({ title: "Welcome Back!" });
-                    router.push("/home");
+                    const user = result.user;
+                    
+                    // Check if doc exists to prevent redirection loops
+                    const docRef = doc(firestore, "users", user.uid);
+                    const docSnap = await getDoc(docRef);
+
+                    if (docSnap.exists()) {
+                        toast({ title: "Welcome Back!" });
+                        router.push("/home");
+                    } else {
+                        // FIX: Automatically create document for new social users if missing
+                        const supporterData = {
+                            uid: user.uid,
+                            email: user.email || "",
+                            fullName: user.displayName?.toUpperCase() || "MEMBER",
+                            role: "Supporter",
+                            isApproved: true,
+                            kartilyaAgreed: true,
+                            recruitCount: 0,
+                            createdAt: serverTimestamp(),
+                            phoneNumber: "",
+                            city: "NATIONAL",
+                            province: "NATIONAL HQ"
+                        };
+                        await setDoc(docRef, supporterData);
+                        toast({ title: "Success!", description: "Registered in the National Registry." });
+                        router.push("/home?registered=true");
+                    }
                 }
             } catch (error: any) {
                 console.error("Login Redirect Error:", error);
                 if (error.code !== 'auth/redirect-cancelled-by-user') {
                     toast({ variant: "destructive", title: "Login Failed", description: error.message });
                 }
+            } finally {
+                setLoading(false);
             }
         };
         checkRedirect();
-    }, [auth, router, toast]);
+    }, [auth, firestore, router, toast]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -93,7 +124,7 @@ export default function LoginPage() {
                 PDDS Portal
             </h1>
       </div>
-      <Card className="w-full max-w-md shadow-2xl border-t-4 border-primary bg-white">
+      <Card className="w-full max-md shadow-2xl border-t-4 border-primary bg-white">
         <CardHeader>
             <CardTitle className="text-2xl text-center font-headline uppercase">Member Login</CardTitle>
             <CardDescription className="text-center font-medium text-muted-foreground">Access your PDDS War Room account.</CardDescription>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -58,6 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (docSnap.exists()) {
         const data = docSnap.data();
 
+        // Handle Suspended Accounts
         if (data.isApproved === false && !isPrivileged) {
           await auth.signOut();
           toast({
@@ -85,14 +85,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           }
         }
       } else {
+        // FIX: If authenticated but no Firestore doc, redirect to induction rather than signing out
         if (!isPrivileged) {
-          await auth.signOut();
-          toast({
-            variant: "destructive",
-            title: "Account Removed",
-            description: "Your account has been removed or disabled by an Administrator."
-          });
-          router.push('/login');
+          console.log("Account record missing, redirecting to induction...");
+          router.push('/join?induction=pending');
+          setUserDataLoading(false);
           return;
         }
 

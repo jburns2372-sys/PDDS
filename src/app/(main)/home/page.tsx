@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { AnnouncementCard } from "@/components/announcement-card";
 import { useUserData } from "@/context/user-data-context";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DigitalIdCard } from "@/components/digital-id-card";
 import { ActionCenter } from "@/components/action-center";
@@ -16,7 +16,7 @@ import { VipVerificationBanner } from "@/components/vip-verification-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy } from "lucide-react";
+import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMessaging, useFirestore, useCollection } from "@/firebase";
 import { getToken } from "firebase/messaging";
@@ -40,6 +40,7 @@ function UserHeader({userData}: {userData: any}) {
 
 export default function HomePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { userData, loading: userLoading } = useUserData();
   const { toast } = useToast();
   const messaging = useMessaging();
@@ -58,6 +59,18 @@ export default function HomePage() {
       setLastSeenAnnouncement(saved);
     }
   }, []);
+
+  // Show Success Toast on Induction Completion
+  useEffect(() => {
+    if (searchParams.get('registered') === 'true') {
+        toast({
+            title: "Induction Complete!",
+            description: "Success! You are now officially registered in the National Registry.",
+        });
+        // Clear param without refresh
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [searchParams, toast]);
 
   useEffect(() => {
     if (!userLoading && userData?.passwordIsTemporary) {

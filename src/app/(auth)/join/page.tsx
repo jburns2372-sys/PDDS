@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PddsLogo from "@/components/icons/pdds-logo";
-import { useAuth, useFirestore, useStorage } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { 
     createUserWithEmailAndPassword, 
     RecaptchaVerifier, 
@@ -22,7 +22,6 @@ import {
     getRedirectResult
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, increment, updateDoc, getDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Loader2, User, Phone, Globe, ShieldCheck } from "lucide-react";
@@ -32,7 +31,6 @@ const NCR_CODE = "130000000";
 export default function JoinPage() {
     const auth = useAuth();
     const firestore = useFirestore();
-    const storage = useStorage();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
@@ -49,10 +47,8 @@ export default function JoinPage() {
     // Location State
     const [provinces, setProvinces] = useState<any[]>([]);
     const [cities, setCities] = useState<any[]>([]);
-    const [barangays, setBarangays] = useState<any[]>([]);
     const [selectedProvince, setSelectedProvince] = useState<string>("");
     const [selectedCity, setSelectedCity] = useState<string>("");
-    const [selectedBarangay, setSelectedBarangay] = useState<string>("");
 
     // UI State
     const [loading, setLoading] = useState(false);
@@ -91,7 +87,7 @@ export default function JoinPage() {
                     
                     setFullName(user.displayName || "");
                     setEmail(user.email || "");
-                    toast({ title: "Authenticated", description: "Please finalize your location to complete joining." });
+                    toast({ title: "Authenticated", description: "Complete your location to finalize membership." });
                 }
             } catch (error: any) {
                 console.error("Redirect Error:", error);
@@ -107,12 +103,14 @@ export default function JoinPage() {
 
     useEffect(() => {
         const fetchProvinces = async () => {
-            const pResp = await fetch('https://psgc.gitlab.io/api/provinces/');
-            const pData = await pResp.json();
-            const ncrResp = await fetch(`https://psgc.gitlab.io/api/regions/${NCR_CODE}`);
-            const ncrData = await ncrResp.json();
-            const combined = [{ ...ncrData, name: "METRO MANILA (NCR)", isNCR: true }, ...pData].sort((a: any, b: any) => a.name.localeCompare(b.name));
-            setProvinces(combined);
+            try {
+                const pResp = await fetch('https://psgc.gitlab.io/api/provinces/');
+                const pData = await pResp.json();
+                const ncrResp = await fetch(`https://psgc.gitlab.io/api/regions/${NCR_CODE}`);
+                const ncrData = await ncrResp.json();
+                const combined = [{ ...ncrData, name: "METRO MANILA (NCR)", isNCR: true }, ...pData].sort((a: any, b: any) => a.name.localeCompare(b.name));
+                setProvinces(combined);
+            } catch (e) {}
         };
         fetchProvinces();
     }, []);
@@ -132,19 +130,6 @@ export default function JoinPage() {
         };
         fetchCities();
     }, [selectedProvince, provinces]);
-
-    useEffect(() => {
-        if (!selectedCity) { setBarangays([]); return; }
-        const fetchBarangays = async () => {
-            const city = cities.find(c => c.name === selectedCity);
-            if (city) {
-                const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
-                const data = await response.json();
-                setBarangays(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
-            }
-        };
-        fetchBarangays();
-    }, [selectedCity, cities]);
 
     const handleSocialLogin = async (provider: any) => {
         setLoading(true);
@@ -168,7 +153,6 @@ export default function JoinPage() {
                 fullName: fullName.trim().toUpperCase() || socialUser.fullName.toUpperCase(),
                 phoneNumber: phoneNumber.trim() || "",
                 streetAddress: streetAddress.trim().toUpperCase(),
-                barangay: selectedBarangay,
                 city: selectedCity,
                 province: selectedProvince,
                 photoURL: socialUser.photoURL,
@@ -180,6 +164,7 @@ export default function JoinPage() {
                 createdAt: serverTimestamp(),
             };
 
+            // FIX: Await doc creation BEFORE redirecting
             await setDoc(doc(firestore, "users", socialUser.uid), supporterData);
             
             if (referralUid) {
@@ -187,8 +172,8 @@ export default function JoinPage() {
                 updateDoc(referrerRef, { recruitCount: increment(1) }).catch(e => console.error(e));
             }
 
-            toast({ title: "Welcome to PDDS!", description: "Membership confirmed." });
-            router.push("/home");
+            toast({ title: "Welcome to PDDS!", description: "Membership officially confirmed." });
+            router.push("/home?registered=true");
         } catch (error: any) {
             toast({ variant: "destructive", title: "Error", description: error.message });
         } finally {
@@ -230,7 +215,6 @@ export default function JoinPage() {
                 fullName: fullName.trim().toUpperCase(),
                 phoneNumber: phoneNumber.trim(),
                 streetAddress: streetAddress.trim().toUpperCase(),
-                barangay: selectedBarangay,
                 city: selectedCity,
                 province: selectedProvince,
                 photoURL: null,
@@ -242,6 +226,7 @@ export default function JoinPage() {
                 createdAt: serverTimestamp(),
             };
 
+            // FIX: Await doc creation BEFORE redirecting
             await setDoc(doc(firestore, "users", user.uid), supporterData);
             
             if (referralUid) {
@@ -250,7 +235,7 @@ export default function JoinPage() {
             }
 
             toast({ title: "Welcome!", description: "Registry record created." });
-            router.push("/home");
+            router.push("/home?registered=true");
         } catch (error: any) {
             toast({ variant: "destructive", title: "Registration Failed", description: error.message });
         } finally {
@@ -281,7 +266,7 @@ export default function JoinPage() {
                 {socialUser ? (
                     <form onSubmit={handleSocialComplete}>
                         <CardHeader>
-                            <CardTitle className="text-2xl text-center font-headline uppercase">Complete Joining</CardTitle>
+                            <CardTitle className="text-2xl text-center font-headline uppercase">Complete Induction</CardTitle>
                             <CardDescription className="text-center font-medium text-muted-foreground">Finalize your location to generate your Digital ID.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
