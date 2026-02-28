@@ -4,15 +4,27 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // ==========================================
+    // GLOBAL HELPERS
+    // ==========================================
+
+    /**
+     * Check if the request is authenticated.
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /**
+     * Check if the user is accessing their own document.
+     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    /**
+     * Fail-safe for platform developers and core leadership emails.
+     */
     function isPrivilegedEmail() {
       let email = request.auth.token.email.lower();
       return email == 'iamgrecobelgica@gmail.com' || 
@@ -21,90 +33,140 @@ service cloud.firestore {
              email == 'j.burns.2372@gmail.com';
     }
 
+    /**
+     * Fetches the current user's profile data from Firestore.
+     */
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    function isOfficerOrAdmin() {
-      if (!isSignedIn()) return false;
-      if (isPrivilegedEmail()) return true;
-      
-      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
-      if (!exists(userPath)) return false;
-      
-      let leadershipRoles = [
-        'President', 'Chairman', 'Vice Chairman', 'VP', 'Secretary General',
-        'Treasurer', 'Auditor', 'VP Ways & Means Chair', 'VP Media Comms',
-        'VP Soc Med Comms', 'VP Events and Programs', 'VP Membership',
-        'VP legal affairs', 'Officer', 'Admin', 'System Admin'
-      ];
-      return get(userPath).data.role in leadershipRoles;
+    /**
+     * Verification for specific leadership roles.
+     */
+    function hasRole(role) {
+      return isSignedIn() && getUserData().role == role;
     }
 
-    function isCalendarEditor() {
+    /**
+     * Comprehensive check for Executive (President or Admin) access.
+     */
+    function isExecutive() {
       if (!isSignedIn()) return false;
       if (isPrivilegedEmail()) return true;
-      let user = getUserData();
-      return user.role in ['President', 'Admin', 'Secretary General'];
+      let userRole = getUserData().role;
+      return userRole == 'President' || userRole == 'Admin';
     }
 
+    // ==========================================
+    // COLLECTION RULES
+    // ==========================================
+
+    /**
+     * Member Registry: Protects sensitive personal information.
+     */
     match /users/{userId} {
-      allow read: if isSignedIn();
+      // Read: Users can read their own profile. Executives can read all for directory/management.
+      allow read: if isSignedIn() && (isOwner(userId) || isExecutive());
+      
+      // Create: Allow initial registration.
       allow create: if isSignedIn();
-      allow update: if isOwner(userId) || isOfficerOrAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recruitCount', 'fcmToken', 'phoneNumber', 'isPhoneVerified']));
-      allow delete: if isOfficerOrAdmin();
-    }
-
-    match /calendar_activities/{activityId} {
-      allow read: if isSignedIn();
-      allow write: if isCalendarEditor();
-    }
-
-    match /meeting_agendas/{agendaId} {
-      allow read: if isSignedIn() && (
-        isOfficerOrAdmin() || 
-        resource.data.targetAudience.contains('All Members') || 
-        resource.data.targetAudience.contains(getUserData().role)
+      
+      // Update: Users can update their bio/photo but CANNOT change their role or status.
+      // Executives have full update authority.
+      allow update: if isExecutive() || (
+        isOwner(userId) && 
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin'])
       );
-      allow write: if isOfficerOrAdmin();
+      
+      // Delete: Strictly restricted to President/Admin.
+      allow delete: if isExecutive();
     }
 
-    match /attendance/{attendanceId} {
-      allow read, create: if isOfficerOrAdmin();
+    /**
+     * Calendar Activities: The operational heartbeat of the movement.
+     */
+    match /calendar_activities/{activityId} {
+      // Read: Public view restricted to authorized events. Executives see drafts for audit.
+      allow read: if isSignedIn() && (resource.data.isAuthorized == true || isExecutive());
+      
+      // Create: Restricted to Secretary General, Admin, and President.
+      allow create: if isSignedIn() && (
+        getUserData().role in ['Secretary General', 'Admin', 'President'] || 
+        isPrivilegedEmail()
+      );
+      
+      // Update: Strictly restrict authorization (flipping isAuthorized) to the President ONLY.
+      allow update: if hasRole('President') || isPrivilegedEmail();
+      
+      // Delete: Executives only.
+      allow delete: if isExecutive();
     }
 
+    /**
+     * Secure Document Vault: Tiered distribution of intelligence and materials.
+     */
     match /vault/{docId} {
       allow read: if isSignedIn() && (
-        isOfficerOrAdmin() || 
+        isExecutive() || 
         resource.data.targetAudience.contains('All Members') || 
         resource.data.targetAudience.contains(getUserData().role)
       );
-      allow write: if isOfficerOrAdmin();
+      allow write: if isExecutive();
     }
 
-    match /campaign_actions/{actionId} {
-      allow read: if isSignedIn();
-      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signedBy']);
-      allow write: if isOfficerOrAdmin();
+    /**
+     * Attendance & QR Scanning: Secure check-in data.
+     */
+    match /attendance/{attendanceId} {
+      allow read, write: if isExecutive();
     }
 
-    match /polls/{pollId} {
-      allow read: if isSignedIn();
-      allow update: if isSignedIn() && 
-                    !resource.data.votedBy.contains(request.auth.uid) &&
-                    request.resource.data.votedBy.contains(request.auth.uid);
-      allow write: if isOfficerOrAdmin();
+    /**
+     * Communication & System Audits: SMS logs and executive history.
+     */
+    match /communication_audit/{auditId} {
+      allow read, write: if isExecutive();
     }
 
+    /**
+     * Meeting Agendas: Virtual briefing metadata.
+     */
+    match /meeting_agendas/{agendaId} {
+      allow read: if isSignedIn() && (
+        isExecutive() || 
+        resource.data.targetAudience.contains('All Members') || 
+        resource.data.targetAudience.contains(getUserData().role)
+      );
+      allow write: if isExecutive();
+    }
+
+    /**
+     * Community Feedback: Communication between grassroots and leadership.
+     */
     match /community_feedback/{feedbackId} {
-      allow read: if isSignedIn() && (resource.data.submitterUid == request.auth.uid || isOfficerOrAdmin());
+      allow read: if isExecutive() || (isSignedIn() && resource.data.submitterUid == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.submitterUid == request.auth.uid;
-      allow update, delete: if isOfficerOrAdmin();
+      allow update, delete: if isExecutive();
     }
 
-    match /announcements/{announcementId} {
+    /**
+     * Announcements, Polls, and Campaign Actions.
+     */
+    match /announcements/{id} {
       allow read: if isSignedIn();
-      allow write: if isOfficerOrAdmin();
+      allow write: if isExecutive();
+    }
+
+    match /polls/{id} {
+      allow read: if isSignedIn();
+      allow update: if isSignedIn(); // Voting logic
+      allow write: if isExecutive();
+    }
+
+    match /campaign_actions/{id} {
+      allow read: if isSignedIn();
+      allow update: if isSignedIn(); // Signing logic
+      allow write: if isExecutive();
     }
   }
 }
