@@ -56,6 +56,21 @@
       },
       "required": ["title", "date", "time", "meetingLink", "targetAudience"]
     },
+    "vault_document": {
+      "title": "Vault Document",
+      "description": "Official party material stored securely.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "fileUrl": { "type": "string", "format": "uri" },
+        "fileType": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "targetAudience": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "fileUrl", "fileType", "targetAudience"]
+    },
     "campaign_action": {
       "title": "Campaign Action",
       "type": "object",
@@ -107,6 +122,10 @@
     "/meeting_agendas/{agendaId}": {
       "schema": { "$ref": "#/backend/entities/meeting_agenda" },
       "description": "Stores scheduled meetings and briefings."
+    },
+    "/vault/{docId}": {
+      "schema": { "$ref": "#/backend/entities/vault_document" },
+      "description": "Stores official party materials and documents."
     },
     "/campaign_actions/{actionId}": {
       "schema": { "$ref": "#/backend/entities/campaign_action" },

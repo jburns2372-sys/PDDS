@@ -57,6 +57,15 @@ service cloud.firestore {
       allow write: if isOfficerOrAdmin();
     }
 
+    match /vault/{docId} {
+      allow read: if isSignedIn() && (
+        isOfficerOrAdmin() || 
+        resource.data.targetAudience.contains('All Members') || 
+        resource.data.targetAudience.contains(getUserData().role)
+      );
+      allow write: if isOfficerOrAdmin();
+    }
+
     match /campaign_actions/{actionId} {
       allow read: if isSignedIn();
       allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signedBy']);
