@@ -16,6 +16,11 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import PddsLogo from "./icons/pdds-logo";
 import { DesktopSidebarContent } from "./desktop-sidebar";
 
+/**
+ * @fileOverview Application Shell & Global Route Guard.
+ * Strictly manages synchronization with the National Registry.
+ * Handles user profile loading and unauthorized access redirection.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const [isClient, setIsClient] = useState(false);
@@ -33,8 +38,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Step 4: Robust Route Guard
-   * Wait for profile synchronization before rendering children or redirecting.
+   * Profile Synchronization Logic.
+   * Ensures every authenticated user has a corresponding record in the registry.
    */
   useEffect(() => {
     if (!user || userLoading) {
@@ -70,12 +75,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             title: "Access Revoked",
             description: "Your account has been disabled by an Administrator."
           });
-          router.push('/login');
+          window.location.href = '/login';
           return;
         }
 
         setUserData({ id: docSnap.id, ...data });
         
+        // Auto-assign leadership status for privileged emails
         if (isPrivileged) {
           const targetRole = isPresidentEmail ? 'President' : 'Admin';
           if (data.role !== targetRole || data.jurisdictionLevel !== 'National' || data.isApproved === false) {
@@ -91,14 +97,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         }
         setUserDataLoading(false);
       } else {
-        // Step 4 Fail-safe: Stay in loading state until redirect to induction happens
+        // Redirect to induction if record is missing
         if (!isPrivileged) {
-          console.log("Account record missing, redirecting to induction...");
-          router.push('/join?induction=pending');
-          // Do NOT set loading false here to prevent flicker
+          console.log("Registry record missing, redirecting...");
+          window.location.href = '/join?induction=pending';
           return;
         }
 
+        // Auto-provision privileged users
         const targetRole = isPresidentEmail ? 'President' : 'Admin';
         const newUserProfile = {
           uid: user.uid,
@@ -128,21 +134,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   const loading = !isClient || userLoading;
 
   useEffect(() => {
-      if (!loading && !user) {
+      if (!loading && !user && window.location.pathname !== '/join') {
           router.push('/login');
       }
   }, [loading, user, router]);
 
-  // Loading screen for sync (Step 4 UI)
+  // Global Loading Overlay for authenticated but loading profile state
   if (loading || (user && userDataLoading)) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-6">
             <PddsLogo className="h-20 w-20 animate-pulse" />
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2 text-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">
-                    Securing your place in the national registry...
+                    {user ? "Loading National Profile..." : "Establishing Secure Connection..."}
                 </p>
             </div>
         </div>

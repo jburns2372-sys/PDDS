@@ -8,14 +8,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PddsLogo from "@/components/icons/pdds-logo";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
     const auth = useAuth();
+    const firestore = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
     const [email, setEmail] = useState("");
@@ -26,8 +28,21 @@ export default function LoginPage() {
         e.preventDefault();
         setLoading(true);
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            router.push("/home");
+            // 1. Auth: Execute Sign-In
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // 2. Fetch: Verify National Registry profile exists
+            const userRef = doc(firestore, 'users', user.uid);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                // 3. Verify & Hard Redirect: Clear memory and force shell reload
+                window.location.href = "/home";
+            } else {
+                // Fail-safe: Profile missing from registry
+                router.push('/join?induction=pending');
+            }
         } catch (error: any) {
             toast({
                 variant: "destructive",
@@ -44,7 +59,7 @@ export default function LoginPage() {
             <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
                 <p className="text-lg font-black uppercase tracking-widest text-primary animate-pulse text-center px-4 font-headline">
-                    Accessing the national registry...
+                    Verifying credentials...
                 </p>
             </div>
         )}
