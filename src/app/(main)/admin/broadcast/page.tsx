@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -12,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Megaphone, Loader2, Send, Users, MessageSquare, AlertCircle, Globe, CheckCircle2, UserCheck, Calculator } from "lucide-react";
+import { Megaphone, Loader2, Send, Globe, UserCheck, Calculator } from "lucide-react";
 import { pddsLeadershipRoles } from "@/lib/data";
 
 const BATCH_SIZE = 100;
@@ -25,52 +26,45 @@ export default function AdminBroadcastPage() {
   
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [broadcastScope, setBroadcastScope] = useState("National"); // Leadership | National | Supporters
+  const [broadcastScope, setBroadcastScope] = useState("National");
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
   const [previewUser, setPreviewUser] = useState<any>(null);
 
-  // Target users based on scope
   const targetUsers = useMemo(() => {
     let filtered = allUsers.filter(u => u.phoneNumber);
     
     if (broadcastScope === "Leadership") {
       filtered = filtered.filter(u => 
         pddsLeadershipRoles.includes(u.role) || 
-        ['Admin', 'System Admin', 'Officer'].includes(u.role) ||
+        ['Admin', 'Officer'].includes(u.role) ||
         u.isSuperAdmin === true
       );
     } else if (broadcastScope === "Supporters") {
       filtered = filtered.filter(u => u.role === 'Supporter');
     } else if (broadcastScope === "National") {
-      // EXCLUDE Supporters from National Broadcast as requested
-      filtered = filtered.filter(u => u.role !== 'Supporter');
+      filtered = filtered.filter(u => u.role !== 'Supporter' && u.role !== 'Guest');
     }
     
     return filtered;
   }, [allUsers, broadcastScope]);
 
-  // Pick a random user for the preview whenever target list changes
   useEffect(() => {
     if (targetUsers.length > 0) {
-      const random = targetUsers[Math.floor(Math.random() * targetUsers.length)];
-      setPreviewUser(random);
+      setPreviewUser(targetUsers[Math.floor(Math.random() * targetUsers.length)]);
     } else {
       setPreviewUser(null);
     }
   }, [targetUsers]);
 
-  // Personalization Logic
   const personalize = (text: string, userData: any) => {
     if (!userData) return text;
     const firstName = (userData.fullName || "Member").split(' ')[0];
     return text
       .replace(/{{firstName}}/g, firstName)
       .replace(/{{fullName}}/g, userData.fullName || "Member")
-      .replace(/{{province}}/g, userData.province || "your region")
-      .replace(/{{city}}/g, userData.city || "your city")
-      .replace(/{{barangay}}/g, userData.barangay || "your barangay");
+      .replace(/{{city}}/g, userData.city || "your city");
   };
 
   const previewMessage = useMemo(() => personalize(message, previewUser), [message, previewUser]);
@@ -79,51 +73,33 @@ export default function AdminBroadcastPage() {
 
   const handleBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !message.trim()) {
-      toast({ variant: "destructive", title: "Missing Info", description: "Title and message are required." });
-      return;
-    }
-
-    if (targetUsers.length === 0) {
-      toast({ variant: "destructive", title: "No Recipients", description: "No verified members found in this scope." });
-      return;
-    }
+    if (!title.trim() || !message.trim() || targetUsers.length === 0) return;
 
     setLoading(true);
     setProgress(0);
     setStatusMessage("Preparing payloads...");
 
     try {
-      // 1. Generate all personalized messages
       const tasks = targetUsers.map(u => ({
         phoneNumber: u.phoneNumber,
         personalizedMsg: `${title}: ${personalize(message, u)}`
       }));
 
-      // 2. Batching logic
       const batches = [];
       for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
         batches.push(tasks.slice(i, i + BATCH_SIZE));
       }
 
-      // 3. Distribution
       for (let i = 0; i < batches.length; i++) {
-        const batch = batches[i];
-        setStatusMessage(`Dispatching Batch ${i + 1} of ${batches.length}...`);
-        
+        setStatusMessage(`Dispatching Batch ${i + 1}...`);
         await fetch('/api/send-sms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            isPersonalized: true,
-            tasks: batch
-          })
+          body: JSON.stringify({ isPersonalized: true, tasks: batches[i] })
         });
-
         setProgress(Math.round(((i + 1) / batches.length) * 100));
       }
 
-      // 4. National Bulletin Sync - Only for National Broadcast scope
       if (broadcastScope === "National") {
         await addDoc(collection(firestore, "announcements"), {
           title: title.trim(),
@@ -134,7 +110,6 @@ export default function AdminBroadcastPage() {
         });
       }
 
-      // 5. Audit Trail
       await addDoc(collection(firestore, "communication_audit"), {
         type: "Personalized SMS Broadcast",
         message: message.trim(),
@@ -145,35 +120,25 @@ export default function AdminBroadcastPage() {
         createdBy: user?.uid || 'System',
       });
 
-      toast({ 
-        title: "Mobilization Dispatched", 
-        description: `Broadcast successfully sent to ${targetUsers.length} members.` 
-      });
-      
-      setTitle("");
-      setMessage("");
-      setProgress(0);
-      setStatusMessage("");
+      toast({ title: "Mobilization Dispatched", description: `Sent to ${targetUsers.length} members.` });
+      setTitle(""); setMessage(""); setProgress(0);
     } catch (error: any) {
-      console.error(error);
-      toast({ variant: "destructive", title: "Broadcast Failed", description: error.message });
+      toast({ variant: "destructive", title: "Failed", description: error.message });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-6 bg-background min-h-screen pb-24">
+    <div className="p-4 md:p-6 bg-background min-h-screen pb-32">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center gap-4 border-b-2 border-primary pb-4">
           <div className="p-3 bg-primary text-primary-foreground rounded-lg shadow-inner">
-            <Megaphone className="h-8 w-8" />
+            <Megaphone className="h-6 w-6 md:h-8 md:w-8" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-primary font-headline uppercase tracking-tight">
-              Mobilization Broadcast
-            </h1>
-            <p className="text-muted-foreground text-sm font-medium">Distribute personalized alerts across the organizational structure.</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-primary font-headline uppercase tracking-tight">Mobilization Broadcast</h1>
+            <p className="text-muted-foreground text-xs md:text-sm font-medium">Distribute personalized alerts nationwide.</p>
           </div>
         </div>
 
@@ -182,83 +147,49 @@ export default function AdminBroadcastPage() {
             <Card className="shadow-xl border-t-4 border-primary">
               <form onSubmit={handleBroadcast}>
                 <CardHeader className="bg-primary/5 border-b">
-                  <CardTitle className="text-xl font-headline flex items-center gap-2">
-                    <Send className="h-5 w-5 text-primary" />
-                    Draft Organizational Alert
-                  </CardTitle>
+                  <CardTitle className="text-lg font-headline flex items-center gap-2"><Send className="h-5 w-5" /> Draft Organizational Alert</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Broadcast Scope</Label>
-                      <Select onValueChange={(v) => setBroadcastScope(v)} value={broadcastScope}>
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Select Audience" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Leadership">National Leadership (Officers Only)</SelectItem>
-                          <SelectItem value="National">National Broadcast (All Members)</SelectItem>
-                          <SelectItem value="Supporters">All Supporters (National)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Scope</Label>
+                    <Select onValueChange={setBroadcastScope} value={broadcastScope}>
+                      <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Leadership">Leadership Core</SelectItem>
+                        <SelectItem value="National">National (Members Only)</SelectItem>
+                        <SelectItem value="Supporters">All Supporters</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Alert Title</Label>
-                    <Input 
-                      placeholder="e.g. EMERGENCY MOBILIZATION" 
-                      className="font-bold uppercase h-11"
-                      value={title}
-                      onChange={e => setTitle(e.target.value.toUpperCase())}
-                    />
+                    <Input placeholder="EMERGENCY ALERT" className="font-bold uppercase h-12" value={title} onChange={e => setTitle(e.target.value.toUpperCase())} />
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Message Template</Label>
-                      <div className="flex items-center gap-3">
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${charCount > 160 ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                          {charCount} Chars
-                        </span>
-                        <Badge variant="outline" className="text-[9px] font-black border-primary/20">
-                          {segments} Segment{segments > 1 ? 's' : ''}
-                        </Badge>
-                      </div>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Template</Label>
+                      <Badge variant="outline" className="text-[9px] font-black">{charCount} Chars • {segments} Segments</Badge>
                     </div>
-                    <Textarea 
-                      placeholder="Hello {{firstName}}, urgent update for your city..." 
-                      className="min-h-[150px] text-sm leading-relaxed"
-                      value={message}
-                      onChange={e => setMessage(e.target.value)}
-                    />
+                    <Textarea placeholder="Hello {{firstName}}..." className="min-h-[150px] text-sm md:text-base" value={message} onChange={e => setMessage(e.target.value)} />
                     <div className="flex flex-wrap gap-2 pt-2">
-                      {['firstName', 'fullName', 'province', 'city', 'barangay'].map(tag => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => setMessage(prev => prev + `{{${tag}}}`)}
-                          className="text-[9px] font-black uppercase px-2 py-1 bg-muted hover:bg-primary hover:text-white rounded border transition-colors"
-                        >
-                          + {tag}
-                        </button>
+                      {['firstName', 'fullName', 'city'].map(tag => (
+                        <button key={tag} type="button" onClick={() => setMessage(prev => prev + `{{${tag}}}`)} className="text-[9px] font-black uppercase px-2 py-1 bg-muted rounded border hover:bg-primary hover:text-white transition-colors">+ {tag}</button>
                       ))}
                     </div>
                   </div>
 
                   {loading && (
-                    <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/10">
-                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-primary">
-                        <span>{statusMessage}</span>
-                        <span>{progress}%</span>
-                      </div>
-                      <Progress value={progress} className="h-2 bg-primary/10" />
+                    <div className="space-y-3 p-4 bg-primary/5 rounded-lg border">
+                      <div className="flex justify-between text-[9px] font-black uppercase tracking-widest"><span>{statusMessage}</span><span>{progress}%</span></div>
+                      <Progress value={progress} className="h-2" />
                     </div>
                   )}
                 </CardContent>
                 <CardFooter className="bg-muted/30 border-t pt-6">
-                  <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest" disabled={loading || targetUsers.length === 0}>
-                    {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Distributing Alerts...</> : <><Globe className="mr-2 h-5 w-5" /> Execute Broadcast</>}
+                  <Button type="submit" className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || targetUsers.length === 0}>
+                    {loading ? <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Distributing...</> : <><Globe className="mr-2 h-6 w-6" /> Execute Broadcast</>}
                   </Button>
                 </CardFooter>
               </form>
@@ -266,53 +197,22 @@ export default function AdminBroadcastPage() {
           </div>
 
           <div className="space-y-6">
-            <Card className="shadow-lg border-l-4 border-l-accent overflow-hidden">
+            <Card className="shadow-lg border-l-4 border-l-accent">
               <CardHeader className="bg-accent/5 pb-2">
-                <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                  <UserCheck className="h-4 w-4 text-accent" />
-                  Live Payload Preview
-                </CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><UserCheck className="h-4 w-4" /> Live Preview</CardTitle>
               </CardHeader>
-              <CardContent className="pt-4">
-                <div className="bg-white p-4 rounded-xl border-2 border-dashed border-accent/20 min-h-[120px] flex flex-col justify-between">
-                  <p className="text-sm font-medium leading-relaxed text-foreground/80 italic">
-                    {message ? (
-                      `"${title}: ${previewMessage}"`
-                    ) : (
-                      <span className="text-muted-foreground opacity-50 text-xs">Start drafting to see a personalized preview...</span>
-                    )}
-                  </p>
-                  {previewUser && (
-                    <div className="mt-4 pt-4 border-t border-dashed flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-accent/20 flex items-center justify-center text-[10px] font-black text-accent-foreground uppercase">
-                        {previewUser.fullName?.charAt(0)}
-                      </div>
-                      <span className="text-[9px] font-bold text-muted-foreground uppercase truncate">Recip: {previewUser.fullName}</span>
-                    </div>
-                  )}
-                </div>
+              <CardContent className="pt-4 italic text-sm text-foreground/80 leading-relaxed border-2 border-dashed m-4 rounded-xl">
+                {message ? `"${title}: ${previewMessage}"` : "Draft a message to see preview..."}
               </CardContent>
             </Card>
 
             <Card className="shadow-lg border-l-4 border-l-primary">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                  <Calculator className="h-4 w-4 text-primary" />
-                  Mobilization Cost
-                </CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><Calculator className="h-4 w-4" /> Logistics</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 pt-2">
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Target Members</span>
-                  <span className="text-sm font-black">{targetUsers.length}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Total SMS Units</span>
-                  <span className="text-sm font-black text-primary">{(targetUsers.length * segments).toLocaleString()}</span>
-                </div>
-                <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                  * Note: Broadcasting to "National Broadcast" scope will simultaneously update the National Bulletin on the portal home feed and strictly excludes Supporters.
-                </p>
+                <div className="flex justify-between py-2 border-b text-[10px] font-bold uppercase"><span>Target</span><span className="text-sm font-black">{targetUsers.length}</span></div>
+                <div className="flex justify-between py-2 border-b text-[10px] font-bold uppercase"><span>SMS Units</span><span className="text-sm font-black text-primary">{(targetUsers.length * segments).toLocaleString()}</span></div>
               </CardContent>
             </Card>
           </div>

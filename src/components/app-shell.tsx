@@ -11,6 +11,10 @@ import { UserDataContext, UserDataContextType, UserProfile } from "@/context/use
 import { useRouter } from "next/navigation";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { Menu, X } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import PddsLogo from "./icons/pdds-logo";
+import { DesktopSidebarContent } from "./desktop-sidebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -22,6 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -39,11 +44,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     setUserDataLoading(true);
     const docRef = doc(firestore, "users", user.uid);
 
-    // BOUNCER SECURITY LOGIC: Real-time synchronization and access revocation
     const unsubscribe = onSnapshot(docRef, async (docSnap) => {
       const userEmail = (user.email || '').toLowerCase();
       
-      // Admin/President Fail-Safe List
       const isPresidentEmail = userEmail === 'iamgrecobelgica@gmail.com';
       const isAdminEmail = 
         userEmail === 'j.burns2372@gmail.com' || 
@@ -55,7 +58,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (docSnap.exists()) {
         const data = docSnap.data();
 
-        // KICK-OUT RULE 1: If an admin has explicitly disabled the account
         if (data.isApproved === false && !isPrivileged) {
           await auth.signOut();
           toast({
@@ -69,7 +71,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         setUserData({ id: docSnap.id, ...data });
         
-        // Auto-heal logic for privileged users to prevent accidental lockout
         if (isPrivileged) {
           const targetRole = isPresidentEmail ? 'President' : 'Admin';
           if (data.role !== targetRole || data.jurisdictionLevel !== 'National' || data.isApproved === false) {
@@ -84,7 +85,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           }
         }
       } else {
-        // KICK-OUT RULE 2: If the document was deleted (Ghost Account protection)
         if (!isPrivileged) {
           await auth.signOut();
           toast({
@@ -96,7 +96,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Auto-Regenerate privileged user if document is missing
         const targetRole = isPresidentEmail ? 'President' : 'Admin';
         const newUserProfile = {
           uid: user.uid,
@@ -117,7 +116,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       setUserDataLoading(false);
     }, (error) => {
       console.error("Critical error in Bouncer profile sync:", error);
-      // Fallback state if read fails (e.g. initial setup)
       setUserDataLoading(false);
     });
 
@@ -167,11 +165,34 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <UserDataContext.Provider value={contextValue}>
-        <div className="flex min-h-screen w-full">
-        {isMobile ? <MobileBottomNav /> : <DesktopSidebar />}
-        <main className="flex-1 bg-background pb-16 md:pb-0">
-            {children}
-        </main>
+        <div className="flex min-h-screen w-full flex-col md:flex-row">
+          {/* Mobile Header */}
+          <div className="flex h-16 w-full items-center justify-between border-b bg-card px-4 md:hidden sticky top-0 z-50">
+            <div className="flex items-center gap-2">
+              <PddsLogo className="h-8 w-8" />
+              <span className="font-headline font-black uppercase text-[10px] tracking-widest text-primary">PatriotLink</span>
+            </div>
+            <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+              <SheetTrigger asChild>
+                <button className="p-2 text-primary">
+                  <Menu className="h-6 w-6" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-72 p-0">
+                <div className="h-full py-4 overflow-y-auto" onClick={() => setIsDrawerOpen(false)}>
+                  <DesktopSidebarContent />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {!isMobile && <DesktopSidebar />}
+          
+          <main className="flex-1 bg-background pb-24 md:pb-0 overflow-x-hidden">
+              {children}
+          </main>
+
+          {isMobile && <MobileBottomNav />}
         </div>
     </UserDataContext.Provider>
   );

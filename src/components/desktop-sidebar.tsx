@@ -26,7 +26,7 @@ const adminNavItems = [
     { href: '/admin/analytics', label: 'Heat Map', icon: Map }
 ];
 
-export function DesktopSidebar() {
+export function DesktopSidebarContent() {
   const pathname = usePathname();
   const { user, userData, loading: isLoadingRole } = useUserData();
   const userRole = userData?.role || '';
@@ -40,9 +40,9 @@ export function DesktopSidebar() {
     userEmail === 'j.burns2372@gmail.com';
 
   const isPrivileged = !isLoadingRole && (isOfficer || isAdmin || isPrivilegedEmail);
-  
+
   return (
-    <aside className="hidden w-64 flex-shrink-0 flex-col border-r bg-card md:flex">
+    <div className="flex h-full flex-col">
       <div className="flex h-24 flex-col items-center justify-center px-6 py-4">
         <div className="bg-white p-1 rounded-full shadow-md border border-[#D4AF37]">
             <PddsLogo className="h-12 w-12" />
@@ -102,7 +102,7 @@ export function DesktopSidebar() {
               </>
             )}
         </div>
-        <div>
+        <div className="pt-4 mt-auto border-t">
             <div className="px-4 py-2 text-[9px] font-black uppercase text-muted-foreground tracking-widest opacity-60">
                 Member ID: {isLoadingRole ? '...' : (userData?.uid?.substring(0, 8) || 'Unknown')}
             </div>
@@ -118,6 +118,14 @@ export function DesktopSidebar() {
             </Link>
         </div>
       </nav>
+    </div>
+  );
+}
+
+export function DesktopSidebar() {
+  return (
+    <aside className="hidden w-64 flex-shrink-0 flex-col border-r bg-card md:flex">
+      <DesktopSidebarContent />
     </aside>
   );
 }
