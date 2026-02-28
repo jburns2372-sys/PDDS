@@ -3,8 +3,8 @@
 
 import { useState, useMemo } from "react";
 import { useFirestore, useCollection } from "@/firebase";
-import { doc, updateDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { doc, updateDoc, collection, addDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,25 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useUserData } from "@/context/user-data-context";
-import { Search, Loader2, MapPin, Send, CheckCircle2, UserPlus, MessageSquare, TrendingUp, ShieldCheck, UserCheck, Phone } from "lucide-react";
+import { 
+  Search, 
+  Loader2, 
+  MapPin, 
+  Send, 
+  CheckCircle2, 
+  UserPlus, 
+  MessageSquare, 
+  TrendingUp, 
+  ShieldCheck, 
+  UserCheck, 
+  Phone, 
+  CalendarCheck,
+  Check,
+  Trash2,
+  Clock,
+  Video,
+  Globe
+} from "lucide-react";
 import { format } from "date-fns";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -32,14 +50,21 @@ export default function AdminAuditPage() {
   const { data: feedback, loading: feedbackLoading } = useCollection('community_feedback');
   const { data: allUsers, loading: usersLoading } = useCollection('users');
   
+  // Data stream for unauthorized calendar activities
+  const { data: pendingActivities, loading: activitiesLoading } = useCollection('calendar_activities', {
+    queries: [{ attribute: 'isAuthorized', operator: '==', value: false }]
+  });
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [provinceFilter, setProvinceFilter] = useState("all");
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [promoting, setPromoting] = useState<string | null>(null);
+  const [authorizing, setAuthorizing] = useState<string | null>(null);
   const [selectedPromoRole, setSelectedPromoRole] = useState<Record<string, string>>({});
 
   const hasExecutiveAccess = userData?.role === 'President' || userData?.role === 'Admin' || userData?.isSuperAdmin;
+  const isPresident = userData?.role === 'President' || userData?.isSuperAdmin;
 
   const provinces = useMemo(() => {
     const p = new Set<string>();
@@ -117,6 +142,35 @@ export default function AdminAuditPage() {
     }
   };
 
+  const handleAuthorizeActivity = async (id: string) => {
+    if (!isPresident) return;
+    setAuthorizing(id);
+    try {
+      const docRef = doc(firestore, 'calendar_activities', id);
+      await updateDoc(docRef, { 
+        isAuthorized: true, 
+        authorizedBy: userData?.fullName || 'President' 
+      });
+      toast({ title: "Activity Authorized", description: "Deployment is now live nationwide." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Failed to authorize", description: error.message });
+    } finally {
+      setAuthorizing(null);
+    }
+  };
+
+  const handleRejectActivity = async (id: string) => {
+    if (!isPresident) return;
+    if (!confirm("Are you sure you want to REJECT and delete this activity proposal?")) return;
+    try {
+      const docRef = doc(firestore, 'calendar_activities', id);
+      await deleteDoc(docRef);
+      toast({ title: "Activity Rejected", description: "Proposal has been removed." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Action Failed", description: error.message });
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 bg-background min-h-screen pb-32">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -126,7 +180,7 @@ export default function AdminAuditPage() {
               <ShieldCheck className="h-6 w-6 md:h-8 md:w-8" />
               Audit Center
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">Manage sentiment and organizational growth.</p>
+            <p className="text-muted-foreground text-sm mt-1">Manage sentiment, organizational growth, and mobilization directives.</p>
           </div>
         </div>
 
@@ -138,6 +192,11 @@ export default function AdminAuditPage() {
             <TabsTrigger value="promotion" className="px-6 font-black uppercase text-[10px] tracking-widest flex-1 md:flex-none">
               <TrendingUp className="h-3 w-3 mr-2" /> Promotion
             </TabsTrigger>
+            {isPresident && (
+              <TabsTrigger value="auth" className="px-6 font-black uppercase text-[10px] tracking-widest flex-1 md:flex-none">
+                <CalendarCheck className="h-3 w-3 mr-2" /> Authorization
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="feedback" className="space-y-6">
@@ -190,7 +249,6 @@ export default function AdminAuditPage() {
           </TabsContent>
 
           <TabsContent value="promotion" className="space-y-6">
-            {/* Desktop View */}
             <div className="hidden md:block">
               <Card className="shadow-xl overflow-hidden border-none">
                 <Table>
@@ -212,7 +270,6 @@ export default function AdminAuditPage() {
               </Card>
             </div>
 
-            {/* Mobile Card View */}
             <div className="md:hidden space-y-4">
               {usersLoading ? <div className="py-12 flex justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div> :
                promotionQueue.length === 0 ? <p className="text-center py-12 text-muted-foreground">Queue is empty.</p> :
@@ -249,6 +306,89 @@ export default function AdminAuditPage() {
                ))}
             </div>
           </TabsContent>
+
+          {isPresident && (
+            <TabsContent value="auth" className="space-y-6">
+              <div className="bg-primary/5 p-4 rounded-xl border border-dashed border-primary/20 flex items-center gap-3 mb-6">
+                <ShieldCheck className="h-6 w-6 text-primary" />
+                <p className="text-sm font-medium text-primary">
+                  Review and authorize mobilization activities proposed by the National Secretariat.
+                </p>
+              </div>
+
+              {activitiesLoading ? (
+                <div className="flex justify-center py-24"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
+              ) : pendingActivities.length === 0 ? (
+                <div className="py-24 text-center border-2 border-dashed rounded-2xl bg-muted/20">
+                  <CalendarCheck className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
+                  <p className="text-muted-foreground font-medium">No pending activity authorizations.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-6">
+                  {pendingActivities.map((activity: any) => (
+                    <Card key={activity.id} className="shadow-lg border-l-4 border-l-amber-500 overflow-hidden group">
+                      <CardHeader className="bg-muted/30">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-xl font-headline font-black text-primary uppercase">{activity.title}</CardTitle>
+                              <Badge variant="outline" className="text-[9px] font-black uppercase">{activity.scope}</Badge>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase">
+                              <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {format(new Date(activity.startDate), 'PPpp')}</span>
+                              <span className="flex items-center gap-1"><Globe className="h-3 w-3" /> {activity.targetCity || 'National'}, {activity.targetProvince || ''}</span>
+                            </div>
+                          </div>
+                          <Badge className="bg-amber-500 font-black text-[9px] uppercase px-3 py-1">WAITING FOR PRESIDENT</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-6 space-y-4">
+                        <p className="text-sm text-foreground/80 leading-relaxed font-medium italic border-l-2 pl-4 border-primary/10">
+                          "{activity.description || "No detailed agenda provided."}"
+                        </p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+                          {activity.meetingLink && (
+                            <div className="flex items-center gap-2 text-xs font-bold text-primary truncate">
+                              <Video className="h-4 w-4 shrink-0" />
+                              Link: <span className="font-medium text-muted-foreground underline">{activity.meetingLink}</span>
+                            </div>
+                          )}
+                          {activity.locationAddress && (
+                            <div className="flex items-center gap-2 text-xs font-bold text-primary truncate">
+                              <MapPin className="h-4 w-4 shrink-0" />
+                              Address: <span className="font-medium text-muted-foreground">{activity.locationAddress}</span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                      <CardFooter className="bg-muted/10 border-t flex flex-col md:flex-row items-center justify-between gap-4 pt-4">
+                        <div className="text-[9px] font-black uppercase text-muted-foreground flex items-center gap-2">
+                          <UserPlus className="h-3 w-3" /> Proposed by: {activity.organizerName}
+                        </div>
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                          <Button 
+                            variant="destructive" 
+                            className="flex-1 md:flex-none h-12 font-black uppercase text-[10px] tracking-widest px-6"
+                            onClick={() => handleRejectActivity(activity.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> RejectProposal
+                          </Button>
+                          <Button 
+                            className="flex-1 md:flex-none h-12 font-black uppercase text-[10px] tracking-widest px-8 shadow-xl bg-green-600 hover:bg-green-700"
+                            onClick={() => handleAuthorizeActivity(activity.id)}
+                            disabled={authorizing === activity.id}
+                          >
+                            {authorizing === activity.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4 mr-2" /> Authorize & Deploy</>}
+                          </Button>
+                        </div>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

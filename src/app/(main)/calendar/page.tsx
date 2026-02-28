@@ -23,7 +23,8 @@ import {
   ShieldCheck,
   Filter,
   CalendarPlus,
-  ArrowRight
+  ArrowRight,
+  AlertCircle
 } from "lucide-react";
 import {
   Dialog,
@@ -52,7 +53,7 @@ import { cn } from "@/lib/utils";
  * @fileOverview Calendar of Activities page.
  * Global Visibility: Accessible to all members.
  * RBAC: Only President, Admin, Sec Gen can manage.
- * Features: Smart regional filtering and external calendar sync.
+ * AUTHORIZATION: All events require Presidential sign-off before becoming public.
  */
 
 const NCR_CODE = "130000000";
@@ -62,12 +63,13 @@ export default function CalendarActivitiesPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Data Stream - Fetches all activities for global visibility
-  const { data: activities, loading } = useCollection('calendar_activities');
+  // Data Stream - Fetches ONLY authorized activities for public view
+  const { data: activities, loading } = useCollection('calendar_activities', {
+    queries: [{ attribute: 'isAuthorized', operator: '==', value: true }]
+  });
 
   // UI State
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  // Default filter is 'smart' - shows National + My Region
   const [filter, setFilter] = useState<'smart' | 'all' | 'national' | 'region'>('smart');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,13 +88,12 @@ export default function CalendarActivitiesPage() {
   const [provinces, setProvinces] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
 
-  // RBAC Permission Check - Strictly restricted creation/edit
+  const isPresident = userData?.role === 'President';
   const canManage = useMemo(() => {
     const roles = ['President', 'Admin', 'Secretary General'];
     return userData && roles.includes(userData.role);
   }, [userData]);
 
-  // Fetch Locations for the creation form
   useMemo(() => {
     const fetchLocations = async () => {
       try {
@@ -106,7 +107,6 @@ export default function CalendarActivitiesPage() {
     if (canManage) fetchLocations();
   }, [canManage]);
 
-  // Fetch Cities when province is selected in form
   useMemo(() => {
     const fetchCities = async () => {
       if (!targetProvince) return;
@@ -123,16 +123,14 @@ export default function CalendarActivitiesPage() {
     fetchCities();
   }, [targetProvince, provinces]);
 
-  // Global Filtering Logic
   const filteredActivities = useMemo(() => {
     return activities.filter(a => {
       if (filter === 'national') return a.scope === 'National';
       if (filter === 'region') return a.scope === 'Regional' && (a.targetProvince === userData?.province || a.targetCity === userData?.city);
       if (filter === 'smart') {
-        // Smart view: show all national + only my regional events
         return a.scope === 'National' || (a.scope === 'Regional' && (a.targetProvince === userData?.province || a.targetCity === userData?.city));
       }
-      return true; // 'all' view shows everything nationwide
+      return true;
     }).sort((a, b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime());
   }, [activities, filter, userData]);
 
@@ -161,12 +159,19 @@ export default function CalendarActivitiesPage() {
         locationAddress,
         organizerName: userData?.fullName || 'Official',
         organizerUid: userData?.uid,
+        isAuthorized: isPresident, // Auto-authorize if President creates it
+        authorizedBy: isPresident ? userData?.fullName : null,
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Activity Scheduled", description: `${title} is now live on the National Calendar.` });
+      toast({ 
+        title: isPresident ? "Activity Scheduled" : "Draft Submitted", 
+        description: isPresident 
+          ? `${title} is now live on the National Calendar.` 
+          : "Your activity has been submitted for Presidential Authorization." 
+      });
+      
       setIsModalOpen(false);
-      // Reset form
       setTitle(""); setDescription(""); setStartDate(""); setMeetingLink(""); setLocationAddress("");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Scheduling Failed", description: error.message });
@@ -187,7 +192,7 @@ export default function CalendarActivitiesPage() {
 
   const getGoogleCalendarUrl = (activity: any) => {
     const start = parseISO(activity.startDate);
-    const end = addHours(start, 1); // Assume 1 hour default
+    const end = addHours(start, 1);
     const fmt = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
     const dates = `${fmt(start)}/${fmt(end)}`;
     const details = encodeURIComponent(activity.description || "Official PDDS Activity");
@@ -231,7 +236,7 @@ export default function CalendarActivitiesPage() {
                 <DialogTrigger asChild>
                   <Button className="h-12 px-6 font-black uppercase tracking-widest shadow-xl rounded-xl mt-auto">
                     <Plus className="mr-2 h-5 w-5" />
-                    Schedule Activity
+                    {isPresident ? "Schedule Activity" : "Draft Activity"}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
@@ -239,9 +244,13 @@ export default function CalendarActivitiesPage() {
                     <DialogHeader>
                       <DialogTitle className="font-headline text-xl flex items-center gap-2">
                         <ShieldCheck className="h-6 w-6 text-primary" />
-                        New Party Activity
+                        {isPresident ? "New Party Activity" : "Draft Operational Directive"}
                       </DialogTitle>
-                      <DialogDescription>Coordinate operations across the national hierarchy.</DialogDescription>
+                      <DialogDescription>
+                        {isPresident 
+                          ? "Broadcast a new directive instantly to the national registry." 
+                          : "Submit an operational activity for Presidential authorization."}
+                      </DialogDescription>
                     </DialogHeader>
                     <div className="py-6 space-y-4">
                       <div className="space-y-2">
@@ -307,7 +316,7 @@ export default function CalendarActivitiesPage() {
                     </div>
                     <DialogFooter>
                       <Button type="submit" className="w-full font-black h-12 uppercase tracking-widest" disabled={isSubmitting}>
-                        {isSubmitting ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : "Dispatch Activity"}
+                        {isSubmitting ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : (isPresident ? "Dispatch Activity" : "Submit for Approval")}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -320,7 +329,6 @@ export default function CalendarActivitiesPage() {
 
       <div className="p-4 md:p-8 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Calendar Picker & Legend */}
         <div className="lg:col-span-4 space-y-6">
           <Card className="shadow-xl border-none overflow-hidden bg-white">
             <CardHeader className="bg-primary/5 pb-4 border-b">
@@ -362,7 +370,7 @@ export default function CalendarActivitiesPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm font-medium leading-relaxed italic">
-                "Synchronizing your local presence with the national movement ensures operational continuity."
+                "Every activity displayed here has been officially authorized by the National Leadership for member participation."
               </p>
               <div className="flex items-center gap-2 pt-4 border-t border-white/10">
                 <Globe className="h-4 w-4 text-accent animate-pulse" />
@@ -372,27 +380,26 @@ export default function CalendarActivitiesPage() {
           </Card>
         </div>
 
-        {/* Activity List */}
         <div className="lg:col-span-8 space-y-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-3">
               Activities for {selectedDate ? format(selectedDate, 'PPPP') : 'Selected Day'}
             </h2>
             <Badge variant="secondary" className="bg-primary/10 text-primary font-black">
-              {selectedDayActivities.length} Operations
+              {selectedDayActivities.length} Authorized
             </Badge>
           </div>
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Syncing Party Records...</p>
+              <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Syncing Authorized Records...</p>
             </div>
           ) : selectedDayActivities.length === 0 ? (
             <Card className="p-24 text-center border-dashed border-2 bg-muted/20">
               <div className="flex flex-col items-center gap-4">
                 <Search className="h-12 w-12 text-muted-foreground/30" />
-                <p className="text-muted-foreground font-medium">No party activities scheduled for this date in your view.</p>
+                <p className="text-muted-foreground font-medium">No authorized party activities scheduled for this date.</p>
                 <Button variant="ghost" onClick={() => setFilter('all')} className="text-[10px] font-black uppercase tracking-widest">
                   View other regions <ArrowRight className="ml-2 h-3 w-3" />
                 </Button>
@@ -478,9 +485,16 @@ export default function CalendarActivitiesPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="bg-primary/5 border-t py-3 flex justify-between">
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">
-                      Organizer: {activity.organizerName}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 leading-none">
+                        Organizer: {activity.organizerName}
+                      </span>
+                      {activity.authorizedBy && (
+                        <span className="text-[8px] font-bold text-green-600 uppercase mt-1 flex items-center gap-1">
+                          <ShieldCheck className="h-2 w-2" /> Authorized by {activity.authorizedBy}
+                        </span>
+                      )}
+                    </div>
                     <Badge variant="outline" className="text-[8px] opacity-40 uppercase border-none">
                       REF: {activity.id.substring(0, 8)}
                     </Badge>
