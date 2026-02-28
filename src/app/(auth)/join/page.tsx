@@ -16,16 +16,16 @@ import {
     RecaptchaVerifier, 
     signInWithPhoneNumber, 
     ConfirmationResult,
-    sendEmailVerification,
     GoogleAuthProvider,
     FacebookAuthProvider,
-    signInWithPopup
+    signInWithRedirect,
+    getRedirectResult
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, increment, updateDoc, getDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Loader2, Camera, User, Phone, Globe } from "lucide-react";
+import { Loader2, User, Phone, Globe, ShieldCheck } from "lucide-react";
 
 const NCR_CODE = "130000000";
 
@@ -57,15 +57,53 @@ export default function JoinPage() {
     // UI State
     const [loading, setLoading] = useState(false);
     const [socialUser, setSocialUser] = useState<any>(null);
-    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-    const [selectedFile, setSelectedFile] = useState<File | Blob | null>(null);
     const [showOtpInput, setShowOtpInput] = useState(false);
     const [otp, setOtp] = useState("");
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
     const [agreed, setAgreed] = useState(false);
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const verifierRef = useRef<RecaptchaVerifier | null>(null);
+
+    // Handle Redirect Result on Mount
+    useEffect(() => {
+        const handleAuthRedirect = async () => {
+            setLoading(true);
+            try {
+                const result = await getRedirectResult(auth);
+                if (result) {
+                    const user = result.user;
+                    
+                    const docRef = doc(firestore, "users", user.uid);
+                    const docSnap = await getDoc(docRef);
+
+                    if (docSnap.exists()) {
+                        toast({ title: "Welcome Back!" });
+                        router.push("/home");
+                        return;
+                    }
+
+                    setSocialUser({
+                        uid: user.uid,
+                        email: user.email || "",
+                        fullName: user.displayName || "MEMBER",
+                        photoURL: user.photoURL || null
+                    });
+                    
+                    setFullName(user.displayName || "");
+                    setEmail(user.email || "");
+                    toast({ title: "Authenticated", description: "Please finalize your location to complete joining." });
+                }
+            } catch (error: any) {
+                console.error("Redirect Error:", error);
+                if (error.code !== 'auth/redirect-cancelled-by-user') {
+                    toast({ variant: "destructive", title: "Authentication Error", description: error.message });
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+        handleAuthRedirect();
+    }, [auth, firestore, router, toast]);
 
     useEffect(() => {
         const fetchProvinces = async () => {
@@ -111,31 +149,9 @@ export default function JoinPage() {
     const handleSocialLogin = async (provider: any) => {
         setLoading(true);
         try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-            
-            const docRef = doc(firestore, "users", user.uid);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                toast({ title: "Welcome Back!" });
-                router.push("/home");
-                return;
-            }
-
-            setSocialUser({
-                uid: user.uid,
-                email: user.email || "",
-                fullName: user.displayName || "MEMBER",
-                photoURL: user.photoURL || null
-            });
-            
-            setFullName(user.displayName || "");
-            setEmail(user.email || "");
-            toast({ title: "Authenticated", description: "Please finalize your location to complete joining." });
+            await signInWithRedirect(auth, provider);
         } catch (error: any) {
             toast({ variant: "destructive", title: "Authentication Error", description: error.message });
-        } finally {
             setLoading(false);
         }
     };
@@ -208,13 +224,6 @@ export default function JoinPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            let finalPhotoURL = null;
-            if (selectedFile) {
-                const storageRef = ref(storage, `users/${user.uid}/profile.jpg`);
-                const uploadResult = await uploadBytes(storageRef, selectedFile);
-                finalPhotoURL = await getDownloadURL(uploadResult.ref);
-            }
-
             const supporterData = {
                 uid: user.uid,
                 email: email.trim().toLowerCase(),
@@ -224,7 +233,7 @@ export default function JoinPage() {
                 barangay: selectedBarangay,
                 city: selectedCity,
                 province: selectedProvince,
-                photoURL: finalPhotoURL,
+                photoURL: null,
                 role: "Supporter",
                 isApproved: true,
                 kartilyaAgreed: true,
@@ -250,20 +259,30 @@ export default function JoinPage() {
     };
 
     return (
-        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/30 p-4 pb-12">
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/30 p-4 pb-12 relative">
+            {/* Security Loading Overlay */}
+            {loading && (
+                <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                    <p className="text-lg font-black uppercase tracking-widest text-primary animate-pulse text-center px-4">
+                        Securing your place in the national registry...
+                    </p>
+                </div>
+            )}
+
             <div className="mb-8 flex items-center gap-4">
                 <PddsLogo className="h-14 w-14" />
-                <h1 className="text-4xl font-black tracking-tighter text-primary font-headline uppercase">
+                <h1 className="text-4xl font-black tracking-tighter text-primary font-headline uppercase text-center">
                     PatriotLink
                 </h1>
             </div>
 
-            <Card className="w-full max-w-lg shadow-2xl border-t-4 border-primary">
+            <Card className="w-full max-w-lg shadow-2xl border-t-4 border-primary bg-white">
                 {socialUser ? (
                     <form onSubmit={handleSocialComplete}>
                         <CardHeader>
                             <CardTitle className="text-2xl text-center font-headline uppercase">Complete Joining</CardTitle>
-                            <CardDescription className="text-center">Finalize your location to generate your Digital ID.</CardDescription>
+                            <CardDescription className="text-center font-medium text-muted-foreground">Finalize your location to generate your Digital ID.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex flex-col items-center gap-3 pb-4 border-b">
@@ -271,21 +290,24 @@ export default function JoinPage() {
                                     <AvatarImage src={socialUser.photoURL} />
                                     <AvatarFallback><User /></AvatarFallback>
                                 </Avatar>
-                                <p className="font-bold text-primary">{socialUser.fullName}</p>
+                                <p className="font-bold text-primary flex items-center gap-2">
+                                    <ShieldCheck className="h-4 w-4" />
+                                    {socialUser.fullName}
+                                </p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                                 <div className="space-y-2">
-                                    <Label>Province</Label>
+                                    <Label className="text-[10px] font-black uppercase text-primary">Province</Label>
                                     <Select onValueChange={setSelectedProvince} value={selectedProvince}>
-                                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                                        <SelectTrigger className="h-12"><SelectValue placeholder="Select" /></SelectTrigger>
                                         <SelectContent>{provinces.map((p) => <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>City</Label>
+                                    <Label className="text-[10px] font-black uppercase text-primary">City</Label>
                                     <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
-                                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                                        <SelectTrigger className="h-12"><SelectValue placeholder="Select" /></SelectTrigger>
                                         <SelectContent>{cities.map((c) => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
@@ -293,11 +315,11 @@ export default function JoinPage() {
 
                             <div className="flex items-start space-x-3 pt-2">
                                 <Checkbox id="terms-social" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} />
-                                <Label htmlFor="terms-social" className="text-xs font-medium leading-none">I agree to the PDDS Kartilya principles.</Label>
+                                <Label htmlFor="terms-social" className="text-xs font-bold leading-none text-muted-foreground">I agree to the official PDDS Kartilya principles.</Label>
                             </div>
                         </CardContent>
                         <CardFooter>
-                            <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={loading || !agreed || !selectedCity}>
+                            <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !agreed || !selectedCity}>
                                 {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Induction"}
                             </Button>
                         </CardFooter>
@@ -305,24 +327,26 @@ export default function JoinPage() {
                 ) : !showOtpInput ? (
                     <form onSubmit={handleInitialSubmit}>
                         <CardHeader>
-                            <CardTitle className="text-2xl text-center font-headline uppercase">Join the Movement</CardTitle>
-                            <CardDescription className="text-center">Secure your place in the national registry.</CardDescription>
+                            <CardTitle className="text-2xl text-center font-headline uppercase tracking-tight">Join the Movement</CardTitle>
+                            <CardDescription className="text-center font-medium text-muted-foreground">Secure your place in the national registry.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-1 gap-3">
                                 <Button 
                                     type="button" 
                                     variant="outline" 
-                                    className="w-full bg-[#4285F4] text-white hover:bg-[#357ae8] border-none font-bold h-11"
+                                    className="w-full bg-[#4285F4] text-white hover:bg-[#357ae8] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md"
                                     onClick={() => handleSocialLogin(new GoogleAuthProvider())}
+                                    disabled={loading}
                                 >
                                     Continue with Google
                                 </Button>
                                 <Button 
                                     type="button" 
                                     variant="outline" 
-                                    className="w-full bg-[#1877F2] text-white hover:bg-[#166fe5] border-none font-bold h-11"
+                                    className="w-full bg-[#1877F2] text-white hover:bg-[#166fe5] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md"
                                     onClick={() => handleSocialLogin(new FacebookAuthProvider())}
+                                    disabled={loading}
                                 >
                                     Continue with Facebook
                                 </Button>
@@ -330,51 +354,51 @@ export default function JoinPage() {
 
                             <div className="relative">
                                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                                <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-background px-2 text-muted-foreground font-black">Or Join with Email</span></div>
+                                <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-white px-4 text-muted-foreground font-black tracking-[0.2em]">Or Join with Email</span></div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Full Name</Label>
-                                    <Input placeholder="JUAN DELA CRUZ" required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} />
+                                    <Label className="text-[10px] font-black uppercase text-primary">Full Name</Label>
+                                    <Input placeholder="JUAN DELA CRUZ" className="h-12 font-bold" required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Phone Number</Label>
-                                    <Input placeholder="+639..." required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
+                                    <Label className="text-[10px] font-black uppercase text-primary">Phone Number</Label>
+                                    <Input placeholder="+639..." className="h-12 font-bold" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Email</Label>
-                                <Input type="email" placeholder="juan@example.com" required value={email} onChange={e => setEmail(e.target.value)} />
+                                <Label className="text-[10px] font-black uppercase text-primary">Email Address</Label>
+                                <Input type="email" placeholder="juan@example.com" className="h-12 font-bold" required value={email} onChange={e => setEmail(e.target.value)} />
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Password</Label>
-                                <Input type="password" required value={password} onChange={e => setPassword(e.target.value)} minLength={6} />
+                                <Label className="text-[10px] font-black uppercase text-primary">Password</Label>
+                                <Input type="password" required className="h-12" value={password} onChange={e => setPassword(e.target.value)} minLength={6} />
                             </div>
 
                             <div className="flex items-start space-x-3">
                                 <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} />
-                                <Label htmlFor="terms" className="text-xs font-medium leading-none">I agree to the PDDS Kartilya principles.</Label>
+                                <Label htmlFor="terms" className="text-xs font-bold leading-none text-muted-foreground">I agree to the official PDDS Kartilya principles.</Label>
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-col gap-4">
-                            <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={loading || !agreed}>
+                            <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !agreed}>
                                 {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Verify & Join"}
                             </Button>
-                            <p className="text-sm text-center text-muted-foreground">Already a member? <Link href="/login" className="text-primary font-bold hover:underline">Sign In</Link></p>
+                            <p className="text-sm text-center text-muted-foreground font-medium">Already a member? <Link href="/login" className="text-primary font-black hover:underline uppercase text-xs tracking-widest">Sign In</Link></p>
                         </CardFooter>
                     </form>
                 ) : (
                     <div className="p-6 space-y-6">
-                        <CardHeader className="px-0">
-                            <CardTitle className="text-2xl text-center font-headline uppercase">Verify SMS</CardTitle>
-                            <CardDescription className="text-center">Enter the code sent to {phoneNumber}</CardDescription>
+                        <CardHeader className="px-0 text-center">
+                            <CardTitle className="text-2xl font-headline uppercase">Verify SMS</CardTitle>
+                            <CardDescription className="font-medium text-muted-foreground">Enter the 6-digit code sent to {phoneNumber}</CardDescription>
                         </CardHeader>
                         <div className="space-y-4">
-                            <Input id="otp" placeholder="000000" maxLength={6} className="text-center text-2xl tracking-[1em]" value={otp} onChange={e => setOtp(e.target.value)} />
-                            <Button className="w-full h-12 text-lg font-bold" onClick={handleVerifyAndComplete} disabled={loading || otp.length !== 6}>
+                            <Input id="otp" placeholder="000000" maxLength={6} className="text-center text-3xl font-black tracking-[0.5em] h-16" value={otp} onChange={e => setOtp(e.target.value)} />
+                            <Button className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" onClick={handleVerifyAndComplete} disabled={loading || otp.length !== 6}>
                                 {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Registration"}
                             </Button>
                         </div>
