@@ -10,55 +10,65 @@ import {
   XAxis, 
   YAxis, 
   CartesianGrid, 
-  Tooltip, 
   ResponsiveContainer,
   Cell,
-  PieChart,
-  Pie
+  Tooltip
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Map, TrendingUp, Users, MessageSquare, Loader2, AlertCircle } from "lucide-react";
+import { Map, TrendingUp, Users, Loader2, Sparkles, Trophy, Globe, CalendarDays } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { subDays, isAfter } from "date-fns";
 
 export default function AdminAnalyticsPage() {
-  const { data: feedback, loading } = useCollection('community_feedback');
+  const { data: users, loading } = useCollection('users');
 
-  // Logic to process "Heat Map" and Sentiment data
+  // Logic to process Membership Density and Growth
   const stats = useMemo(() => {
-    if (!feedback.length) return { hotspots: [], topics: [], total: 0 };
+    if (!users.length) return { hotspots: [], total: 0, growth: 0, cityStats: [] };
 
-    const locationMap: Record<string, number> = {};
-    const topicMap: Record<string, number> = {};
+    const provinceMap: Record<string, number> = {};
+    const cityMap: Record<string, number> = {};
+    
+    const sevenDaysAgo = subDays(new Date(), 7);
+    let newRegistrations = 0;
 
-    feedback.forEach(item => {
-      // Group by Location (City/Barangay)
-      const loc = item.location || "Unknown";
-      locationMap[loc] = (locationMap[loc] || 0) + 1;
+    users.forEach(user => {
+      // 1. Group by Province
+      const prov = user.province || "Unknown Region";
+      provinceMap[prov] = (provinceMap[prov] || 0) + 1;
 
-      // Group by Topic
-      const topic = item.topic || "Others";
-      topicMap[topic] = (topicMap[topic] || 0) + 1;
+      // 2. Group by City
+      const city = user.city || "Unknown City";
+      cityMap[city] = (cityMap[city] || 0) + 1;
+
+      // 3. Calculate Growth (New this week)
+      if (user.createdAt) {
+        const createdDate = user.createdAt.toDate ? user.createdAt.toDate() : new Date(user.createdAt);
+        if (isAfter(createdDate, sevenDaysAgo)) {
+          newRegistrations++;
+        }
+      }
     });
 
-    // Sort hotspots by volume
-    const sortedHotspots = Object.entries(locationMap)
+    // Sort Strongholds (Provinces)
+    const sortedHotspots = Object.entries(provinceMap)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // Sort Top Cities
+    const sortedCities = Object.entries(cityMap)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    // Format topics for Chart
-    const topicData = Object.entries(topicMap).map(([name, count]) => ({
-      name,
-      count,
-      fill: `var(--color-${name.toLowerCase().replace(/\s+/g, '-')})`
-    }));
-
     return {
       hotspots: sortedHotspots,
-      topics: topicData,
-      total: feedback.length
+      topStrongholds: sortedHotspots.slice(0, 5),
+      cityStats: sortedCities,
+      total: users.length,
+      growth: newRegistrations
     };
-  }, [feedback]);
+  }, [users]);
 
   if (loading) {
     return (
@@ -66,7 +76,7 @@ export default function AdminAnalyticsPage() {
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-            Analyzing Voter Sentiment...
+            Generating National Heat Map...
           </p>
         </div>
       </div>
@@ -75,128 +85,170 @@ export default function AdminAnalyticsPage() {
 
   const chartConfig = {
     count: {
-      label: "Submissions",
-      color: "hsl(var(--primary))",
+      label: "Members",
+      color: "hsl(var(--accent))",
     },
   };
 
   return (
     <div className="p-6 bg-background min-h-screen pb-24">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b-2 border-primary pb-6">
+        
+        {/* Header & National Metrics */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-2 border-primary pb-6">
           <div>
             <h1 className="text-3xl font-bold text-primary font-headline flex items-center gap-3 uppercase tracking-tight">
-              <Map className="h-8 w-8" />
-              Regional Sentiment Heat Map
+              <Globe className="h-8 w-8" />
+              National Mobilization Heat Map
             </h1>
-            <p className="text-muted-foreground mt-1 font-medium">Identify mobilization hotspots and community needs in real-time.</p>
+            <p className="text-muted-foreground mt-1 font-medium italic">Command Center: Visualizing the surge of the Federalismo movement.</p>
           </div>
-          <div className="flex items-center gap-4 bg-primary/5 px-4 py-2 rounded-lg border border-primary/10">
-            <div className="text-right">
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 leading-none">Total Feedback</p>
-              <p className="text-2xl font-black text-primary">{stats.total}</p>
-            </div>
-            <TrendingUp className="h-8 w-8 text-primary opacity-20" />
+          
+          <div className="flex flex-wrap gap-4">
+            <Card className="shadow-lg border-l-4 border-l-primary bg-white px-6 py-3 flex items-center gap-4">
+                <div className="p-2 bg-primary/5 rounded-full text-primary">
+                    <Users className="h-5 w-5" />
+                </div>
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">National Base</p>
+                    <p className="text-2xl font-black text-primary leading-none">{stats.total.toLocaleString()}</p>
+                </div>
+            </Card>
+            
+            <Card className="shadow-lg border-l-4 border-l-green-600 bg-white px-6 py-3 flex items-center gap-4">
+                <div className="p-2 bg-green-50 rounded-full text-green-600">
+                    <TrendingUp className="h-5 w-5" />
+                </div>
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">Growth (7D)</p>
+                    <p className="text-2xl font-black text-green-600 leading-none">+{stats.growth.toLocaleString()}</p>
+                </div>
+            </Card>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Top 5 Hotspots */}
-          <Card className="lg:col-span-1 shadow-xl border-t-4 border-accent h-fit">
-            <CardHeader>
-              <CardTitle className="text-lg font-headline uppercase font-bold flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-accent" />
-                Active Hubs
-              </CardTitle>
-              <CardDescription className="text-[10px] font-black uppercase tracking-widest">Top 5 Most Engaged Areas</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {stats.hotspots.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground italic text-sm">No data available.</div>
-              ) : (
-                stats.hotspots.map((spot, index) => (
-                  <div key={spot.name} className="space-y-2">
-                    <div className="flex justify-between items-end">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-primary/40">0{index + 1}</span>
-                        <span className="text-sm font-bold uppercase truncate max-w-[180px]">{spot.name}</span>
-                      </div>
-                      <Badge variant="secondary" className="bg-primary/10 text-primary font-black text-[10px]">
-                        {spot.count} Hits
-                      </Badge>
-                    </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-primary transition-all duration-1000" 
-                        style={{ width: `${(spot.count / stats.hotspots[0].count) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Sentiment Distribution Chart */}
+          
+          {/* TOP STRONGHOLDS CHART */}
           <Card className="lg:col-span-2 shadow-xl border-t-4 border-primary">
-            <CardHeader>
+            <CardHeader className="bg-primary/5 border-b">
               <CardTitle className="text-lg font-headline uppercase font-bold flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-primary" />
-                Topic Distribution
+                <Trophy className="h-5 w-5 text-accent" />
+                Regional Strongholds
               </CardTitle>
-              <CardDescription className="text-[10px] font-black uppercase tracking-widest">Community Issue Priority Weighting</CardDescription>
+              <CardDescription className="text-[10px] font-black uppercase tracking-widest">Identifying key recruitment hubs nationwide</CardDescription>
             </CardHeader>
-            <CardContent className="h-[400px]">
+            <CardContent className="h-[400px] pt-6">
               <ChartContainer config={chartConfig} className="h-full w-full">
-                <BarChart data={stats.topics} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                  <XAxis 
+                <BarChart data={stats.topStrongholds} layout="vertical" margin={{ left: 40, right: 40, top: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.2} />
+                  <XAxis type="number" hide />
+                  <YAxis 
                     dataKey="name" 
+                    type="category" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 9, fontWeight: 'bold', textAnchor: 'end' }}
-                    interval={0}
-                    angle={-45}
+                    tick={{ fontSize: 10, fontWeight: 'bold', fill: 'hsl(var(--primary))' }}
                     className="uppercase tracking-tighter"
                   />
-                  <YAxis hide />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={40}>
-                    {stats.topics.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index % 2 === 0 ? "hsl(var(--primary))" : "hsl(var(--accent))"} />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={40}>
+                    {stats.topStrongholds.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={index === 0 ? "hsl(var(--accent))" : `hsla(var(--primary), ${1 - index * 0.15})`} 
+                      />
                     ))}
                   </Bar>
                 </BarChart>
               </ChartContainer>
             </CardContent>
           </Card>
+
+          {/* GROWTH PULSE & NOTES */}
+          <div className="space-y-6">
+            <Card className="shadow-lg border-l-4 border-l-accent overflow-hidden">
+                <CardHeader className="bg-accent/5 pb-2">
+                    <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-accent" />
+                        Campaign Note
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 italic text-sm text-muted-foreground leading-relaxed">
+                    "High density in the heat map indicates areas primed for major LEADCON events. Cross-reference these strongholds with recruitment counts to identify your top Regional Organizers."
+                </CardContent>
+            </Card>
+
+            <Card className="shadow-lg border-t-4 border-accent">
+                <CardHeader>
+                    <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 text-accent" />
+                        Top Hub Cities
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {stats.cityStats.map((city, idx) => (
+                        <div key={city.name} className="flex justify-between items-center py-2 border-b border-dashed last:border-0">
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-black text-primary/30">0{idx+1}</span>
+                                <span className="text-xs font-bold uppercase">{city.name}</span>
+                            </div>
+                            <Badge variant="secondary" className="bg-primary/5 text-primary text-[10px] font-bold">
+                                {city.count}
+                            </Badge>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-primary/5 p-6 rounded-2xl border border-dashed border-primary/20 flex items-start gap-4">
-            <div className="p-3 bg-white rounded-xl shadow-sm border border-primary/10">
-              <Users className="h-6 w-6 text-primary" />
+        {/* FULL REGIONAL HEAT GRID */}
+        <div className="space-y-4">
+            <div className="flex items-center gap-2">
+                <Map className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight">Full Regional Distribution</h2>
             </div>
-            <div>
-              <h3 className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-1">Mobilization Note</h3>
-              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                High density in the heat map indicates areas primed for LEADCON events or local recruitment drives. Cross-reference these hotspots with recruitment counts to identify your most effective regional leaders.
-              </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {stats.hotspots.map((spot) => {
+                    const percentage = Math.round((spot.count / stats.total) * 100);
+                    const intensity = spot.count / stats.hotspots[0].count;
+                    
+                    return (
+                        <Card key={spot.name} className="shadow-sm hover:shadow-md transition-all group overflow-hidden border-none bg-white">
+                            <div 
+                                className="h-1.5 w-full bg-accent transition-all duration-1000" 
+                                style={{ opacity: intensity, width: '100%' }}
+                            />
+                            <CardContent className="p-4 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <h3 className="text-xs font-black uppercase tracking-tight text-primary group-hover:text-accent transition-colors truncate max-w-[70%]">
+                                        {spot.name}
+                                    </h3>
+                                    <Badge className="bg-primary/5 text-primary border-none text-[9px] font-black">
+                                        {spot.count}
+                                    </Badge>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-muted-foreground">
+                                        <span>Contribution</span>
+                                        <span>{percentage}%</span>
+                                    </div>
+                                    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-primary" 
+                                            style={{ width: `${percentage}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
-          </div>
-          
-          <div className="bg-accent/5 p-6 rounded-2xl border border-dashed border-accent/20 flex items-start gap-4">
-            <div className="p-3 bg-white rounded-xl shadow-sm border border-accent/10">
-              <AlertCircle className="h-6 w-6 text-accent" />
-            </div>
-            <div>
-              <h3 className="text-xs font-black text-accent-foreground uppercase tracking-[0.2em] mb-1">Issue Tracking</h3>
-              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                Topics with unusually high volume (e.g., Security or Infrastructure) should be flagged for official party policy statements. Use the Broadcast Center to address these specific regional concerns at scale.
-              </p>
-            </div>
-          </div>
         </div>
+
       </div>
     </div>
   );
