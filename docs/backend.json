@@ -51,6 +51,26 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["eventId", "userId", "scannedBy", "timestamp"]
+    },
+    "calendar_activity": {
+      "title": "Calendar Activity",
+      "description": "An official party activity or event.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "scope": { "type": "string", "enum": ["National", "Regional"] },
+        "targetProvince": { "type": "string" },
+        "targetCity": { "type": "string" },
+        "meetingLink": { "type": "string" },
+        "locationAddress": { "type": "string" },
+        "organizerName": { "type": "string" },
+        "organizerUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "startDate", "scope"]
     }
   },
   "auth": {
@@ -64,6 +84,10 @@
     "/attendance/{attendanceId}": {
       "schema": { "$ref": "#/backend/entities/attendance_record" },
       "description": "Stores official event attendance records."
+    },
+    "/calendar_activities/{activityId}": {
+      "schema": { "$ref": "#/backend/entities/calendar_activity" },
+      "description": "Stores official party events and activities."
     }
   }
 }

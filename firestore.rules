@@ -41,11 +41,23 @@ service cloud.firestore {
       return get(userPath).data.role in leadershipRoles;
     }
 
+    function isCalendarEditor() {
+      if (!isSignedIn()) return false;
+      if (isPrivilegedEmail()) return true;
+      let user = getUserData();
+      return user.role in ['President', 'Admin', 'Secretary General'];
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isOwner(userId) || isOfficerOrAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recruitCount', 'fcmToken', 'phoneNumber', 'isPhoneVerified']));
       allow delete: if isOfficerOrAdmin();
+    }
+
+    match /calendar_activities/{activityId} {
+      allow read: if isSignedIn();
+      allow write: if isCalendarEditor();
     }
 
     match /meeting_agendas/{agendaId} {

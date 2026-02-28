@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -14,6 +14,7 @@ import { pddsLeadershipRoles } from "@/lib/data";
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
   { href: '/directory', label: 'Directory', icon: Users },
+  { href: '/calendar', label: 'Activities', icon: Calendar },
   { href: '/agendas', label: 'Agendas', icon: BookText },
   { href: '/vault', label: 'Document Vault', icon: Library },
 ];
