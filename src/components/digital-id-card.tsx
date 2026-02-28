@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef } from "react";
@@ -9,7 +8,7 @@ import PddsLogo from "./icons/pdds-logo";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 import { toPng } from "html-to-image";
-import { Download, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Download, ShieldCheck, CheckCircle2, MapPin } from "lucide-react";
 
 export function DigitalIdCard({ userData }: { userData: any }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -27,14 +26,20 @@ export function DigitalIdCard({ userData }: { userData: any }) {
     }
   }
 
+  // Full Jurisdiction String
+  const jurisdiction = [
+    userData.barangay,
+    userData.city,
+    userData.province
+  ].filter(Boolean).join(', ') || 'National Jurisdiction';
+
   // Profile completion check for "Verified" badge
-  const isProfileComplete = !!(userData.photoURL && userData.fullName && (userData.city || userData.assignedLocation));
+  const isProfileComplete = !!(userData.photoURL && userData.fullName && userData.phoneNumber);
 
   const handleDownload = async () => {
     if (cardRef.current === null) return;
     
     try {
-      // Export at higher pixel ratio for print/high-res quality
       const dataUrl = await toPng(cardRef.current, { 
         cacheBust: true, 
         pixelRatio: 3,
@@ -52,51 +57,48 @@ export function DigitalIdCard({ userData }: { userData: any }) {
 
   return (
     <div className="flex flex-col gap-4 items-center w-full">
-      {/* Wrapper with padding for clean screenshot edges */}
       <div className="p-4 bg-muted/20 rounded-xl w-full flex justify-center overflow-hidden">
         <div 
             ref={cardRef} 
-            className="w-full max-w-[320px] aspect-[1/1.58] overflow-hidden rounded-2xl shadow-2xl bg-gradient-to-br from-[#194278] via-[#194278] to-[#0d2a4f] text-white relative flex flex-col"
+            className="w-full max-w-[320px] aspect-[1/1.58] overflow-hidden rounded-2xl shadow-2xl bg-gradient-to-br from-[#002366] via-[#002366] to-[#00153d] text-white relative flex flex-col"
         >
-          {/* Decorative Security Background Pattern */}
+          {/* Decorative Security Pattern */}
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                <pattern id="id-grid" width="20" height="20" patternUnits="userSpaceOnUse">
                   <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" strokeWidth="0.5"/>
                 </pattern>
               </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
+              <rect width="100%" height="100%" fill="url(#id-grid)" />
             </svg>
           </div>
           
-          {/* Decorative Glows */}
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#F9CB0D]/10 blur-3xl" />
-          <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#D4AF37]/10 blur-3xl" />
           
-          <CardContent className="p-6 flex flex-col items-center gap-5 relative z-10 h-full">
-            {/* Header Area */}
-            <div className="flex w-full items-center justify-between mb-2">
+          <CardContent className="p-6 flex flex-col items-center gap-4 relative z-10 h-full">
+            {/* Header Branding */}
+            <div className="flex w-full items-center justify-between mb-1">
               <div className="flex items-center gap-2">
-                <div className="bg-white p-1 rounded-full shadow-sm">
-                  <PddsLogo className="h-8 w-8 mix-blend-normal" />
+                <div className="bg-white p-1 rounded-full shadow-sm border border-[#D4AF37]">
+                  <PddsLogo className="h-8 w-8" />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[13px] font-black tracking-tighter uppercase leading-none font-headline">Federalismo</span>
-                  <span className="text-[8px] font-black tracking-[0.2em] uppercase opacity-70">Official ID</span>
+                  <span className="text-[8px] font-black tracking-[0.2em] uppercase text-[#D4AF37]">Official Membership</span>
                 </div>
               </div>
               {isProfileComplete && (
-                <Badge className="bg-[#F9CB0D] text-[#194278] text-[9px] font-black px-2 py-0.5 border-none shadow-lg">
-                  <ShieldCheck className="h-3 w-3 mr-1" />
+                <Badge className="bg-[#D4AF37] text-[#002366] text-[8px] font-black px-2 py-0.5 border-none shadow-lg">
+                  <ShieldCheck className="h-2.5 w-2.5 mr-1" />
                   VERIFIED
                 </Badge>
               )}
             </div>
 
-            {/* Profile Photo - Circular with Accent Border */}
-            <div className="relative group">
-              <div className="h-32 w-32 rounded-full border-4 border-[#F9CB0D] overflow-hidden bg-white shadow-2xl transition-transform duration-500">
+            {/* Profile Photo */}
+            <div className="relative">
+              <div className="h-32 w-32 rounded-full border-4 border-[#D4AF37] overflow-hidden bg-white shadow-2xl">
                 {userData.photoURL ? (
                   <img 
                     src={userData.photoURL} 
@@ -105,52 +107,65 @@ export function DigitalIdCard({ userData }: { userData: any }) {
                     crossOrigin="anonymous"
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-full w-full bg-[#194278]/20">
+                  <div className="flex items-center justify-center h-full w-full bg-[#002366]/20">
                     <PddsLogo className="h-16 w-16 opacity-20" />
                   </div>
                 )}
               </div>
-              <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 border-2 border-[#194278]">
+              <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 border-2 border-[#002366]">
                 <CheckCircle2 className="h-4 w-4 text-white" />
               </div>
             </div>
 
-            {/* User Credentials */}
-            <div className="text-center space-y-1.5 w-full">
-              <h2 className="text-2xl font-black uppercase tracking-tight leading-none truncate px-2 font-headline">{userData.fullName}</h2>
-              <div className="flex items-center justify-center gap-2">
-                <span className="h-px w-6 bg-[#F9CB0D]/40" />
-                <p className="text-[10px] text-[#F9CB0D] font-black uppercase tracking-[0.25em]">Supporter Network</p>
-                <span className="h-px w-6 bg-[#F9CB0D]/40" />
-              </div>
+            {/* Supporter Identity */}
+            <div className="text-center space-y-1 w-full">
+              <h2 className="text-xl font-black uppercase tracking-tight leading-none truncate px-2 font-headline">{userData.fullName}</h2>
+              <p className="text-[9px] text-[#D4AF37] font-black uppercase tracking-[0.25em]">Verified Supporter</p>
             </div>
 
             {/* Jurisdictional Footprint */}
-            <div className="w-full grid grid-cols-2 gap-4 mt-2 pt-5 border-t border-white/10">
-              <div className="space-y-1">
-                <p className="text-[8px] text-white/40 uppercase font-black tracking-widest">Joined Since</p>
-                <p className="text-[13px] font-bold">{joinedDate}</p>
+            <div className="w-full bg-white/5 rounded-xl p-3 border border-white/10 space-y-3">
+              <div className="flex items-start gap-2">
+                <MapPin className="h-3 w-3 text-[#D4AF37] shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="text-[7px] text-white/40 uppercase font-black tracking-widest leading-none">Jurisdiction</p>
+                  <p className="text-[11px] font-bold leading-tight">{jurisdiction}</p>
+                </div>
               </div>
-              <div className="text-right space-y-1">
-                <p className="text-[8px] text-white/40 uppercase font-black tracking-widest">Location</p>
-                <p className="text-[13px] font-bold truncate">{userData.assignedLocation || userData.city || 'National'}</p>
+              <div className="flex justify-between border-t border-white/10 pt-2">
+                <div>
+                  <p className="text-[7px] text-white/40 uppercase font-black tracking-widest leading-none">Joined</p>
+                  <p className="text-[11px] font-bold">{joinedDate}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[7px] text-white/40 uppercase font-black tracking-widest leading-none">Member ID</p>
+                  <p className="text-[11px] font-mono font-bold">#{userData.uid?.substring(0, 6).toUpperCase()}</p>
+                </div>
               </div>
             </div>
 
-            {/* Encrypted Security QR */}
-            <div className="mt-auto w-full flex flex-col items-center gap-3">
-              <div className="bg-white p-2.5 rounded-xl shadow-2xl transform transition-all hover:scale-105 duration-300">
+            {/* Security Section with QR and Watermark */}
+            <div className="mt-auto w-full flex flex-col items-center gap-2">
+              <div className="relative bg-white p-2 rounded-xl shadow-2xl overflow-hidden group">
+                {/* 10% Opacity Seal Watermark */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-2">
+                  <PddsLogo className="w-full h-full opacity-[0.08] transform rotate-12 scale-125" />
+                </div>
+                
                 <QRCodeSVG 
                   value={userData.uid || 'unauthorized'} 
-                  size={70} 
+                  size={60} 
                   level="H"
-                  fgColor="#194278"
+                  fgColor="#002366"
                   includeMargin={false}
+                  className="relative z-10"
                 />
               </div>
               <div className="flex flex-col items-center">
-                <p className="text-[8px] text-white/30 font-mono uppercase tracking-[0.3em]">SECURE ACCESS KEY</p>
-                <p className="text-[9px] text-[#F9CB0D]/60 font-mono font-bold">{userData.uid?.substring(0, 16).toUpperCase()}</p>
+                <p className="text-[7px] text-white/30 font-mono uppercase tracking-[0.3em]">SECURE NATIONAL ACCESS KEY</p>
+                <p className="text-[8px] text-[#D4AF37]/60 font-mono font-bold tracking-widest">
+                  {userData.uid?.substring(0, 12).toUpperCase()}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -160,7 +175,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
       <Button 
         onClick={handleDownload} 
         variant="default" 
-        className="w-full max-w-[320px] h-12 font-black uppercase text-xs tracking-[0.15em] shadow-lg group"
+        className="w-full max-w-[320px] h-12 font-black uppercase text-xs tracking-[0.15em] shadow-lg group bg-[#002366] hover:bg-[#001a3d] text-white"
       >
         <Download className="mr-2 h-4 w-4 group-hover:animate-bounce" /> 
         Export Digital ID Card

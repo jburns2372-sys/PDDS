@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -41,13 +40,10 @@ export function DesktopSidebar() {
   
   return (
     <aside className="hidden w-64 flex-shrink-0 flex-col border-r bg-card md:flex">
-      <div className="flex h-16 items-center gap-3 px-6">
-        <div className="bg-white p-1 rounded-full shadow-sm">
-            <PddsLogo className="h-8 w-8" />
+      <div className="flex h-24 flex-col items-center justify-center px-6 py-4">
+        <div className="bg-white p-1 rounded-full shadow-md border border-[#D4AF37]">
+            <PddsLogo className="h-12 w-12" />
         </div>
-        <span className="text-xl font-black tracking-tight text-primary font-headline uppercase">
-          PDDS PORTAL
-        </span>
       </div>
       <Separator />
       <nav className="flex flex-col flex-1 justify-between p-4">
