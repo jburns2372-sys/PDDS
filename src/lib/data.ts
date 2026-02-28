@@ -1,5 +1,9 @@
 
-// Official PDDS leadership roles - using "Secretary General" for 100% data alignment
+/**
+ * PDDS Party Configuration & Official References
+ */
+
+// Official PDDS leadership roles
 export const pddsLeadershipRoles = [
   "President",
   "Chairman",
@@ -16,6 +20,7 @@ export const pddsLeadershipRoles = [
   "VP legal affairs"
 ];
 
+// Jurisdictional hierarchy levels
 export const jurisdictionLevels = [
   "National",
   "Regional",

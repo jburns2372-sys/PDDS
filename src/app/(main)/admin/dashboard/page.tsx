@@ -3,7 +3,7 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info, UserX, UserCheck, ArrowRightLeft } from "lucide-react";
+import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info, UserX, UserCheck, ArrowRightLeft, MapPin, Phone } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc } from "firebase/firestore";
 import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
 
@@ -37,9 +37,16 @@ export default function AdminDashboard() {
     const [searchTerm, setSearchTerm] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
-    // Form State
+    // Form State (Synced with Profile/Registration)
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [streetAddress, setStreetAddress] = useState("");
+    const [barangay, setBarangay] = useState("");
+    const [city, setCity] = useState("");
+    const [province, setProvince] = useState("");
+    const [zipCode, setZipCode] = useState("");
+    
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [role, setRole] = useState("Member");
@@ -78,11 +85,12 @@ export default function AdminDashboard() {
         return () => unsubscribe();
     }, [firestore]);
 
-    const activeOfficers = useMemo(() => {
+    const filteredRegistry = useMemo(() => {
         return allUsers.filter(user => {
             const matchesSearch = 
                 (user.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (user.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+                (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (user.city || '').toLowerCase().includes(searchTerm.toLowerCase());
             return matchesSearch;
         });
     }, [allUsers, searchTerm]);
@@ -92,6 +100,12 @@ export default function AdminDashboard() {
         setIsEditMode(false);
         setFullName("");
         setEmail("");
+        setPhoneNumber("");
+        setStreetAddress("");
+        setBarangay("");
+        setCity("");
+        setProvince("");
+        setZipCode("");
         setRole("Member");
         setJurisdictionLevel("National");
         setAssignedLocation("");
@@ -129,6 +143,12 @@ export default function AdminDashboard() {
         setIsEditMode(true);
         setFullName(user.fullName || "");
         setEmail(user.email || "");
+        setPhoneNumber(user.phoneNumber || "");
+        setStreetAddress(user.streetAddress || "");
+        setBarangay(user.barangay || "");
+        setCity(user.city || "");
+        setProvince(user.province || "");
+        setZipCode(user.zipCode || "");
         setRole(user.role || "Member");
         setJurisdictionLevel(user.jurisdictionLevel || "National");
         setAssignedLocation(user.assignedLocation || "");
@@ -239,9 +259,15 @@ export default function AdminDashboard() {
 
                 const dataPayload: any = { 
                     fullName: fullName.trim().toUpperCase(), 
+                    phoneNumber: phoneNumber.trim(),
+                    streetAddress: streetAddress.trim().toUpperCase(),
+                    barangay: barangay.trim().toUpperCase(),
+                    city: city.trim().toUpperCase(),
+                    province: province.trim().toUpperCase(),
+                    zipCode: zipCode.trim(),
                     role, 
                     jurisdictionLevel, 
-                    assignedLocation: assignedLocation.trim(), 
+                    assignedLocation: assignedLocation.trim() || city.trim(), 
                     photoURL: finalPhotoURL,
                     resumeURL: finalResumeURL,
                     resumeText: resumeText.trim(),
@@ -251,7 +277,7 @@ export default function AdminDashboard() {
                 };
 
                 await updateUserDocument(firestore, uid, dataPayload);
-                toast({ title: "Updated", description: "Officer record has been updated." });
+                toast({ title: "Updated", description: "Member record has been updated." });
                 resetForm();
             } else {
                 const tempApp = createTemporaryApp();
@@ -276,20 +302,27 @@ export default function AdminDashboard() {
                         uid: uid,
                         email: email.trim().toLowerCase(),
                         fullName: fullName.trim().toUpperCase(), 
+                        phoneNumber: phoneNumber.trim(),
+                        streetAddress: streetAddress.trim().toUpperCase(),
+                        barangay: barangay.trim().toUpperCase(),
+                        city: city.trim().toUpperCase(),
+                        province: province.trim().toUpperCase(),
+                        zipCode: zipCode.trim(),
                         role, 
                         jurisdictionLevel, 
-                        assignedLocation: assignedLocation.trim(), 
+                        assignedLocation: assignedLocation.trim() || city.trim(), 
                         photoURL: finalPhotoURL,
                         resumeURL: finalResumeURL,
                         resumeText: resumeText.trim(),
                         aboutText: aboutText.trim(),
                         isApproved: true,
                         kartilyaAgreed: true,
+                        recruitCount: 0,
                         createdAt: serverTimestamp(),
                     };
                     
                     await setDoc(doc(firestore, 'users', uid), dataPayload);
-                    toast({ title: "Registered", description: "New officer has been registered." });
+                    toast({ title: "Registered", description: "New member has been registered." });
                     resetForm();
                 } catch (regError: any) {
                     toast({ variant: "destructive", title: "Registration Failed", description: regError.message });
@@ -309,11 +342,11 @@ export default function AdminDashboard() {
         <div className="p-6 bg-background min-h-screen pb-24">
             <div className="mb-8 border-b-2 border-primary pb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-primary flex items-center gap-2 font-headline">
+                    <h1 className="text-3xl font-bold text-primary flex items-center gap-2 font-headline uppercase tracking-tight">
                         <Shield className="h-8 w-8" />
-                        Officer & Supporter Management
+                        Official Member Registry
                     </h1>
-                    <p className="text-muted-foreground mt-2">Maintain the official leadership registry and access levels.</p>
+                    <p className="text-muted-foreground mt-2">Maintain the official leadership and supporter database.</p>
                 </div>
             </div>
 
@@ -324,7 +357,7 @@ export default function AdminDashboard() {
                             <CardHeader>
                                 <CardTitle className="text-xl font-headline flex items-center gap-2">
                                     <UserPlus className="h-5 w-5" />
-                                    {isEditMode ? `Edit Profile` : 'Register New User'}
+                                    {isEditMode ? `Edit Profile` : 'Register New Member'}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -340,121 +373,162 @@ export default function AdminDashboard() {
                                     </div>
                                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                                 </div>
+                                
                                 <div className="space-y-2">
-                                    <Label>Full Name</Label>
+                                    <Label className="text-xs font-black uppercase tracking-widest text-primary">Full Name</Label>
                                     <Input 
                                         required 
                                         value={fullName} 
                                         onChange={e => setFullName(e.target.value.toUpperCase())} 
                                         placeholder="ENTER FULL NAME" 
+                                        className="h-11 font-bold"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Email Address</Label>
-                                    <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={isEditMode} placeholder="email@example.com" />
-                                </div>
-                                
+
                                 <div className="grid grid-cols-1 gap-4">
                                     <div className="space-y-2">
-                                        <Label className="flex items-center justify-between">
-                                            <span>Password</span>
-                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-xs text-primary hover:underline">
-                                                {showPassword ? <EyeOff className="h-3 w-3 inline" /> : <Eye className="h-3 w-3 inline" />}
-                                            </button>
-                                        </Label>
-                                        <Input 
-                                            required={!isEditMode} 
-                                            type={showPassword ? "text" : "password"} 
-                                            value={password} 
-                                            onChange={e => setPassword(e.target.value)} 
-                                            placeholder={isEditMode ? "Leave blank to keep current" : "Minimum 6 characters"}
-                                        />
+                                        <Label className="text-xs font-black uppercase tracking-widest text-primary">Email Address</Label>
+                                        <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={isEditMode} placeholder="email@example.com" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Confirm Password</Label>
-                                        <Input 
-                                            required={!isEditMode || (password.length > 0)} 
-                                            type={showPassword ? "text" : "password"} 
-                                            value={confirmPassword} 
-                                            onChange={e => setConfirmPassword(e.target.value)} 
-                                            placeholder={isEditMode ? "Repeat if changing" : "Repeat password"}
-                                        />
+                                        <Label className="text-xs font-black uppercase tracking-widest text-primary">Phone Number</Label>
+                                        <Input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} placeholder="+639..." />
+                                    </div>
+                                </div>
+                                
+                                {!isEditMode && (
+                                    <div className="grid grid-cols-1 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="flex items-center justify-between">
+                                                <span className="text-xs font-black uppercase tracking-widest text-primary">Password</span>
+                                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-xs text-primary hover:underline">
+                                                    {showPassword ? <EyeOff className="h-3 w-3 inline" /> : <Eye className="h-3 w-3 inline" />}
+                                                </button>
+                                            </Label>
+                                            <Input 
+                                                required={!isEditMode} 
+                                                type={showPassword ? "text" : "password"} 
+                                                value={password} 
+                                                onChange={e => setPassword(e.target.value)} 
+                                                placeholder="Minimum 6 characters"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-black uppercase tracking-widest text-primary">Confirm Password</Label>
+                                            <Input 
+                                                required={!isEditMode} 
+                                                type={showPassword ? "text" : "password"} 
+                                                value={confirmPassword} 
+                                                onChange={e => setConfirmPassword(e.target.value)} 
+                                                placeholder="Repeat password"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="space-y-4 pt-4 border-t">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 mb-2">
+                                        <MapPin className="h-3 w-3" /> Residence Information
+                                    </Label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] uppercase opacity-60">Province</Label>
+                                            <Input value={province} onChange={e => setProvince(e.target.value.toUpperCase())} className="h-9 text-xs" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] uppercase opacity-60">City</Label>
+                                            <Input value={city} onChange={e => setCity(e.target.value.toUpperCase())} className="h-9 text-xs" />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] uppercase opacity-60">Barangay</Label>
+                                            <Input value={barangay} onChange={e => setBarangay(e.target.value.toUpperCase())} className="h-9 text-xs" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] uppercase opacity-60">Zip Code</Label>
+                                            <Input value={zipCode} onChange={e => setZipCode(e.target.value)} className="h-9 text-xs" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[9px] uppercase opacity-60">Street Address</Label>
+                                        <Input value={streetAddress} onChange={e => setStreetAddress(e.target.value.toUpperCase())} className="h-9 text-xs" />
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label>Designated Role</Label>
-                                    <Select onValueChange={setRole} value={role}>
-                                        <SelectTrigger><SelectValue placeholder="Select Role" /></SelectTrigger>
-                                        <SelectContent>
-                                            {allAssignableRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-4 pt-4 border-t">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 mb-2">
+                                        <Shield className="h-3 w-3" /> Party Designation
+                                    </Label>
                                     <div className="space-y-2">
-                                        <Label>Jurisdiction Level</Label>
-                                        <Select onValueChange={setJurisdictionLevel} value={jurisdictionLevel}>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <Label className="text-[9px] uppercase opacity-60">Role</Label>
+                                        <Select onValueChange={setRole} value={role}>
+                                            <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Role" /></SelectTrigger>
                                             <SelectContent>
-                                                {jurisdictionLevels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                                                {allAssignableRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>Assigned Location</Label>
-                                        <Input required placeholder="City or Province" value={assignedLocation} onChange={e => setAssignedLocation(e.target.value)} />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] uppercase opacity-60">Level</Label>
+                                            <Select onValueChange={setJurisdictionLevel} value={jurisdictionLevel}>
+                                                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {jurisdictionLevels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] uppercase opacity-60">Assign Loc.</Label>
+                                            <Input placeholder="HQ or Region" value={assignedLocation} onChange={e => setAssignedLocation(e.target.value)} className="h-9 text-xs" />
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="space-y-2 pt-4 border-t">
-                                    <Label className="flex items-center gap-2">
-                                        <Info className="h-4 w-4" />
-                                        About Information
+                                    <Label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary">
+                                        <Info className="h-3 w-3" /> Biography
                                     </Label>
                                     <Textarea 
-                                        placeholder="Write a brief bio or description..." 
+                                        placeholder="Write a brief bio..." 
                                         value={aboutText} 
                                         onChange={e => setAboutText(e.target.value)}
-                                        className="min-h-[100px] text-xs"
+                                        className="min-h-[80px] text-xs"
                                     />
                                 </div>
 
                                 <div className="space-y-2 pt-4 border-t">
-                                    <Label className="flex items-center gap-2">
-                                        <FileText className="h-4 w-4" />
-                                        Resume (Officers)
+                                    <Label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary">
+                                        <FileText className="h-3 w-3" /> Resume/Credentials
                                     </Label>
-                                    <Tabs defaultValue="file" className="w-full">
+                                    <Tabs defaultValue="text" className="w-full">
                                         <TabsList className="grid w-full grid-cols-2 mb-2">
-                                            <TabsTrigger value="file" className="text-xs"><Upload className="h-3 w-3 mr-1" /> File</TabsTrigger>
                                             <TabsTrigger value="text" className="text-xs"><Type className="h-3 w-3 mr-1" /> Text</TabsTrigger>
+                                            <TabsTrigger value="file" className="text-xs"><Upload className="h-3 w-3 mr-1" /> File</TabsTrigger>
                                         </TabsList>
-                                        <TabsContent value="file" className="space-y-2">
-                                            <div className="flex flex-col gap-2">
-                                                <Button type="button" variant="outline" size="sm" onClick={() => resumeInputRef.current?.click()} className="w-full">
-                                                    {resumeFile ? resumeFile.name : (resumeURL ? "Change Attached Resume" : "Upload PDF/Word")}
-                                                </Button>
-                                                <input type="file" ref={resumeInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={handleResumeFileChange} />
-                                                {resumeURL && !resumeFile && <p className="text-[10px] text-primary text-center">Existing resume file detected.</p>}
-                                            </div>
-                                        </TabsContent>
                                         <TabsContent value="text">
                                             <Textarea 
-                                                placeholder="Paste resume details here..." 
+                                                placeholder="Paste credentials..." 
                                                 value={resumeText} 
                                                 onChange={e => setResumeText(e.target.value)}
-                                                className="min-h-[120px] text-xs"
+                                                className="min-h-[100px] text-xs"
                                             />
+                                        </TabsContent>
+                                        <TabsContent value="file" className="space-y-2">
+                                            <Button type="button" variant="outline" size="sm" onClick={() => resumeInputRef.current?.click()} className="w-full h-9 text-xs">
+                                                {resumeFile ? resumeFile.name : (resumeURL ? "Attached Resume" : "Upload Document")}
+                                            </Button>
+                                            <input type="file" ref={resumeInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={handleResumeFileChange} />
                                         </TabsContent>
                                     </Tabs>
                                 </div>
                             </CardContent>
                             <CardFooter className="flex flex-col gap-2">
-                                <Button type="submit" className="w-full" disabled={loading}>
-                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isEditMode ? 'Save Changes' : 'Register Member')}
+                                <Button type="submit" className="w-full h-11 font-black uppercase tracking-widest text-xs" disabled={loading}>
+                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isEditMode ? 'Save Profile' : 'Register Member')}
                                 </Button>
-                                {isEditMode && <Button variant="ghost" type="button" onClick={resetForm} className="w-full">Cancel Edit</Button>}
+                                {isEditMode && <Button variant="ghost" type="button" onClick={resetForm} className="w-full text-xs uppercase font-bold">Cancel</Button>}
                             </CardFooter>
                         </form>
                     </Card>
@@ -464,29 +538,29 @@ export default function AdminDashboard() {
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
-                            className="pl-10 h-12 shadow-sm" 
-                            placeholder="Search members by name or email..." 
+                            className="pl-10 h-12 shadow-sm uppercase font-bold text-xs" 
+                            placeholder="Search by Name, Email, or City..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
                     
-                    <Card className="shadow-lg overflow-hidden border-none">
-                        <CardHeader className="bg-primary/5 py-3 border-b">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Users className="h-5 w-5 text-primary" />
-                                Member Registry
+                    <Card className="shadow-lg overflow-hidden border-none bg-white">
+                        <CardHeader className="bg-primary text-primary-foreground py-3 border-b">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                <Users className="h-5 w-5" />
+                                Live Member Registry
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="bg-muted/30">
-                                        <TableHead className="w-[80px] pl-6">Photo</TableHead>
-                                        <TableHead>Member</TableHead>
-                                        <TableHead>Role / Status</TableHead>
-                                        <TableHead>Jurisdiction</TableHead>
-                                        <TableHead className="text-right pr-6">Actions</TableHead>
+                                    <TableRow className="bg-muted/50 border-none">
+                                        <TableHead className="w-[80px] pl-6 text-[10px] font-black uppercase">Photo</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Member Info</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Role & Status</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase">Jurisdiction</TableHead>
+                                        <TableHead className="text-right pr-6 text-[10px] font-black uppercase">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -496,14 +570,14 @@ export default function AdminDashboard() {
                                                 <Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" />
                                             </TableCell>
                                         </TableRow>
-                                    ) : activeOfficers.length === 0 ? (
+                                    ) : filteredRegistry.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-24 text-muted-foreground">
-                                                No results found in registry.
+                                            <TableCell colSpan={5} className="text-center py-24 text-muted-foreground font-medium italic">
+                                                No members found matching your search.
                                             </TableCell>
                                         </TableRow>
-                                    ) : activeOfficers.map(member => (
-                                        <TableRow key={member.id} className={`hover:bg-muted/20 ${member.isApproved === false ? 'bg-destructive/5' : ''}`}>
+                                    ) : filteredRegistry.map(member => (
+                                        <TableRow key={member.id} className={`hover:bg-muted/30 transition-colors ${member.isApproved === false ? 'bg-destructive/5' : ''}`}>
                                             <TableCell className="pl-6">
                                                 <Avatar className="h-10 w-10 border shadow-sm bg-background">
                                                     <AvatarImage src={member.photoURL || ""} className="object-cover" />
@@ -513,25 +587,27 @@ export default function AdminDashboard() {
                                                 </Avatar>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="font-bold text-sm uppercase">{member.fullName}</div>
-                                                <div className="text-[11px] text-muted-foreground">{member.email}</div>
+                                                <div className="font-bold text-sm uppercase tracking-tight">{member.fullName}</div>
+                                                <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                    <Phone className="h-2.5 w-2.5" /> {member.phoneNumber || 'NO PHONE'}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col gap-1 items-start">
-                                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] font-bold uppercase tracking-tighter">
+                                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[9px] font-black uppercase tracking-tighter">
                                                         {member.role}
                                                     </Badge>
                                                     {member.isApproved === false && (
-                                                        <Badge variant="destructive" className="text-[9px] font-black uppercase">Suspended</Badge>
+                                                        <Badge variant="destructive" className="text-[8px] font-black uppercase px-1 h-4">Suspended</Badge>
                                                     )}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="text-[11px] font-bold">
-                                                    {member.jurisdictionLevel}
+                                                <div className="text-[11px] font-bold uppercase tracking-tighter">
+                                                    {member.city}
                                                 </div>
-                                                <div className="text-[10px] text-muted-foreground">
-                                                    {member.assignedLocation}
+                                                <div className="text-[9px] text-muted-foreground uppercase">
+                                                    {member.jurisdictionLevel}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right pr-6 space-x-1">
@@ -540,7 +616,7 @@ export default function AdminDashboard() {
                                                     size="icon" 
                                                     onClick={() => handleToggleRole(member)} 
                                                     className="h-8 w-8 text-primary"
-                                                    title={member.role === 'Officer' ? "Make Supporter" : "Make Officer"}
+                                                    title="Toggle Role"
                                                 >
                                                     <ArrowRightLeft className="h-4 w-4" />
                                                 </Button>
@@ -549,7 +625,7 @@ export default function AdminDashboard() {
                                                     size="icon" 
                                                     onClick={() => handleToggleStatus(member)} 
                                                     className={`h-8 w-8 ${member.isApproved === false ? 'text-green-600' : 'text-amber-600'}`}
-                                                    title={member.isApproved === false ? "Approve Access" : "Suspend Access"}
+                                                    title="Toggle Access"
                                                 >
                                                     {member.isApproved === false ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
                                                 </Button>
@@ -562,7 +638,7 @@ export default function AdminDashboard() {
                                                     className="h-8 w-8 text-destructive" 
                                                     onClick={() => handleRevoke(member)}
                                                     disabled={member.id === currentUser?.uid}
-                                                    title="Permanently Remove"
+                                                    title="Permanent Revoke"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
