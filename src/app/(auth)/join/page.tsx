@@ -20,7 +20,7 @@ import {
     ConfirmationResult,
     sendEmailVerification
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, increment, updateDoc, collection, getDocs, query, limit } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, increment, updateDoc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
@@ -294,11 +294,10 @@ export default function JoinPage() {
         setLoading(true);
         try {
             await confirmationResult.confirm(otp);
-            const usersRef = collection(firestore, "users");
-            const firstUserCheck = await getDocs(query(usersRef, limit(1)));
-            const isFirstUser = firstUserCheck.empty;
-
+            
             const trimmedEmail = email.trim().toLowerCase();
+            const isAdminEmail = trimmedEmail === 'iamgrecobelgica@gmail.com';
+
             const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
             const user = userCredential.user;
 
@@ -322,10 +321,10 @@ export default function JoinPage() {
                 province: selectedProvince,
                 zipCode: zipCode,
                 photoURL: finalPhotoURL,
-                role: isFirstUser ? "Admin" : "Supporter",
-                isSuperAdmin: isFirstUser,
-                jurisdictionLevel: isFirstUser ? "National" : "City/Municipal",
-                assignedLocation: isFirstUser ? "National Headquarters" : selectedCity,
+                role: isAdminEmail ? "Admin" : "Supporter",
+                isSuperAdmin: isAdminEmail,
+                jurisdictionLevel: isAdminEmail ? "National" : "City/Municipal",
+                assignedLocation: isAdminEmail ? "National Headquarters" : selectedCity,
                 isApproved: true,
                 kartilyaAgreed: true,
                 recruitCount: 0,
@@ -335,12 +334,17 @@ export default function JoinPage() {
 
             await setDoc(doc(firestore, "users", user.uid), supporterData);
 
-            if (referralUid && !isFirstUser) {
+            if (referralUid && !isAdminEmail) {
               const referrerRef = doc(firestore, "users", referralUid);
               updateDoc(referrerRef, { recruitCount: increment(1) }).catch(e => console.error(e));
             }
 
-            toast({ title: "Welcome to PDDS!", description: isFirstUser ? "Production Environment Initialized. You have been granted Administrative access." : "Account created. Check email for verification link." });
+            toast({ 
+                title: "Welcome to PDDS!", 
+                description: isAdminEmail 
+                    ? "Production Environment Initialized. You have been granted Administrative access to the PDDS War Room." 
+                    : "Registered successfully as a Supporter." 
+            });
             router.push("/home");
         } catch (error: any) {
             console.error(error);
@@ -367,7 +371,6 @@ export default function JoinPage() {
                             <CardDescription className="text-center">Secure your place in the Federalismo ng Dugong Dakilang Samahan.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {/* Form fields remain consistent with previous logic for location selection and selfie */}
                             <div className="flex flex-col items-center gap-4 pb-6 border-b">
                                 <Avatar className="h-32 w-32 border-4 border-white shadow-xl bg-muted">
                                     <AvatarImage src={photoPreview || ""} className="object-cover" />
