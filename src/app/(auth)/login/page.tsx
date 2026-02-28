@@ -1,91 +1,26 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PddsLogo from "@/components/icons/pdds-logo";
-import { useAuth, useFirestore } from "@/firebase";
-import { 
-    signInWithEmailAndPassword, 
-    GoogleAuthProvider, 
-    FacebookAuthProvider, 
-    signInWithRedirect,
-    getRedirectResult 
-} from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { useAuth } from "@/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Loader2, Mail, User } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
     const auth = useAuth();
-    const firestore = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
-
-    /**
-     * Step 1 & 2: Critical Sync Logic
-     * Handle Redirect Result and Guarantee Document Creation BEFORE navigation.
-     */
-    useEffect(() => {
-        const checkRedirect = async () => {
-            setLoading(true);
-            try {
-                const result = await getRedirectResult(auth);
-                if (result) {
-                    const user = result.user;
-                    
-                    // Critical Firestore Check (Step 1)
-                    const docRef = doc(firestore, "users", user.uid);
-                    const docSnap = await getDoc(docRef);
-
-                    if (!docSnap.exists()) {
-                        // Guaranteed Document Creation (Step 2)
-                        const newUserProfile = {
-                            uid: user.uid,
-                            email: user.email || "",
-                            fullName: user.displayName?.toUpperCase() || "MEMBER",
-                            photoURL: user.photoURL || null,
-                            role: "Supporter",
-                            isApproved: true,
-                            kartilyaAgreed: true,
-                            createdAt: serverTimestamp(),
-                        };
-                        
-                        // Wait for write confirmation before proceeding
-                        await setDoc(docRef, newUserProfile);
-                        
-                        toast({ title: "Welcome!", description: "Account provisioned. Please finalize your induction." });
-                        // Redirect to induction to capture missing location details
-                        router.push("/join?induction=pending");
-                        return;
-                    }
-
-                    // Step 3: Success path - Navigation with sync buffer
-                    toast({ title: "Welcome Back!", description: "Authenticated successfully." });
-                    setTimeout(() => {
-                        router.push("/home");
-                    }, 500);
-                    return; 
-                }
-            } catch (error: any) {
-                console.error("Login Redirect Error:", error);
-                if (error.code !== 'auth/redirect-cancelled-by-user') {
-                    toast({ variant: "destructive", title: "Login Failed", description: error.message });
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-        checkRedirect();
-    }, [auth, firestore, router, toast]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -103,28 +38,13 @@ export default function LoginPage() {
         }
     };
 
-    const handleSocialLogin = async (provider: any) => {
-        setLoading(true);
-        try {
-            // Using redirect mode for maximum stability in dev/cloud environments
-            await signInWithRedirect(auth, provider);
-        } catch (error: any) {
-            toast({
-                variant: "destructive",
-                title: "Social Login Failed",
-                description: error.message,
-            });
-            setLoading(false);
-        }
-    };
-
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/30 p-4 relative">
         {loading && (
             <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
                 <p className="text-lg font-black uppercase tracking-widest text-primary animate-pulse text-center px-4 font-headline">
-                    Securing your place in the national registry...
+                    Accessing the national registry...
                 </p>
             </div>
         )}
@@ -141,33 +61,6 @@ export default function LoginPage() {
             <CardDescription className="text-center font-medium text-muted-foreground">Access your PDDS War Room account.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-            {/* Social Login Section */}
-            <div className="grid grid-cols-1 gap-3">
-                <Button 
-                    variant="outline" 
-                    className="w-full bg-[#4285F4] text-white hover:bg-[#357ae8] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md flex items-center justify-center gap-2"
-                    onClick={() => handleSocialLogin(new GoogleAuthProvider())}
-                    disabled={loading}
-                >
-                    <Mail className="h-4 w-4" />
-                    Continue with Google
-                </Button>
-                <Button 
-                    variant="outline" 
-                    className="w-full bg-[#1877F2] text-white hover:bg-[#166fe5] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md flex items-center justify-center gap-2"
-                    onClick={() => handleSocialLogin(new FacebookAuthProvider())}
-                    disabled={loading}
-                >
-                    <User className="h-4 w-4" />
-                    Continue with Facebook
-                </Button>
-            </div>
-
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-white px-4 text-muted-foreground font-black tracking-[0.2em]">Or Use Credentials</span></div>
-            </div>
-
             <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-primary">Email Address</Label>

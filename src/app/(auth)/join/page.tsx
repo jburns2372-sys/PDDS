@@ -8,24 +8,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PddsLogo from "@/components/icons/pdds-logo";
 import { useAuth, useFirestore } from "@/firebase";
 import { 
     createUserWithEmailAndPassword, 
     RecaptchaVerifier, 
     signInWithPhoneNumber, 
-    ConfirmationResult,
-    GoogleAuthProvider,
-    FacebookAuthProvider,
-    signInWithRedirect,
-    getRedirectResult
+    ConfirmationResult
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, increment, updateDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, increment, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Loader2, User, Phone, Globe, ShieldCheck, Mail } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const NCR_CODE = "130000000";
 
@@ -42,8 +36,7 @@ export default function JoinPage() {
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [phoneNumber, setPhoneNumber] = useState("");
-    const [streetAddress, setStreetAddress] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("+63");
     
     // Location State
     const [provinces, setProvinces] = useState<any[]>([]);
@@ -53,74 +46,12 @@ export default function JoinPage() {
 
     // UI State
     const [loading, setLoading] = useState(false);
-    const [socialUser, setSocialUser] = useState<any>(null);
     const [showOtpInput, setShowOtpInput] = useState(false);
     const [otp, setOtp] = useState("");
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
     const [agreed, setAgreed] = useState(false);
 
     const verifierRef = useRef<RecaptchaVerifier | null>(null);
-
-    /**
-     * Step 1 & 2: Handle Redirect Result and Guarantee Document Creation
-     */
-    useEffect(() => {
-        const handleAuthRedirect = async () => {
-            setLoading(true);
-            try {
-                const result = await getRedirectResult(auth);
-                if (result) {
-                    const user = result.user;
-                    
-                    const docRef = doc(firestore, "users", user.uid);
-                    const docSnap = await getDoc(docRef);
-
-                    if (docSnap.exists()) {
-                        // User already has a record, navigate to home with sync buffer
-                        toast({ title: "Welcome Back!", description: "Authenticated via social profile." });
-                        setTimeout(() => {
-                            router.push("/home");
-                        }, 500);
-                        return;
-                    }
-
-                    // New Social User - Capture info and hold for Induction completion
-                    setSocialUser({
-                        uid: user.uid,
-                        email: user.email || "",
-                        fullName: user.displayName || "MEMBER",
-                        photoURL: user.photoURL || null
-                    });
-                    
-                    setFullName(user.displayName?.toUpperCase() || "");
-                    setEmail(user.email || "");
-                    toast({ title: "Social Identity Verified", description: "Complete your location details to finalize membership." });
-                } else if (auth.currentUser) {
-                    // Fail-safe: Check if already logged in but doc missing
-                    const docRef = doc(firestore, "users", auth.currentUser.uid);
-                    const docSnap = await getDoc(docRef);
-                    if (!docSnap.exists()) {
-                        setSocialUser({
-                            uid: auth.currentUser.uid,
-                            email: auth.currentUser.email || "",
-                            fullName: auth.currentUser.displayName || "MEMBER",
-                            photoURL: auth.currentUser.photoURL || null
-                        });
-                        setFullName(auth.currentUser.displayName?.toUpperCase() || "");
-                        setEmail(auth.currentUser.email || "");
-                    }
-                }
-            } catch (error: any) {
-                console.error("Redirect Error:", error);
-                if (error.code !== 'auth/redirect-cancelled-by-user') {
-                    toast({ variant: "destructive", title: "Authentication Error", description: error.message });
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-        handleAuthRedirect();
-    }, [auth, firestore, router, toast]);
 
     useEffect(() => {
         const fetchProvinces = async () => {
@@ -151,58 +82,6 @@ export default function JoinPage() {
         };
         fetchCities();
     }, [selectedProvince, provinces]);
-
-    const handleSocialLogin = async (provider: any) => {
-        setLoading(true);
-        try {
-            await signInWithRedirect(auth, provider);
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Authentication Error", description: error.message });
-            setLoading(false);
-        }
-    };
-
-    const handleSocialComplete = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!socialUser || !agreed) return;
-        
-        setLoading(true);
-        try {
-            const supporterData = {
-                uid: socialUser.uid,
-                email: socialUser.email,
-                fullName: fullName.trim().toUpperCase() || socialUser.fullName.toUpperCase(),
-                phoneNumber: phoneNumber.trim() || "",
-                streetAddress: streetAddress.trim().toUpperCase(),
-                city: selectedCity,
-                province: selectedProvince,
-                photoURL: socialUser.photoURL,
-                role: "Supporter",
-                isApproved: true,
-                kartilyaAgreed: true,
-                recruitCount: 0,
-                referredBy: referralUid || null,
-                createdAt: serverTimestamp(),
-            };
-
-            // Guaranteed Document Creation BEFORE navigation (Step 2)
-            await setDoc(doc(firestore, "users", socialUser.uid), supporterData);
-            
-            if (referralUid) {
-                const referrerRef = doc(firestore, "users", referralUid);
-                updateDoc(referrerRef, { recruitCount: increment(1) }).catch(e => console.error(e));
-            }
-
-            toast({ title: "Welcome to PDDS!", description: "Membership officially confirmed." });
-            // Step 3: Global sync buffer
-            setTimeout(() => {
-                router.push("/home?registered=true");
-            }, 500);
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-            setLoading(false);
-        }
-    };
 
     const handleInitialSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -237,7 +116,6 @@ export default function JoinPage() {
                 email: email.trim().toLowerCase(),
                 fullName: fullName.trim().toUpperCase(),
                 phoneNumber: phoneNumber.trim(),
-                streetAddress: streetAddress.trim().toUpperCase(),
                 city: selectedCity,
                 province: selectedProvince,
                 photoURL: null,
@@ -266,6 +144,8 @@ export default function JoinPage() {
         }
     };
 
+    const isPhoneValid = phoneNumber.startsWith("+63") && phoneNumber.length === 13;
+
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/30 p-4 pb-12 relative">
             {loading && (
@@ -285,92 +165,13 @@ export default function JoinPage() {
             </div>
 
             <Card className="w-full max-w-lg shadow-2xl border-t-4 border-primary bg-white">
-                {socialUser ? (
-                    <form onSubmit={handleSocialComplete}>
-                        <CardHeader>
-                            <CardTitle className="text-2xl text-center font-headline uppercase">Complete Induction</CardTitle>
-                            <CardDescription className="text-center font-medium text-muted-foreground">Finalize your location to generate your Digital ID.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex flex-col items-center gap-3 pb-4 border-b">
-                                <Avatar className="h-20 w-20 border-2 border-primary shadow-lg">
-                                    <AvatarImage src={socialUser.photoURL} />
-                                    <AvatarFallback><User /></AvatarFallback>
-                                </Avatar>
-                                <p className="font-bold text-primary flex items-center gap-2">
-                                    <ShieldCheck className="h-4 w-4" />
-                                    {fullName || socialUser.fullName}
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase text-primary">Province</Label>
-                                    <Select onValueChange={setSelectedProvince} value={selectedProvince}>
-                                        <SelectTrigger className="h-12"><SelectValue placeholder="Select" /></SelectTrigger>
-                                        <SelectContent>{provinces.map((p) => <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase text-primary">City</Label>
-                                    <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
-                                        <SelectTrigger className="h-12"><SelectValue placeholder="Select" /></SelectTrigger>
-                                        <SelectContent>{cities.map((c) => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-primary">Phone Number (Optional)</Label>
-                                <Input placeholder="+639..." className="h-12 font-bold" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
-                            </div>
-
-                            <div className="flex items-start space-x-3 pt-2">
-                                <Checkbox id="terms-social" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} />
-                                <Label htmlFor="terms-social" className="text-xs font-bold leading-none text-muted-foreground">I agree to the official PDDS Kartilya principles.</Label>
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                            <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !agreed || !selectedCity}>
-                                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Induction"}
-                            </Button>
-                        </CardFooter>
-                    </form>
-                ) : !showOtpInput ? (
+                {!showOtpInput ? (
                     <form onSubmit={handleInitialSubmit}>
                         <CardHeader>
                             <CardTitle className="text-2xl text-center font-headline uppercase tracking-tight">Join the Movement</CardTitle>
                             <CardDescription className="text-center font-medium text-muted-foreground">Secure your place in the national registry.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="grid grid-cols-1 gap-3">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    className="w-full bg-[#4285F4] text-white hover:bg-[#357ae8] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md flex items-center justify-center gap-2"
-                                    onClick={() => handleSocialLogin(new GoogleAuthProvider())}
-                                    disabled={loading}
-                                >
-                                    <Mail className="h-4 w-4" />
-                                    Continue with Google
-                                </Button>
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    className="w-full bg-[#1877F2] text-white hover:bg-[#166fe5] border-none font-black uppercase tracking-widest text-xs h-12 shadow-md flex items-center justify-center gap-2"
-                                    onClick={() => handleSocialLogin(new FacebookAuthProvider())}
-                                    disabled={loading}
-                                >
-                                    <User className="h-4 w-4" />
-                                    Continue with Facebook
-                                </Button>
-                            </div>
-
-                            <div className="relative">
-                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                                <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-white px-4 text-muted-foreground font-black tracking-[0.2em]">Or Join with Credentials</span></div>
-                            </div>
-
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-primary">Full Name</Label>
@@ -392,13 +193,30 @@ export default function JoinPage() {
                                 <Input type="password" required className="h-12" value={password} onChange={e => setPassword(e.target.value)} minLength={6} />
                             </div>
 
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-primary">Province</Label>
+                                    <Select onValueChange={setSelectedProvince} value={selectedProvince}>
+                                        <SelectTrigger className="h-12"><SelectValue placeholder="Select" /></SelectTrigger>
+                                        <SelectContent>{provinces.map((p) => <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-primary">City</Label>
+                                    <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
+                                        <SelectTrigger className="h-12"><SelectValue placeholder="Select" /></SelectTrigger>
+                                        <SelectContent>{cities.map((c) => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
                             <div className="flex items-start space-x-3">
                                 <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} />
                                 <Label htmlFor="terms" className="text-xs font-bold leading-none text-muted-foreground">I agree to the official PDDS Kartilya principles.</Label>
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-col gap-4">
-                            <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !agreed}>
+                            <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !agreed || !isPhoneValid || !selectedCity}>
                                 {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Verify & Join"}
                             </Button>
                             <p className="text-sm text-center text-muted-foreground font-medium">Already a member? <Link href="/login" className="text-primary font-black hover:underline uppercase text-xs tracking-widest">Sign In</Link></p>
