@@ -16,12 +16,11 @@ import { RecruitmentLeaderboard } from "@/components/recruitment-leaderboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Share2, Trophy, Users, Bell, BellOff, Loader2, Sparkles, Megaphone } from "lucide-react";
+import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMessaging, useFirestore, useCollection } from "@/firebase";
 import { getToken } from "firebase/messaging";
 import { doc, updateDoc } from "firebase/firestore";
-import { mockStats } from "@/lib/data";
 
 function UserHeader({userData}: {userData: any}) {
   return (
@@ -72,7 +71,7 @@ export default function HomePage() {
     try {
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
-        const token = await getToken(messaging, { vapidKey: "BInW6L_yM-m4x6N3L-O-I-U-S-E-R-K-E-Y" }); // Note: Real key needed for production
+        const token = await getToken(messaging, { vapidKey: "BInW6L_yM-m4x6N3L-O-I-U-S-E-R-K-E-Y" }); 
         if (token) {
           await updateDoc(doc(firestore, "users", userData.uid), { fcmToken: token });
           toast({ title: "Notifications Active", description: "You will now receive real-time party alerts." });
@@ -224,36 +223,28 @@ export default function HomePage() {
         {!isSupporter && (
             <div className="space-y-12">
                 <section>
-                    <div className="grid gap-4 md:grid-cols-3">
-                      {mockStats.map((stat) => (
-                        <Card key={stat.title} className="shadow-sm">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-widest">{stat.title}</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-3xl font-bold text-primary">{stat.value}</div>
-                            <p className="text-xs font-bold text-green-600 mt-1">{stat.change}</p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                </section>
-
-                <section>
                     <h2 className="text-2xl font-bold font-headline text-primary uppercase tracking-tight mb-6 flex items-center gap-3">
                         <Megaphone className="h-6 w-6" />
                         National Announcements
                     </h2>
                     <div className="space-y-6">
-                        {announcements.map((item: any) => (
-                            <AnnouncementCard 
-                                key={item.id}
-                                title={item.title}
-                                date={item.timestamp ? new Date(item.timestamp.toDate()).toLocaleDateString() : 'Just now'}
-                                fullText={item.message}
-                                link={item.documentLink}
-                            />
-                        ))}
+                        {announcementsLoading ? (
+                            <Skeleton className="h-48 w-full" />
+                        ) : announcements.length === 0 ? (
+                            <Card className="p-12 text-center border-dashed bg-muted/20">
+                                <p className="text-muted-foreground font-medium">No official updates at this moment.</p>
+                            </Card>
+                        ) : (
+                            announcements.map((item: any) => (
+                                <AnnouncementCard 
+                                    key={item.id}
+                                    title={item.title}
+                                    date={item.timestamp ? new Date(item.timestamp.toDate()).toLocaleDateString() : 'Just now'}
+                                    fullText={item.message}
+                                    link={item.documentLink}
+                                />
+                            ))
+                        )}
                     </div>
                 </section>
             </div>
