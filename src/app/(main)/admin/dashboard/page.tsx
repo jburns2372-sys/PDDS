@@ -12,7 +12,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { useFirestore, useUser, createTemporaryApp, deleteTemporaryApp, useStorage } from "@/firebase";
+import { useFirestore, createTemporaryApp, deleteTemporaryApp, useStorage } from "@/firebase";
+import { useUserData } from "@/context/user-data-context";
 import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
@@ -22,17 +23,7 @@ import { collection, onSnapshot, serverTimestamp, doc, setDoc, query, where, get
 import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
 
 // ROLES THAT CAN HAVE UNLIMITED OCCUPANTS
-const UNLIMITED_ROLES = ['Member', 'Supporter', 'Admin', 'System Admin', 'Officer'];
-
-// POSITIONS THAT CAN ONLY HAVE ONE OCCUPANT NATIONWIDE
-const UNIQUE_ROLES = [
-  'President', 
-  'Chairman', 
-  'Vice Chairman', 
-  'Secretary General', 
-  'Treasurer', 
-  'Auditor'
-];
+const UNLIMITED_ROLES = ['Member', 'Supporter'];
 
 const allAssignableRoles = [
   ...pddsLeadershipRoles,
@@ -42,13 +33,16 @@ const allAssignableRoles = [
 export default function AdminDashboard() {
     const firestore = useFirestore();
     const storage = useStorage();
-    const { user: currentUser } = useUser();
+    const { userData } = useUserData();
     const { toast } = useToast();
     
     const [allUsers, setAllUsers] = useState<any[]>([]);
     const [usersLoading, setUsersLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+
+    // EXECUTIVE ACCESS BOOLEAN
+    const hasExecutiveAccess = userData?.role === 'President' || userData?.role === 'Admin' || userData?.isSuperAdmin;
 
     // Form State
     const [fullName, setFullName] = useState("");
@@ -98,10 +92,10 @@ export default function AdminDashboard() {
         return () => unsubscribe();
     }, [firestore]);
 
-    // Track which unique roles are already assigned
+    // Track which roles are already assigned (excluding unlimited ones)
     const takenRoles = useMemo(() => {
       return allUsers
-        .filter(u => u.isApproved !== false && UNIQUE_ROLES.includes(u.role))
+        .filter(u => u.isApproved !== false && !UNLIMITED_ROLES.includes(u.role))
         .map(u => u.role);
     }, [allUsers]);
 
@@ -177,14 +171,18 @@ export default function AdminDashboard() {
     };
 
     const handleToggleStatus = async (user: any) => {
-        if (user.id === currentUser?.uid) {
+        if (!hasExecutiveAccess) {
+            toast({ variant: "destructive", title: "Access Denied", description: "You do not have permission to modify status." });
+            return;
+        }
+        if (user.id === userData?.uid) {
             toast({ variant: "destructive", title: "Action Restricted", description: "You cannot suspend your own access." });
             return;
         }
         const newStatus = user.isApproved === false;
         setLoading(true);
         try {
-            await updateUserDocument(firestore, user.id, { isApproved: newStatus });
+            await updateUserDocument(firestore, user.id, { isApproved: newStatus }, userData);
             toast({ title: "Status Updated", description: `${user.fullName} is now ${newStatus ? 'Approved' : 'Suspended'}.` });
         } catch (error: any) {
              toast({ variant: "destructive", title: "Update Error", description: error.message });
@@ -194,7 +192,11 @@ export default function AdminDashboard() {
     };
 
     const handleToggleRole = async (user: any) => {
-        if (user.id === currentUser?.uid) {
+        if (!hasExecutiveAccess) {
+            toast({ variant: "destructive", title: "Access Denied", description: "You do not have permission to change roles." });
+            return;
+        }
+        if (user.id === userData?.uid) {
             toast({ variant: "destructive", title: "Action Restricted", description: "You cannot change your own role." });
             return;
         }
@@ -202,14 +204,14 @@ export default function AdminDashboard() {
         const newRole = user.role === 'Officer' ? 'Supporter' : 'Officer';
         
         // UNIQUE ROLE VALIDATION GUARD
-        if (UNIQUE_ROLES.includes(newRole) && takenRoles.includes(newRole)) {
-          toast({ variant: "destructive", title: "Position Occupied", description: `The unique role of ${newRole} is already filled.` });
+        if (!UNLIMITED_ROLES.includes(newRole) && takenRoles.includes(newRole)) {
+          toast({ variant: "destructive", title: "Position Occupied", description: `The position of ${newRole} is already filled.` });
           return;
         }
 
         setLoading(true);
         try {
-            await updateUserDocument(firestore, user.id, { role: newRole });
+            await updateUserDocument(firestore, user.id, { role: newRole }, userData);
             toast({ title: "Role Updated", description: `${user.fullName} is now a ${newRole}.` });
         } catch (error: any) {
              toast({ variant: "destructive", title: "Update Error", description: error.message });
@@ -219,7 +221,11 @@ export default function AdminDashboard() {
     };
 
     const handleRevoke = async (user: any) => {
-        if (user.id === currentUser?.uid) {
+        if (!hasExecutiveAccess) {
+            toast({ variant: "destructive", title: "Access Denied", description: "You do not have permission to remove members." });
+            return;
+        }
+        if (user.id === userData?.uid) {
             toast({ variant: "destructive", title: "Action Restricted", description: "You cannot remove your own access." });
             return;
         }
@@ -229,17 +235,18 @@ export default function AdminDashboard() {
 
         setLoading(true);
         try {
-            await deleteUserDocument(firestore, user.id);
+            await deleteUserDocument(firestore, user.id, userData);
             toast({ title: "Success", description: "Member successfully removed from the registry." });
         } catch (error: any) {
              console.error("Revocation Error:", error);
-             toast({ variant: "destructive", title: "Revocation Error", description: "Failed to remove member." });
+             toast({ variant: "destructive", title: "Revocation Error", description: error.message || "Failed to remove member." });
         } finally {
             setLoading(false);
         }
     };
 
     const handlePopulateSupporters = async () => {
+        if (!hasExecutiveAccess) return;
         setLoading(true);
         try {
             const batch = writeBatch(firestore);
@@ -292,6 +299,7 @@ export default function AdminDashboard() {
     };
 
     const handleBulkDeleteSupporters = async () => {
+        if (!hasExecutiveAccess) return;
         const confirmation = window.prompt('Type DELETE to confirm wiping all supporters from the database.');
         if (confirmation !== 'DELETE') return;
 
@@ -324,18 +332,21 @@ export default function AdminDashboard() {
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        // ROLE VALIDATION LOGIC
-        // 1. Check if it's a unique role and if it's already filled by someone else
-        const isRoleConflict = UNIQUE_ROLES.includes(role) && 
+        if (!hasExecutiveAccess) {
+            toast({ variant: "destructive", title: "Unauthorized", description: "Only the President or Administrators can modify the registry." });
+            return;
+        }
+
+        // UNIVERSAL ROLE LOCK VALIDATION
+        const isRoleConflict = !UNLIMITED_ROLES.includes(role) && 
                                takenRoles.includes(role) && 
                                (!isEditMode || selectedUser?.role !== role);
 
         if (isRoleConflict) {
-          toast({ variant: "destructive", title: "Position Occupied", description: "This leadership position is already filled." });
+          toast({ variant: "destructive", title: "Position Occupied", description: "This position is already assigned to another individual." });
           return;
         }
 
-        // 2. Allow unlimited roles (Member, Supporter, Admin, etc.) automatically
         if (password && password !== confirmPassword) {
             toast({ variant: "destructive", title: "Validation Error", description: "Passwords do not match." });
             return;
@@ -344,7 +355,6 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             let finalPhotoURL = photoURL;
-            let finalResumeURL = resumeURL;
             let uid = selectedUser?.id;
 
             if (isEditMode && selectedUser) {
@@ -368,7 +378,7 @@ export default function AdminDashboard() {
                     isApproved: selectedUser.isApproved !== false,
                     kartilyaAgreed: true
                 };
-                await updateUserDocument(firestore, uid, dataPayload);
+                await updateUserDocument(firestore, uid, dataPayload, userData);
                 toast({ title: "Updated", description: "Member record updated." });
                 resetForm();
             } else {
@@ -415,26 +425,28 @@ export default function AdminDashboard() {
                     </h1>
                     <p className="text-muted-foreground mt-2">Manage all registered members and supporters.</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button 
-                        variant="outline"
-                        onClick={handlePopulateSupporters}
-                        className="font-black uppercase tracking-widest text-[10px] h-9 shadow-sm border-accent text-accent-foreground hover:bg-accent/10"
-                        disabled={loading}
-                    >
-                        {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <PlusCircle className="h-3.5 w-3.5 mr-2" />}
-                        Write 100 Test Supporters
-                    </Button>
-                    <Button 
-                        variant="destructive" 
-                        onClick={handleBulkDeleteSupporters}
-                        className="font-black uppercase tracking-widest text-[10px] h-9 shadow-lg"
-                        disabled={loading}
-                    >
-                        {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Database className="h-3.5 w-3.5 mr-2" />}
-                        Wipe Test Supporters
-                    </Button>
-                </div>
+                {hasExecutiveAccess && (
+                    <div className="flex items-center gap-2">
+                        <Button 
+                            variant="outline"
+                            onClick={handlePopulateSupporters}
+                            className="font-black uppercase tracking-widest text-[10px] h-9 shadow-sm border-accent text-accent-foreground hover:bg-accent/10"
+                            disabled={loading}
+                        >
+                            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <PlusCircle className="h-3.5 w-3.5 mr-2" />}
+                            Write 100 Test Supporters
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            onClick={handleBulkDeleteSupporters}
+                            className="font-black uppercase tracking-widest text-[10px] h-9 shadow-lg"
+                            disabled={loading}
+                        >
+                            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Database className="h-3.5 w-3.5 mr-2" />}
+                            Wipe Test Supporters
+                        </Button>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -478,8 +490,8 @@ export default function AdminDashboard() {
                                         <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             {allAssignableRoles.map(r => {
-                                              // Only disable if it's in the UNIQUE array and taken by someone ELSE
-                                              const isTaken = UNIQUE_ROLES.includes(r) && 
+                                              // Universal Role Lock logic: disable if taken and not unlimited
+                                              const isTaken = !UNLIMITED_ROLES.includes(r) && 
                                                               takenRoles.includes(r) && 
                                                               (!isEditMode || selectedUser?.role !== r);
                                               
@@ -494,10 +506,11 @@ export default function AdminDashboard() {
                                 </div>
                             </CardContent>
                             <CardFooter className="flex flex-col gap-2">
-                                <Button type="submit" className="w-full h-11 font-black uppercase tracking-widest text-xs" disabled={loading}>
+                                <Button type="submit" className="w-full h-11 font-black uppercase tracking-widest text-xs" disabled={loading || !hasExecutiveAccess}>
                                     {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isEditMode ? 'Save Profile' : 'Register Member')}
                                 </Button>
                                 {isEditMode && <Button variant="ghost" type="button" onClick={resetForm} className="w-full text-xs uppercase font-bold">Cancel</Button>}
+                                {!hasExecutiveAccess && <p className="text-[10px] text-destructive text-center font-bold">Executive Access Required</p>}
                             </CardFooter>
                         </form>
                     </Card>
@@ -547,12 +560,18 @@ export default function AdminDashboard() {
                                                 <div className="text-[9px] text-muted-foreground uppercase">{member.province}</div>
                                             </TableCell>
                                             <TableCell className="text-right pr-6 space-x-1">
-                                                <Button variant="ghost" size="icon" onClick={() => handleToggleRole(member)} className="h-8 w-8 text-primary"><ArrowRightLeft className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(member)} className={`h-8 w-8 ${member.isApproved === false ? 'text-green-600' : 'text-amber-600'}`}>
-                                                    {member.isApproved === false ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(member)} className="h-8 w-8 text-primary"><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRevoke(member)} disabled={member.id === currentUser?.uid}><Trash2 className="h-4 w-4" /></Button>
+                                                {hasExecutiveAccess ? (
+                                                    <>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleToggleRole(member)} className="h-8 w-8 text-primary"><ArrowRightLeft className="h-4 w-4" /></Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(member)} className={`h-8 w-8 ${member.isApproved === false ? 'text-green-600' : 'text-amber-600'}`}>
+                                                            {member.isApproved === false ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(member)} className="h-8 w-8 text-primary"><Pencil className="h-4 w-4" /></Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRevoke(member)} disabled={member.id === userData?.uid}><Trash2 className="h-4 w-4" /></Button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-[10px] text-muted-foreground italic">View Only</span>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}

@@ -27,12 +27,19 @@ export function createUserDocument(
 
 /**
  * Isolated update using updateDoc
+ * Updated with strict executive check
  */
 export function updateUserDocument(
   db: Firestore,
   userId: string,
-  data: Record<string, any>
+  data: Record<string, any>,
+  currentUserProfile: any
 ) {
+  // STRICT SECURITY GUARD
+  if (currentUserProfile?.role !== 'President' && currentUserProfile?.role !== 'Admin' && !currentUserProfile?.isSuperAdmin) {
+    throw new Error('Unauthorized: Only the President or Administrators can modify the registry.');
+  }
+
   const userRef = doc(db, 'users', userId);
   return updateDoc(userRef, data)
     .catch(async (serverError) => {
@@ -48,11 +55,18 @@ export function updateUserDocument(
 
 /**
  * Isolated deletion
+ * Updated with strict executive check
  */
 export function deleteUserDocument(
     db: Firestore,
-    userId: string
+    userId: string,
+    currentUserProfile: any
   ) {
+    // STRICT SECURITY GUARD
+    if (currentUserProfile?.role !== 'President' && currentUserProfile?.role !== 'Admin' && !currentUserProfile?.isSuperAdmin) {
+        throw new Error('Unauthorized: Only the President or Administrators can modify the registry.');
+    }
+
     const userRef = doc(db, 'users', userId);
     return deleteDoc(userRef)
       .catch(async (serverError) => {
