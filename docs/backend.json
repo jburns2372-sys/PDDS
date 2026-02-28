@@ -107,6 +107,22 @@
         "createdBy": { "type": "string" }
       },
       "required": ["type", "message", "targetGroup", "recipientCount", "timestamp", "createdBy"]
+    },
+    "communication_log": {
+      "title": "Communication Log",
+      "description": "Logs of direct messages sent to supporters by officers.",
+      "type": "object",
+      "properties": {
+        "officerUid": { "type": "string" },
+        "officerName": { "type": "string" },
+        "supporterUid": { "type": "string" },
+        "supporterName": { "type": "string" },
+        "type": { "type": "string", "enum": ["SMS", "CHAT"] },
+        "templateUsed": { "type": "string" },
+        "messageContent": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["officerUid", "supporterUid", "type", "timestamp"]
     }
   },
   "auth": {
@@ -136,6 +152,10 @@
     "/communication_audit/{auditId}": {
       "schema": { "$ref": "#/backend/entities/communication_audit" },
       "description": "Stores logs of official party communications."
+    },
+    "/communication_logs/{logId}": {
+      "schema": { "$ref": "#/backend/entities/communication_log" },
+      "description": "Stores logs of direct communication between officers and supporters."
     }
   }
 }

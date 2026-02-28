@@ -1,22 +1,166 @@
 
 "use client";
 
-import { useCollection } from '@/firebase';
+import { useCollection, useFirestore } from '@/firebase';
 import { OfficerCard } from './officer-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { pddsLeadershipRoles, jurisdictionLevels } from '@/lib/data';
-import { Loader2, Users, CheckCircle2, ChevronRight, MapPin, Search } from 'lucide-react';
+import { Loader2, Users, CheckCircle2, ChevronRight, MapPin, Search, MessageSquare, Phone, MessageCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { Button } from './ui/button';
 import { useUserData } from '@/context/user-data-context';
 import { useMemo, useState, useEffect } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+
+function QuickMessageDialog({ supporter, isPrivileged }: { supporter: any, isPrivileged: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [template, setTemplate] = useState("");
+  const { userData } = useUserData();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const templates = [
+    { id: "welcome", label: "Welcome Briefing", text: "Welcome to the party! Are you available for a local briefing?" },
+    { id: "update", label: "Regional Update", text: `New regional update for ${supporter.province || 'your area'} is now available in the portal.` },
+  ];
+
+  const handleOpen = () => {
+    if (!supporter.phoneNumber) {
+      toast({
+        variant: "destructive",
+        title: "Action Restricted",
+        description: "Communication requires a verified phone number."
+      });
+      return;
+    }
+    setOpen(true);
+  };
+
+  const handleAction = async (type: 'SMS' | 'CHAT') => {
+    if (!template) return;
+    const selectedTemplate = templates.find(t => t.id === template);
+    const messageText = selectedTemplate?.text || "";
+
+    try {
+      // Log to communication_logs
+      addDoc(collection(firestore, 'communication_logs'), {
+        officerUid: userData?.uid,
+        officerName: userData?.fullName,
+        supporterUid: supporter.uid || supporter.id,
+        supporterName: supporter.fullName,
+        type,
+        templateUsed: selectedTemplate?.label,
+        messageContent: messageText,
+        timestamp: serverTimestamp()
+      });
+
+      if (type === 'SMS') {
+        window.location.href = `sms:${supporter.phoneNumber}?body=${encodeURIComponent(messageText)}`;
+      } else {
+        toast({
+          title: "In-App Chat initiated",
+          description: "Encrypted channel is being provisioned. Please use SMS for urgent alerts."
+        });
+      }
+      setOpen(false);
+    } catch (error) {
+      console.error("Audit log failed:", error);
+    }
+  };
+
+  if (!isPrivileged) return null;
+
+  return (
+    <>
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        className="h-8 w-8 text-primary group-hover:bg-primary group-hover:text-white transition-all rounded-full" 
+        onClick={handleOpen}
+      >
+        <MessageSquare className="h-4 w-4" />
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-headline uppercase text-primary">Quick Message Support</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-lg border border-primary/10">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                {supporter.fullName?.charAt(0)}
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase">{supporter.fullName}</p>
+                <p className="text-[10px] text-muted-foreground font-bold">{supporter.phoneNumber}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Select Quick Template</Label>
+              <Select onValueChange={setTemplate} value={template}>
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Choose a pre-written message..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map(t => (
+                    <SelectItem key={t.id} value={t.id} className="text-xs font-bold">{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {template && (
+              <div className="p-4 bg-muted/50 rounded-xl border border-dashed text-sm italic text-muted-foreground leading-relaxed">
+                "{templates.find(t => t.id === template)?.text}"
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <Button 
+                onClick={() => handleAction('SMS')} 
+                disabled={!template}
+                className="h-12 font-black uppercase tracking-widest text-xs"
+              >
+                <Phone className="h-4 w-4 mr-2" /> Send SMS
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => handleAction('CHAT')} 
+                disabled={!template}
+                className="h-12 font-black uppercase tracking-widest text-xs border-primary text-primary"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" /> In-App Chat
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 export function DirectoryClient() {
   const { userData } = useUserData();
   const { data: users, loading } = useCollection('users');
   const [activeTab, setActiveTab] = useState('National');
   const [supporterSearch, setSupporterSearch] = useState("");
+
+  // Check if current user has officer/admin privileges
+  const isPrivileged = useMemo(() => {
+    if (!userData) return false;
+    const userRole = userData.role || '';
+    const userEmail = (userData.email || '').toLowerCase();
+    const privilegedEmails = ['iamgrecobelgica@gmail.com', 'j.burns372@gmail.com', 'j.burns2372@gmail.com'];
+    return pddsLeadershipRoles.includes(userRole) || userRole === 'Officer' || userRole === 'Admin' || userRole === 'System Admin' || privilegedEmails.includes(userEmail);
+  }, [userData]);
 
   // Set default tab based on user role once data is available
   useEffect(() => {
@@ -179,12 +323,15 @@ export function DirectoryClient() {
                                             {supporter.jurisdictionLevel || 'Local'} Jurisdiction
                                           </p>
                                         </div>
-                                        {supporter.phoneNumber && (
-                                          <Badge className="bg-green-600 text-[8px] font-black uppercase px-1.5 h-4 shrink-0 shadow-sm">
-                                            <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
-                                            Verified
-                                          </Badge>
-                                        )}
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          {supporter.phoneNumber && (
+                                            <Badge className="bg-green-600 text-[8px] font-black uppercase px-1.5 h-4 shrink-0 shadow-sm">
+                                              <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
+                                              Verified
+                                            </Badge>
+                                          )}
+                                          <QuickMessageDialog supporter={supporter} isPrivileged={isPrivileged} />
+                                        </div>
                                       </div>
                                       <div className="pt-2 border-t mt-1 flex justify-between items-center">
                                         <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Supporter Category</span>

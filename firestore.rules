@@ -76,5 +76,9 @@ service cloud.firestore {
     match /communication_audit/{auditId} {
       allow read, write: if isOfficerOrAdmin();
     }
+
+    match /communication_logs/{logId} {
+      allow read, write: if isOfficerOrAdmin();
+    }
   }
 }
