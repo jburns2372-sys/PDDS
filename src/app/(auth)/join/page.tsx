@@ -73,11 +73,15 @@ export default function JoinPage() {
                     const docSnap = await getDoc(docRef);
 
                     if (docSnap.exists()) {
-                        toast({ title: "Welcome Back!" });
-                        router.push("/home");
+                        // User exists, move to dashboard with buffer
+                        setTimeout(() => {
+                            toast({ title: "Welcome Back!" });
+                            router.push("/home");
+                        }, 500);
                         return;
                     }
 
+                    // New User - Hold for Induction Completion
                     setSocialUser({
                         uid: user.uid,
                         email: user.email || "",
@@ -164,7 +168,6 @@ export default function JoinPage() {
                 createdAt: serverTimestamp(),
             };
 
-            // FIX: Await doc creation BEFORE redirecting
             await setDoc(doc(firestore, "users", socialUser.uid), supporterData);
             
             if (referralUid) {
@@ -172,11 +175,12 @@ export default function JoinPage() {
                 updateDoc(referrerRef, { recruitCount: increment(1) }).catch(e => console.error(e));
             }
 
-            toast({ title: "Welcome to PDDS!", description: "Membership officially confirmed." });
-            router.push("/home?registered=true");
+            setTimeout(() => {
+                toast({ title: "Welcome to PDDS!", description: "Membership officially confirmed." });
+                router.push("/home?registered=true");
+            }, 500);
         } catch (error: any) {
             toast({ variant: "destructive", title: "Error", description: error.message });
-        } finally {
             setLoading(false);
         }
     };
@@ -226,7 +230,6 @@ export default function JoinPage() {
                 createdAt: serverTimestamp(),
             };
 
-            // FIX: Await doc creation BEFORE redirecting
             await setDoc(doc(firestore, "users", user.uid), supporterData);
             
             if (referralUid) {
@@ -234,18 +237,18 @@ export default function JoinPage() {
                 updateDoc(referrerRef, { recruitCount: increment(1) }).catch(e => console.error(e));
             }
 
-            toast({ title: "Welcome!", description: "Registry record created." });
-            router.push("/home?registered=true");
+            setTimeout(() => {
+                toast({ title: "Welcome!", description: "Registry record created." });
+                router.push("/home?registered=true");
+            }, 500);
         } catch (error: any) {
             toast({ variant: "destructive", title: "Registration Failed", description: error.message });
-        } finally {
             setLoading(false);
         }
     };
 
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/30 p-4 pb-12 relative">
-            {/* Security Loading Overlay */}
             {loading && (
                 <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />

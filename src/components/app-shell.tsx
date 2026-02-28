@@ -10,7 +10,7 @@ import { UserDataContext, UserDataContextType, UserProfile } from "@/context/use
 import { useRouter } from "next/navigation";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import PddsLogo from "./icons/pdds-logo";
 import { DesktopSidebarContent } from "./desktop-sidebar";
@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           }
         }
       } else {
-        // FIX: If authenticated but no Firestore doc, redirect to induction rather than signing out
+        // If authenticated but no Firestore doc, redirect to induction
         if (!isPrivileged) {
           console.log("Account record missing, redirecting to induction...");
           router.push('/join?induction=pending');
@@ -112,14 +112,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
       setUserDataLoading(false);
     }, (error) => {
-      console.error("Critical error in Bouncer profile sync:", error);
+      console.error("Critical error in profile sync:", error);
       setUserDataLoading(false);
     });
 
     return () => unsubscribe();
   }, [user, userLoading, firestore, auth, toast, router]);
   
-  const loading = !isClient || userLoading || userDataLoading;
+  const loading = !isClient || userLoading;
 
   useEffect(() => {
       if (!loading && !user) {
@@ -127,37 +127,29 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
   }, [loading, user, router]);
 
-  if (loading || !user) {
+  // Loading state for profile synchronization
+  if (loading || (user && userDataLoading)) {
     return (
-      <div className="flex h-screen w-full">
-        { !isMobile && <div className="hidden md:block w-64 flex-shrink-0 border-r bg-card">
-          <div className="p-4 space-y-4">
-             <Skeleton className="h-10 w-full" />
-             <Skeleton className="h-8 w-full" />
-             <Skeleton className="h-8 w-full" />
-             <Skeleton className="h-8 w-full" />
-             <Skeleton className="h-8 w-full" />
-          </div>
-        </div>}
-        <main className="flex-1 bg-background p-8">
-            <div className="max-w-7xl mx-auto space-y-4">
-                <Skeleton className="h-12 w-1/3" />
-                <Skeleton className="h-8 w-2/3" />
-                <div className="pt-8 grid md:grid-cols-3 gap-4">
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-32 w-full" />
-                </div>
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-6">
+            <PddsLogo className="h-20 w-20 animate-pulse" />
+            <div className="flex flex-col items-center gap-2">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">
+                    Syncing National Profile...
+                </p>
             </div>
-        </main>
+        </div>
       </div>
     );
   }
+
+  if (!user) return null;
   
   const contextValue: UserDataContextType = {
       user,
       userData,
-      loading
+      loading: loading || userDataLoading
   };
 
   return (

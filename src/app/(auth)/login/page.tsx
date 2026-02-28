@@ -38,15 +38,12 @@ export default function LoginPage() {
                 if (result) {
                     const user = result.user;
                     
-                    // Check if doc exists to prevent redirection loops
+                    // 1. Sync Firestore synchronously
                     const docRef = doc(firestore, "users", user.uid);
                     const docSnap = await getDoc(docRef);
 
-                    if (docSnap.exists()) {
-                        toast({ title: "Welcome Back!" });
-                        router.push("/home");
-                    } else {
-                        // FIX: Automatically create document for new social users if missing
+                    if (!docSnap.exists()) {
+                        // Create baseline record if missing
                         const supporterData = {
                             uid: user.uid,
                             email: user.email || "",
@@ -61,9 +58,17 @@ export default function LoginPage() {
                             province: "NATIONAL HQ"
                         };
                         await setDoc(docRef, supporterData);
-                        toast({ title: "Success!", description: "Registered in the National Registry." });
-                        router.push("/home?registered=true");
                     }
+
+                    // 2. Add Navigation Buffer to allow DB to propagate
+                    setTimeout(() => {
+                        toast({ 
+                            title: docSnap.exists() ? "Welcome Back!" : "Success!", 
+                            description: docSnap.exists() ? "Authenticated." : "Registered in the National Registry." 
+                        });
+                        router.push("/home");
+                    }, 500);
+                    return; // Prevent setLoading(false) from firing immediately
                 }
             } catch (error: any) {
                 console.error("Login Redirect Error:", error);
