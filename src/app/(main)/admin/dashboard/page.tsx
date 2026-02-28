@@ -27,7 +27,7 @@ const UNLIMITED_ROLES = ['Member', 'Supporter'];
 
 const allAssignableRoles = [
   ...pddsLeadershipRoles,
-  "Member", "Admin", "System Admin"
+  "Member", "Admin"
 ];
 
 export default function AdminDashboard() {
@@ -203,7 +203,7 @@ export default function AdminDashboard() {
         
         const newRole = user.role === 'Officer' ? 'Supporter' : 'Officer';
         
-        // UNIQUE ROLE VALIDATION GUARD
+        // UNIVERSAL ROLE LOCK VALIDATION GUARD
         if (!UNLIMITED_ROLES.includes(newRole) && takenRoles.includes(newRole)) {
           toast({ variant: "destructive", title: "Position Occupied", description: `The position of ${newRole} is already filled.` });
           return;
