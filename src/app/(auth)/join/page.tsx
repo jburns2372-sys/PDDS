@@ -18,9 +18,13 @@ import {
     RecaptchaVerifier, 
     signInWithPhoneNumber, 
     ConfirmationResult,
-    sendEmailVerification
+    sendEmailVerification,
+    GoogleAuthProvider,
+    FacebookAuthProvider,
+    signInWithPopup,
+    getAdditionalUserInfo
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, increment, updateDoc, collection } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, increment, updateDoc, collection, getDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
@@ -67,7 +71,7 @@ export default function JoinPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const [phoneNumber, setPhoneNumber] = useState("+63");
+    const [phoneNumber, setPhoneNumber] = useState("");
     const [zipCode, setZipCode] = useState("");
     const [streetAddress, setStreetAddress] = useState("");
     
@@ -85,6 +89,14 @@ export default function JoinPage() {
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
     
+    // Social Login State
+    const [socialUser, setSocialUser] = useState<{
+        uid: string;
+        email: string;
+        fullName: string;
+        photoURL: string | null;
+    } | null>(null);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -171,13 +183,92 @@ export default function JoinPage() {
         } else { setZipCode("0000"); }
     }, [selectedProvince, selectedCity, selectedBarangay]);
 
-    /**
-     * Singleton Pattern for reCAPTCHA initialization
-     */
+    const handleSocialLogin = async (provider: any) => {
+        setLoading(true);
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            
+            const docRef = doc(firestore, "users", user.uid);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.province && data.city) {
+                    toast({ title: "Welcome Back!", description: "Signed in successfully." });
+                    router.push("/home");
+                    return;
+                }
+            }
+
+            // Set social user info to proceed with location completion
+            setSocialUser({
+                uid: user.uid,
+                email: user.email || "",
+                fullName: user.displayName || "MEMBER",
+                photoURL: user.photoURL || null
+            });
+            
+            setFullName(user.displayName || "");
+            setEmail(user.email || "");
+            
+            toast({ title: "Social Identity Verified", description: "Almost done! Please complete your residential details." });
+        } catch (error: any) {
+            console.error(error);
+            toast({ variant: "destructive", title: "Social Login Failed", description: error.message });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSocialComplete = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!socialUser || !agreed) return;
+        if (!selectedProvince || !selectedCity || !selectedBarangay) {
+            toast({ variant: "destructive", title: "Incomplete Address", description: "Select full location." });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const supporterData = {
+                uid: socialUser.uid,
+                email: socialUser.email,
+                fullName: fullName.trim().toUpperCase() || socialUser.fullName.toUpperCase(),
+                phoneNumber: phoneNumber.trim() || "",
+                streetAddress: streetAddress.trim().toUpperCase(),
+                barangay: selectedBarangay,
+                city: selectedCity,
+                province: selectedProvince,
+                zipCode: zipCode,
+                photoURL: socialUser.photoURL,
+                role: "Supporter",
+                isApproved: true,
+                kartilyaAgreed: true,
+                recruitCount: 0,
+                referredBy: referralUid || null,
+                createdAt: serverTimestamp(),
+            };
+
+            await setDoc(doc(firestore, "users", socialUser.uid), supporterData);
+            
+            if (referralUid) {
+                const referrerRef = doc(firestore, "users", referralUid);
+                updateDoc(referrerRef, { recruitCount: increment(1) }).catch(e => console.error(e));
+            }
+
+            toast({ title: "Welcome to PDDS!", description: "Identity confirmed and ID generated." });
+            router.push("/home");
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Completion Failed", description: error.message });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const setupRecaptcha = () => {
         if (typeof window !== "undefined" && !verifierRef.current) {
             try {
-                // Invisible Mode configured
                 verifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
                     'size': 'invisible',
                 });
@@ -194,9 +285,6 @@ export default function JoinPage() {
                 verifierRef.current.clear();
                 verifierRef.current = null;
             }
-            // Clean Up logic for unmount
-            const container = document.getElementById('recaptcha-container');
-            if (container) container.innerHTML = "";
             stopCamera();
         };
     }, [auth]);
@@ -273,17 +361,6 @@ export default function JoinPage() {
         } catch (error: any) {
             console.error(error);
             toast({ variant: "destructive", title: "SMS Failed", description: error.message });
-            
-            // Error Recovery: Reset widget if SMS fails
-            if (typeof window !== "undefined" && (window as any).grecaptcha) {
-                try {
-                    (window as any).grecaptcha.reset();
-                } catch (resetError) {
-                    if (verifierRef.current) verifierRef.current.clear();
-                    verifierRef.current = null;
-                    setupRecaptcha();
-                }
-            }
         } finally {
             setLoading(false);
         }
@@ -339,12 +416,7 @@ export default function JoinPage() {
               updateDoc(referrerRef, { recruitCount: increment(1) }).catch(e => console.error(e));
             }
 
-            toast({ 
-                title: "Welcome to PDDS!", 
-                description: isAdminEmail 
-                    ? "Production Environment Initialized. You have been granted Administrative access to the PDDS War Room." 
-                    : "Registered successfully as a Supporter." 
-            });
+            toast({ title: "Welcome to PDDS!", description: "Registered successfully as a Supporter." });
             router.push("/home");
         } catch (error: any) {
             console.error(error);
@@ -364,13 +436,103 @@ export default function JoinPage() {
             </div>
 
             <Card className="w-full max-w-lg shadow-2xl border-t-4 border-primary overflow-hidden">
-                {!showOtpInput ? (
+                {socialUser ? (
+                    <form onSubmit={handleSocialComplete}>
+                        <CardHeader>
+                            <CardTitle className="text-2xl text-center font-headline uppercase">Complete Your Profile</CardTitle>
+                            <CardDescription className="text-center">Finalize your residential details to generate your official ID.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex flex-col items-center gap-2 pb-4 border-b">
+                                <Avatar className="h-20 w-20 border-2 border-primary shadow-lg">
+                                    <AvatarImage src={socialUser.photoURL || ""} className="object-cover" />
+                                    <AvatarFallback><User className="h-8 w-8 text-muted-foreground" /></AvatarFallback>
+                                </Avatar>
+                                <p className="font-bold text-primary">{socialUser.fullName}</p>
+                                <p className="text-xs text-muted-foreground">{socialUser.email}</p>
+                            </div>
+
+                            <div className="space-y-4 pt-2">
+                                <div className="space-y-2">
+                                    <Label>Contact Number (Optional)</Label>
+                                    <Input placeholder="+639..." value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Province</Label>
+                                        <Select onValueChange={setSelectedProvince} value={selectedProvince}>
+                                            <SelectTrigger><SelectValue placeholder="Province" /></SelectTrigger>
+                                            <SelectContent>{provinces.map((p) => <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>City</Label>
+                                        <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
+                                            <SelectTrigger><SelectValue placeholder="City" /></SelectTrigger>
+                                            <SelectContent>{cities.map((c) => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Barangay</Label>
+                                        <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
+                                            <SelectTrigger><SelectValue placeholder="Barangay" /></SelectTrigger>
+                                            <SelectContent>{barangays.map((b) => <SelectItem key={b.code} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Zip Code</Label>
+                                        <Input value={zipCode} readOnly className="bg-muted" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start space-x-3 pt-2">
+                                <Checkbox id="terms-social" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} />
+                                <Label htmlFor="terms-social" className="text-xs font-medium leading-none">I agree to the PDDS Kartilya principles.</Label>
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex flex-col gap-4">
+                            <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={loading || !agreed || !selectedBarangay}>
+                                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Joining"}
+                            </Button>
+                            <Button variant="ghost" className="text-xs" onClick={() => setSocialUser(null)}>Back to Options</Button>
+                        </CardFooter>
+                    </form>
+                ) : !showOtpInput ? (
                     <form onSubmit={handleInitialSubmit}>
                         <CardHeader>
                             <CardTitle className="text-2xl text-center font-headline uppercase">Supporter Registration</CardTitle>
                             <CardDescription className="text-center">Secure your place in the Federalismo ng Dugong Dakilang Samahan.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {/* Social Login Buttons */}
+                            <div className="grid grid-cols-1 gap-3 pb-6 border-b">
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    className="w-full bg-[#4285F4] text-white hover:bg-[#357ae8] border-none font-bold h-11"
+                                    onClick={() => handleSocialLogin(new GoogleAuthProvider())}
+                                    disabled={loading}
+                                >
+                                    Continue with Google
+                                </Button>
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    className="w-full bg-[#1877F2] text-white hover:bg-[#166fe5] border-none font-bold h-11"
+                                    onClick={() => handleSocialLogin(new FacebookAuthProvider())}
+                                    disabled={loading}
+                                >
+                                    Continue with Facebook
+                                </Button>
+                                <div className="relative my-2">
+                                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                                    <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-background px-2 text-muted-foreground font-black tracking-widest">Or Use Credentials</span></div>
+                                </div>
+                            </div>
+
                             <div className="flex flex-col items-center gap-4 pb-6 border-b">
                                 <Avatar className="h-32 w-32 border-4 border-white shadow-xl bg-muted">
                                     <AvatarImage src={photoPreview || ""} className="object-cover" />
@@ -479,7 +641,6 @@ export default function JoinPage() {
                 )}
             </Card>
 
-            {/* DOM Stability: Placed at the very bottom and NEVER hidden */}
             <div id="recaptcha-container"></div>
         </div>
     );

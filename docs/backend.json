@@ -126,7 +126,7 @@
     }
   },
   "auth": {
-    "providers": ["email-password", "phone"]
+    "providers": ["email-password", "phone", "google.com", "facebook.com"]
   },
   "firestore": {
     "/users/{userId}": {
