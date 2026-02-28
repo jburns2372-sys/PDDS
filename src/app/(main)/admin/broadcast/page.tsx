@@ -25,26 +25,11 @@ export default function AdminBroadcastPage() {
   
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [broadcastScope, setBroadcastScope] = useState("National"); // Leadership | National | Targeted
-  const [targetType, setTargetType] = useState("Province"); // Province | City
-  const [scopeValue, setScopeValue] = useState("");
+  const [broadcastScope, setBroadcastScope] = useState("National"); // Leadership | National | Supporters
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
   const [previewUser, setPreviewUser] = useState<any>(null);
-
-  // Filter logic for provinces and cities
-  const provinces = useMemo(() => {
-    const p = new Set<string>();
-    allUsers.forEach(u => u.province && p.add(u.province));
-    return Array.from(p).sort();
-  }, [allUsers]);
-
-  const cities = useMemo(() => {
-    const c = new Set<string>();
-    allUsers.forEach(u => u.city && c.add(u.city));
-    return Array.from(c).sort();
-  }, [allUsers]);
 
   // Target users based on scope
   const targetUsers = useMemo(() => {
@@ -56,17 +41,12 @@ export default function AdminBroadcastPage() {
         ['Admin', 'System Admin', 'Officer'].includes(u.role) ||
         u.isSuperAdmin === true
       );
-    } else if (broadcastScope === "Targeted") {
+    } else if (broadcastScope === "Supporters") {
       filtered = filtered.filter(u => u.role === 'Supporter');
-      if (targetType === "Province" && scopeValue) {
-        filtered = filtered.filter(u => u.province === scopeValue);
-      } else if (targetType === "City" && scopeValue) {
-        filtered = filtered.filter(u => u.city === scopeValue);
-      }
     }
-    // "National" mode returns all with phone numbers
+    // "National" scope returns all with phone numbers
     return filtered;
-  }, [allUsers, broadcastScope, targetType, scopeValue]);
+  }, [allUsers, broadcastScope]);
 
   // Pick a random user for the preview whenever target list changes
   useEffect(() => {
@@ -140,7 +120,7 @@ export default function AdminBroadcastPage() {
         setProgress(Math.round(((i + 1) / batches.length) * 100));
       }
 
-      // 4. National Bulletin Sync
+      // 4. National Bulletin Sync - Only for National Broadcast scope
       if (broadcastScope === "National") {
         await addDoc(collection(firestore, "announcements"), {
           title: title.trim(),
@@ -156,7 +136,6 @@ export default function AdminBroadcastPage() {
         type: "Personalized SMS Broadcast",
         message: message.trim(),
         targetGroup: broadcastScope,
-        scopeDetails: broadcastScope === "Targeted" ? `${targetType}: ${scopeValue}` : broadcastScope,
         recipientCount: targetUsers.length,
         status: "Completed",
         timestamp: serverTimestamp(),
@@ -191,7 +170,7 @@ export default function AdminBroadcastPage() {
             <h1 className="text-3xl font-bold text-primary font-headline uppercase tracking-tight">
               Mobilization Broadcast
             </h1>
-            <p className="text-muted-foreground text-sm font-medium">Distribute encrypted alerts across the organizational structure.</p>
+            <p className="text-muted-foreground text-sm font-medium">Distribute personalized alerts across the organizational structure.</p>
           </div>
         </div>
 
@@ -209,47 +188,17 @@ export default function AdminBroadcastPage() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Broadcast Scope</Label>
-                      <Select onValueChange={(v) => { setBroadcastScope(v); setScopeValue(""); }} value={broadcastScope}>
+                      <Select onValueChange={(v) => setBroadcastScope(v)} value={broadcastScope}>
                         <SelectTrigger className="h-11">
                           <SelectValue placeholder="Select Audience" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Leadership">National Leadership (Officers Only)</SelectItem>
                           <SelectItem value="National">National Broadcast (All Members)</SelectItem>
-                          <SelectItem value="Targeted">Targeted (By Supporters/Region)</SelectItem>
+                          <SelectItem value="Supporters">All Supporters (National)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-
-                    {broadcastScope === "Targeted" && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border border-dashed">
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest">Filter By</Label>
-                          <Select onValueChange={(v) => { setTargetType(v); setScopeValue(""); }} value={targetType}>
-                            <SelectTrigger className="h-10 bg-white">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Province">Province / Region</SelectItem>
-                              <SelectItem value="City">City / Municipality</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest">Select {targetType}</Label>
-                          <Select onValueChange={setScopeValue} value={scopeValue}>
-                            <SelectTrigger className="h-10 bg-white">
-                              <SelectValue placeholder="Choose target..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(targetType === "Province" ? provinces : cities).map(val => (
-                                <SelectItem key={val} value={val}>{val}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -275,7 +224,7 @@ export default function AdminBroadcastPage() {
                       </div>
                     </div>
                     <Textarea 
-                      placeholder="Hello {{firstName}}, urgent update for {{city}}..." 
+                      placeholder="Hello {{firstName}}, urgent update for your city..." 
                       className="min-h-[150px] text-sm leading-relaxed"
                       value={message}
                       onChange={e => setMessage(e.target.value)}
