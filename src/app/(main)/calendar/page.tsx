@@ -21,7 +21,9 @@ import {
   MoreVertical,
   ExternalLink,
   ShieldCheck,
-  Filter
+  Filter,
+  CalendarPlus,
+  ArrowRight
 } from "lucide-react";
 import {
   Dialog,
@@ -41,15 +43,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { collection, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { format, isSameDay, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from "date-fns";
+import { format, isSameDay, parseISO, addHours } from "date-fns";
 import { cn } from "@/lib/utils";
 
 /**
  * @fileOverview Calendar of Activities page.
- * Strictly controlled by RBAC: President, Admin, Sec Gen can manage events.
- * Features smart regional filtering based on user profile.
+ * Global Visibility: Accessible to all members.
+ * RBAC: Only President, Admin, Sec Gen can manage.
+ * Features: Smart regional filtering and external calendar sync.
  */
 
 const NCR_CODE = "130000000";
@@ -59,12 +62,13 @@ export default function CalendarActivitiesPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Data Stream
+  // Data Stream - Fetches all activities for global visibility
   const { data: activities, loading } = useCollection('calendar_activities');
 
   // UI State
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [filter, setFilter] = useState<'all' | 'national' | 'region'>('all');
+  // Default filter is 'smart' - shows National + My Region
+  const [filter, setFilter] = useState<'smart' | 'all' | 'national' | 'region'>('smart');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -82,13 +86,13 @@ export default function CalendarActivitiesPage() {
   const [provinces, setProvinces] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
 
-  // RBAC Permission Check
+  // RBAC Permission Check - Strictly restricted creation/edit
   const canManage = useMemo(() => {
     const roles = ['President', 'Admin', 'Secretary General'];
     return userData && roles.includes(userData.role);
   }, [userData]);
 
-  // Fetch Provinces for form
+  // Fetch Locations for the creation form
   useMemo(() => {
     const fetchLocations = async () => {
       try {
@@ -102,7 +106,7 @@ export default function CalendarActivitiesPage() {
     if (canManage) fetchLocations();
   }, [canManage]);
 
-  // Fetch Cities when province selected
+  // Fetch Cities when province is selected in form
   useMemo(() => {
     const fetchCities = async () => {
       if (!targetProvince) return;
@@ -119,12 +123,16 @@ export default function CalendarActivitiesPage() {
     fetchCities();
   }, [targetProvince, provinces]);
 
-  // Filtering Logic
+  // Global Filtering Logic
   const filteredActivities = useMemo(() => {
     return activities.filter(a => {
       if (filter === 'national') return a.scope === 'National';
       if (filter === 'region') return a.scope === 'Regional' && (a.targetProvince === userData?.province || a.targetCity === userData?.city);
-      return true;
+      if (filter === 'smart') {
+        // Smart view: show all national + only my regional events
+        return a.scope === 'National' || (a.scope === 'Regional' && (a.targetProvince === userData?.province || a.targetCity === userData?.city));
+      }
+      return true; // 'all' view shows everything nationwide
     }).sort((a, b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime());
   }, [activities, filter, userData]);
 
@@ -177,36 +185,51 @@ export default function CalendarActivitiesPage() {
     }
   };
 
+  const getGoogleCalendarUrl = (activity: any) => {
+    const start = parseISO(activity.startDate);
+    const end = addHours(start, 1); // Assume 1 hour default
+    const fmt = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
+    const dates = `${fmt(start)}/${fmt(end)}`;
+    const details = encodeURIComponent(activity.description || "Official PDDS Activity");
+    const title = encodeURIComponent(`[PDDS] ${activity.title}`);
+    const location = encodeURIComponent(activity.locationAddress || activity.meetingLink || "PH");
+    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${dates}`;
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <div className="bg-card p-6 md:p-8 border-b shadow-sm">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary uppercase tracking-tight">
-              Calendar of Activities
+              National Mobilization Calendar
             </h1>
             <p className="mt-2 text-muted-foreground font-medium">
-              Synchronize with the national mobilization schedule.
+              Synchronize your schedule with official party activities across the archipelago.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
-              <SelectTrigger className="w-[180px] bg-background border-primary/20 h-12 font-bold">
-                <Filter className="mr-2 h-4 w-4 text-primary" />
-                <SelectValue placeholder="Filter View" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Show All</SelectItem>
-                <SelectItem value="national">National Only</SelectItem>
-                <SelectItem value="region">My Region</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-black uppercase text-primary/40 ml-1">Context Filter</span>
+              <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
+                <SelectTrigger className="w-[200px] bg-background border-primary/20 h-12 font-bold shadow-sm">
+                  <Filter className="mr-2 h-4 w-4 text-primary" />
+                  <SelectValue placeholder="View Content" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="smart">My Local Context</SelectItem>
+                  <SelectItem value="all">View All Regions</SelectItem>
+                  <SelectItem value="national">National Directives</SelectItem>
+                  <SelectItem value="region">My Specific Area</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             {canManage && (
               <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogTrigger asChild>
-                  <Button className="h-12 px-6 font-black uppercase tracking-widest shadow-xl rounded-xl">
+                  <Button className="h-12 px-6 font-black uppercase tracking-widest shadow-xl rounded-xl mt-auto">
                     <Plus className="mr-2 h-5 w-5" />
                     Schedule Activity
                   </Button>
@@ -223,7 +246,7 @@ export default function CalendarActivitiesPage() {
                     <div className="py-6 space-y-4">
                       <div className="space-y-2">
                         <Label>Activity Title</Label>
-                        <Input placeholder="e.g. National General Assembly" value={title} onChange={e => setTitle(e.target.value)} required />
+                        <Input placeholder="e.g. Regional Strategic Assembly" value={title} onChange={e => setTitle(e.target.value)} required />
                       </div>
                       <div className="space-y-2">
                         <Label>Date & Start Time</Label>
@@ -279,7 +302,7 @@ export default function CalendarActivitiesPage() {
                       </div>
                       <div className="space-y-2">
                         <Label>Detailed Agenda</Label>
-                        <Textarea placeholder="Objectives and notes..." value={description} onChange={e => setDescription(e.target.value)} />
+                        <Textarea placeholder="Objectives and operational notes..." value={description} onChange={e => setDescription(e.target.value)} />
                       </div>
                     </div>
                     <DialogFooter>
@@ -302,7 +325,7 @@ export default function CalendarActivitiesPage() {
           <Card className="shadow-xl border-none overflow-hidden bg-white">
             <CardHeader className="bg-primary/5 pb-4 border-b">
               <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                <CalendarDays className="h-4 w-4" /> Date Selector
+                <CalendarDays className="h-4 w-4" /> Date Selection
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 flex justify-center">
@@ -325,24 +348,24 @@ export default function CalendarActivitiesPage() {
             </CardContent>
             <CardFooter className="bg-muted/30 p-4 border-t grid grid-cols-2 gap-4">
               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                <div className="h-2 w-2 rounded-full bg-accent" /> National
+                <div className="h-2 w-2 rounded-full bg-accent" /> National Directive
               </div>
               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                <div className="h-2 w-2 rounded-full bg-primary" /> Regional
+                <div className="h-2 w-2 rounded-full bg-primary" /> Regional Activity
               </div>
             </CardFooter>
           </Card>
 
-          <Card className="bg-primary shadow-2xl border-none text-white overflow-hidden">
+          <Card className="bg-primary shadow-2xl border-none text-white overflow-hidden group">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Status Check</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Mobilization Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm font-medium leading-relaxed italic">
-                "Real-time synchronization ensures every regional coordinator stays aligned with the National Secretariat."
+                "Synchronizing your local presence with the national movement ensures operational continuity."
               </p>
               <div className="flex items-center gap-2 pt-4 border-t border-white/10">
-                <Globe className="h-4 w-4 text-accent" />
+                <Globe className="h-4 w-4 text-accent animate-pulse" />
                 <span className="text-xs font-bold uppercase">{userData?.city}, {userData?.province}</span>
               </div>
             </CardContent>
@@ -353,23 +376,26 @@ export default function CalendarActivitiesPage() {
         <div className="lg:col-span-8 space-y-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-3">
-              Activities for {selectedDate ? format(selectedDate, 'PPP') : 'Selected Day'}
+              Activities for {selectedDate ? format(selectedDate, 'PPPP') : 'Selected Day'}
             </h2>
             <Badge variant="secondary" className="bg-primary/10 text-primary font-black">
-              {selectedDayActivities.length} Found
+              {selectedDayActivities.length} Operations
             </Badge>
           </div>
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Syncing Secretariat Data...</p>
+              <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Syncing Party Records...</p>
             </div>
           ) : selectedDayActivities.length === 0 ? (
             <Card className="p-24 text-center border-dashed border-2 bg-muted/20">
               <div className="flex flex-col items-center gap-4">
                 <Search className="h-12 w-12 text-muted-foreground/30" />
-                <p className="text-muted-foreground font-medium">No official activities scheduled for this date.</p>
+                <p className="text-muted-foreground font-medium">No party activities scheduled for this date in your view.</p>
+                <Button variant="ghost" onClick={() => setFilter('all')} className="text-[10px] font-black uppercase tracking-widest">
+                  View other regions <ArrowRight className="ml-2 h-3 w-3" />
+                </Button>
               </div>
             </Card>
           ) : (
@@ -401,25 +427,39 @@ export default function CalendarActivitiesPage() {
                         </div>
                       </div>
                       
-                      {canManage && (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" className="w-40 p-1">
-                            <Button variant="ghost" className="w-full justify-start text-xs font-bold text-destructive" onClick={() => handleDelete(activity.id)}>
-                              Cancel Activity
-                            </Button>
-                          </PopoverContent>
-                        </Popover>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          asChild 
+                          className="h-8 w-8 rounded-full border-primary/20 text-primary hover:bg-primary hover:text-white"
+                          title="Sync to Google Calendar"
+                        >
+                          <a href={getGoogleCalendarUrl(activity)} target="_blank" rel="noopener noreferrer">
+                            <CalendarPlus className="h-4 w-4" />
+                          </a>
+                        </Button>
+
+                        {canManage && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-40 p-1">
+                              <Button variant="ghost" className="w-full justify-start text-xs font-bold text-destructive" onClick={() => handleDelete(activity.id)}>
+                                Cancel Activity
+                              </Button>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6">
                     <p className="text-sm text-foreground/80 leading-relaxed font-medium italic mb-6">
-                      "{activity.description || "Official party directive. Ensure all attendees are verified and in possession of their Digital ID."}"
+                      "{activity.description || "Official party directive. Ensure all attendees are verified and in possession of their Digital ID Card."}"
                     </p>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -442,7 +482,7 @@ export default function CalendarActivitiesPage() {
                       Organizer: {activity.organizerName}
                     </span>
                     <Badge variant="outline" className="text-[8px] opacity-40 uppercase border-none">
-                      ID: {activity.id.substring(0, 8)}
+                      REF: {activity.id.substring(0, 8)}
                     </Badge>
                   </CardFooter>
                 </Card>
