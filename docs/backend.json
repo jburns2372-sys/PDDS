@@ -40,6 +40,22 @@
       },
       "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
     },
+    "meeting_agenda": {
+      "title": "Meeting Agenda",
+      "description": "A scheduled meeting or briefing for specific party roles.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "meetingLink": { "type": "string", "format": "uri" },
+        "targetAudience": { "type": "array", "items": { "type": "string" } },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "date", "time", "meetingLink", "targetAudience"]
+    },
     "campaign_action": {
       "title": "Campaign Action",
       "type": "object",
@@ -78,51 +94,6 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["topic", "message", "status", "submittedBy", "submitterUid", "location", "timestamp"]
-    },
-    "announcement": {
-      "title": "Announcement",
-      "description": "Official party broadcasts and updates.",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
-        "message": { "type": "string" },
-        "targetGroup": { "type": "string" },
-        "documentLink": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "createdBy": { "type": "string" }
-      },
-      "required": ["title", "message", "targetGroup", "timestamp", "createdBy"]
-    },
-    "communication_audit": {
-      "title": "Communication Audit",
-      "description": "Logs for official SMS and push broadcasts.",
-      "type": "object",
-      "properties": {
-        "type": { "type": "string", "enum": ["SMS", "Push", "Dual"] },
-        "message": { "type": "string" },
-        "targetGroup": { "type": "string" },
-        "recipientCount": { "type": "number" },
-        "status": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "createdBy": { "type": "string" }
-      },
-      "required": ["type", "message", "targetGroup", "recipientCount", "timestamp", "createdBy"]
-    },
-    "communication_log": {
-      "title": "Communication Log",
-      "description": "Logs of direct messages sent to supporters by officers.",
-      "type": "object",
-      "properties": {
-        "officerUid": { "type": "string" },
-        "officerName": { "type": "string" },
-        "supporterUid": { "type": "string" },
-        "supporterName": { "type": "string" },
-        "type": { "type": "string", "enum": ["SMS", "CHAT"] },
-        "templateUsed": { "type": "string" },
-        "messageContent": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      },
-      "required": ["officerUid", "supporterUid", "type", "timestamp"]
     }
   },
   "auth": {
@@ -132,6 +103,10 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/user" },
       "description": "Stores user profile information."
+    },
+    "/meeting_agendas/{agendaId}": {
+      "schema": { "$ref": "#/backend/entities/meeting_agenda" },
+      "description": "Stores scheduled meetings and briefings."
     },
     "/campaign_actions/{actionId}": {
       "schema": { "$ref": "#/backend/entities/campaign_action" },
@@ -148,14 +123,6 @@
     "/announcements/{announcementId}": {
       "schema": { "$ref": "#/backend/entities/announcement" },
       "description": "Stores official party broadcasts."
-    },
-    "/communication_audit/{auditId}": {
-      "schema": { "$ref": "#/backend/entities/communication_audit" },
-      "description": "Stores logs of official party communications."
-    },
-    "/communication_logs/{logId}": {
-      "schema": { "$ref": "#/backend/entities/communication_log" },
-      "description": "Stores logs of direct communication between officers and supporters."
     }
   }
 }

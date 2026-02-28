@@ -21,10 +21,8 @@ service cloud.firestore {
              email == 'j.burns.2372@gmail.com';
     }
 
-    function hasRole(role) {
-      if (!isSignedIn()) return false;
-      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
-      return exists(userPath) && get(userPath).data.role == role;
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isOfficerOrAdmin() {
@@ -32,20 +30,31 @@ service cloud.firestore {
       if (isPrivilegedEmail()) return true;
       
       let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      if (!exists(userPath)) return false;
+      
       let leadershipRoles = [
         'President', 'Chairman', 'Vice Chairman', 'VP', 'Secretary General',
         'Treasurer', 'Auditor', 'VP Ways & Means Chair', 'VP Media Comms',
         'VP Soc Med Comms', 'VP Events and Programs', 'VP Membership',
         'VP legal affairs', 'Officer', 'Admin', 'System Admin'
       ];
-      return exists(userPath) && get(userPath).data.role in leadershipRoles;
+      return get(userPath).data.role in leadershipRoles;
     }
 
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isOwner(userId) || isOfficerOrAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recruitCount', 'fcmToken']));
+      allow update: if isOwner(userId) || isOfficerOrAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recruitCount', 'fcmToken', 'phoneNumber', 'isPhoneVerified']));
       allow delete: if isOfficerOrAdmin();
+    }
+
+    match /meeting_agendas/{agendaId} {
+      allow read: if isSignedIn() && (
+        isOfficerOrAdmin() || 
+        resource.data.targetAudience.contains('All Members') || 
+        resource.data.targetAudience.contains(getUserData().role)
+      );
+      allow write: if isOfficerOrAdmin();
     }
 
     match /campaign_actions/{actionId} {
@@ -71,14 +80,6 @@ service cloud.firestore {
     match /announcements/{announcementId} {
       allow read: if isSignedIn();
       allow write: if isOfficerOrAdmin();
-    }
-
-    match /communication_audit/{auditId} {
-      allow read, write: if isOfficerOrAdmin();
-    }
-
-    match /communication_logs/{logId} {
-      allow read, write: if isOfficerOrAdmin();
     }
   }
 }
