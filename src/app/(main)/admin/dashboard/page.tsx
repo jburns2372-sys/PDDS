@@ -27,7 +27,7 @@ const UNLIMITED_ROLES = ['Member', 'Supporter'];
 
 const allAssignableRoles = [
   ...pddsLeadershipRoles,
-  "Member", "Admin", "System Admin", "Supporter"
+  "Member", "Admin", "System Admin"
 ];
 
 export default function AdminDashboard() {
