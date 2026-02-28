@@ -43,8 +43,11 @@ export default function AdminBroadcastPage() {
       );
     } else if (broadcastScope === "Supporters") {
       filtered = filtered.filter(u => u.role === 'Supporter');
+    } else if (broadcastScope === "National") {
+      // EXCLUDE Supporters from National Broadcast as requested
+      filtered = filtered.filter(u => u.role !== 'Supporter');
     }
-    // "National" scope returns all with phone numbers
+    
     return filtered;
   }, [allUsers, broadcastScope]);
 
@@ -308,7 +311,7 @@ export default function AdminBroadcastPage() {
                   <span className="text-sm font-black text-primary">{(targetUsers.length * segments).toLocaleString()}</span>
                 </div>
                 <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                  * Note: Broadcasting to "National Broadcast" scope will simultaneously update the National Bulletin on the portal home feed.
+                  * Note: Broadcasting to "National Broadcast" scope will simultaneously update the National Bulletin on the portal home feed and strictly excludes Supporters.
                 </p>
               </CardContent>
             </Card>
