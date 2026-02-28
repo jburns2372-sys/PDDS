@@ -21,10 +21,8 @@ import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, 
 import { collection, onSnapshot, serverTimestamp, doc, setDoc, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
 
-const allAssignableRoles = [
-  ...pddsLeadershipRoles,
-  "Member", "Admin", "System Admin", "Supporter"
-];
+// ROLES THAT CAN HAVE UNLIMITED OCCUPANTS
+const UNLIMITED_ROLES = ['Member', 'Supporter', 'Admin', 'System Admin', 'Officer'];
 
 // POSITIONS THAT CAN ONLY HAVE ONE OCCUPANT NATIONWIDE
 const UNIQUE_ROLES = [
@@ -34,6 +32,11 @@ const UNIQUE_ROLES = [
   'Secretary General', 
   'Treasurer', 
   'Auditor'
+];
+
+const allAssignableRoles = [
+  ...pddsLeadershipRoles,
+  "Member", "Admin", "System Admin", "Supporter"
 ];
 
 export default function AdminDashboard() {
@@ -195,11 +198,12 @@ export default function AdminDashboard() {
             toast({ variant: "destructive", title: "Action Restricted", description: "You cannot change your own role." });
             return;
         }
+        
         const newRole = user.role === 'Officer' ? 'Supporter' : 'Officer';
         
-        // Guard against unique role collisions even in quick toggle
+        // UNIQUE ROLE VALIDATION GUARD
         if (UNIQUE_ROLES.includes(newRole) && takenRoles.includes(newRole)) {
-          toast({ variant: "destructive", title: "Position Occupied", description: `The role of ${newRole} is already filled.` });
+          toast({ variant: "destructive", title: "Position Occupied", description: `The unique role of ${newRole} is already filled.` });
           return;
         }
 
@@ -320,7 +324,8 @@ export default function AdminDashboard() {
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        // UNIQUE ROLE VALIDATION GUARD
+        // ROLE VALIDATION LOGIC
+        // 1. Check if it's a unique role and if it's already filled by someone else
         const isRoleConflict = UNIQUE_ROLES.includes(role) && 
                                takenRoles.includes(role) && 
                                (!isEditMode || selectedUser?.role !== role);
@@ -330,6 +335,7 @@ export default function AdminDashboard() {
           return;
         }
 
+        // 2. Allow unlimited roles (Member, Supporter, Admin, etc.) automatically
         if (password && password !== confirmPassword) {
             toast({ variant: "destructive", title: "Validation Error", description: "Passwords do not match." });
             return;
@@ -472,6 +478,7 @@ export default function AdminDashboard() {
                                         <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             {allAssignableRoles.map(r => {
+                                              // Only disable if it's in the UNIQUE array and taken by someone ELSE
                                               const isTaken = UNIQUE_ROLES.includes(r) && 
                                                               takenRoles.includes(r) && 
                                                               (!isEditMode || selectedUser?.role !== r);
