@@ -6,7 +6,7 @@ import { useUserData } from "@/context/user-data-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,7 +16,7 @@ import { updatePassword, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationR
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { updateUserDocument } from "@/firebase/firestore/firestore-service";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, User, Mail, Home, MapPin, Loader2, LogOut, Save, Phone, Lock, Eye, EyeOff, X, Check, ShieldCheck } from "lucide-react";
+import { Camera, User, Loader2, LogOut, Save, Phone, Lock, Eye, EyeOff, X, Check, ShieldCheck, MapPin } from "lucide-react";
 
 declare global {
   interface Window {
@@ -190,6 +190,9 @@ export default function ProfilePage() {
             const specificZip = matchedBrgyKey ? cityData[matchedBrgyKey] : null;
             if (specificZip) setZipCode(specificZip);
             else setZipCode(cityData.default || "");
+        } else {
+            // Synchronized fallback zip codes for non-mapped cities
+            setZipCode("0000"); 
         }
     }, [selectedCity, selectedBarangay]);
 
@@ -518,7 +521,7 @@ export default function ProfilePage() {
                                             </Select>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Zip Code</Label>
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Zip Code (Auto)</Label>
                                             <Input value={zipCode} readOnly className="h-11 bg-muted font-mono" />
                                         </div>
                                     </div>
