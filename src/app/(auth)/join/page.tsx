@@ -34,59 +34,94 @@ declare global {
 
 const NCR_CODE = "130000000";
 
-const ZIP_CODE_MAP: Record<string, { default: string; [barangay: string]: string }> = {
-    "CITY OF MANILA": { 
-        default: "1000", 
-        "SAMPALOC": "1008", 
-        "MALATE": "1004", 
-        "BINONDO": "1006", 
-        "ERMITA": "1000", 
-        "QUIAPO": "1001",
-        "TONDO": "1012",
-        "SANTA CRUZ": "1014",
-        "SANTA ANA": "1009",
-        "SAN MIGUEL": "1005",
-        "SAN NICOLAS": "1010",
-        "PANDACAN": "1011",
-        "PACO": "1007",
-        "INTRAMUROS": "1002",
-        "PORT AREA": "1018"
+// Comprehensive Zip Code Map (Hierarchical)
+const ZIP_CODE_MAP: Record<string, any> = {
+    "METRO MANILA (NCR)": {
+        "CITY OF MANILA": { 
+            default: "1000", 
+            "SAMPALOC": "1008", 
+            "MALATE": "1004", 
+            "BINONDO": "1006", 
+            "ERMITA": "1000", 
+            "QUIAPO": "1001",
+            "TONDO": "1012",
+            "SANTA CRUZ": "1014",
+            "SANTA ANA": "1009",
+            "SAN MIGUEL": "1005",
+            "SAN NICOLAS": "1010",
+            "PANDACAN": "1011",
+            "PACO": "1007",
+            "INTRAMUROS": "1002",
+            "PORT AREA": "1018"
+        },
+        "QUEZON CITY": { 
+            default: "1100", 
+            "COMMONWEALTH": "1121", 
+            "DILIMAN": "1101", 
+            "BATASAN HILLS": "1126", 
+            "CUBAO": "1109", 
+            "LOYOLA HEIGHTS": "1108",
+            "PASONG TAMO": "1107",
+            "PAANG BUNDOK": "1114",
+            "BAGONG SILANGAN": "1119",
+            "NOVALICHES": "1123",
+            "NEW ERA": "1107",
+            "SAN BARTOLOME": "1116",
+            "TANDANG SORA": "1116",
+            "PROJECT 4": "1109",
+            "PROJECT 6": "1100",
+            "PROJECT 7": "1105",
+            "PROJECT 8": "1106",
+            "FAIRVIEW": "1118",
+            "HOLY SPIRIT": "1127",
+            "PAYATAS": "1119",
+            "UP CAMPUS": "1101"
+        },
+        "MAKATI CITY": { 
+            default: "1200", 
+            "BEL-AIR": "1209", 
+            "FORBES PARK": "1219", 
+            "MAGALLANES VILLAGE": "1232",
+            "DASMARIÑAS VILLAGE": "1222",
+            "GUADALUPE NUEVO": "1212",
+            "GUADALUPE VIEJO": "1211",
+            "POBLACION": "1210",
+            "SAN LORENZO": "1223",
+            "URA-DANZA": "1200"
+        },
     },
-    "QUEZON CITY": { 
-        default: "1100", 
-        "COMMONWEALTH": "1121", 
-        "DILIMAN": "1101", 
-        "BATASAN HILLS": "1126", 
-        "CUBAO": "1109", 
-        "LOYOLA HEIGHTS": "1108",
-        "PASONG TAMO": "1107",
-        "PAANG BUNDOK": "1114",
-        "BAGONG SILANGAN": "1119",
-        "NOVALICHES": "1123",
-        "NEW ERA": "1107",
-        "SAN BARTOLOME": "1116",
-        "TANDANG SORA": "1116",
-        "PROJECT 4": "1109",
-        "PROJECT 6": "1100",
-        "PROJECT 7": "1105",
-        "PROJECT 8": "1106",
-        "FAIRVIEW": "1118",
-        "HOLY SPIRIT": "1127",
-        "PAYATAS": "1119",
-        "UP CAMPUS": "1101"
+    "BASILAN": {
+        "CITY OF LAMITAN": "7302",
+        "CITY OF ISABELA": "7300",
+        "AKBAR": "7302",
+        "AL-BARKA": "7302",
+        "HADJI MOHAMMAD AJUL": "7302",
+        "HADJI MUHTAMAD": "7300",
+        "LANTAWAN": "7301",
+        "MALUSO": "7303",
+        "SUMISIP": "7305",
+        "TIPO-TIPO": "7304",
+        "TUBURAN": "7302",
+        "UNGKAYA PUKAN": "7304",
+        "default": "7300"
     },
-    "MAKATI CITY": { 
-        default: "1200", 
-        "BEL-AIR": "1209", 
-        "FORBES PARK": "1219", 
-        "MAGALLANES VILLAGE": "1232",
-        "DASMARIÑAS VILLAGE": "1222",
-        "GUADALUPE NUEVO": "1212",
-        "GUADALUPE VIEJO": "1211",
-        "POBLACION": "1210",
-        "SAN LORENZO": "1223",
-        "URA-DANZA": "1200"
+    "CEBU": {
+        "CEBU CITY": "6000",
+        "MANDAUE CITY": "6014",
+        "LAPU-LAPU CITY": "6015",
+        "TALISAY CITY": "6045",
+        "CONSOLACION": "6001",
+        "default": "6000"
     },
+    "DAVAO DEL SUR": {
+        "DAVAO CITY": "8000",
+        "DIGOS CITY": "8002",
+        "default": "8000"
+    },
+    "ILOILO": {
+        "ILOILO CITY": "5000",
+        "default": "5000"
+    }
 };
 
 export default function JoinPage() {
@@ -205,30 +240,36 @@ export default function JoinPage() {
         setSelectedBarangay("");
     }, [selectedCity, cities]);
 
+    // Intelligent Auto Zip Code Assignment
     useEffect(() => {
-        if (!selectedCity) {
+        if (!selectedProvince) {
             setZipCode("");
             return;
         }
 
+        const provinceKey = selectedProvince.toUpperCase();
         const cityKey = selectedCity.toUpperCase();
-        const cityData = ZIP_CODE_MAP[cityKey];
+        const brgyKey = selectedBarangay.toUpperCase();
 
-        if (cityData) {
-            const brgyKey = selectedBarangay.toUpperCase();
-            const matchedBrgyKey = Object.keys(cityData).find(key => 
-                brgyKey.includes(key) || key.includes(brgyKey)
-            );
-            const specificZip = matchedBrgyKey ? cityData[matchedBrgyKey] : null;
-            if (specificZip) {
-                setZipCode(specificZip);
+        const provinceData = ZIP_CODE_MAP[provinceKey];
+        if (provinceData) {
+            const cityData = provinceData[cityKey];
+            if (cityData) {
+                if (typeof cityData === 'string') {
+                    setZipCode(cityData);
+                } else if (typeof cityData === 'object') {
+                    const matchedBrgyKey = Object.keys(cityData).find(key => 
+                        brgyKey.includes(key) || key.includes(brgyKey)
+                    );
+                    setZipCode(matchedBrgyKey ? cityData[matchedBrgyKey] : (cityData.default || "0000"));
+                }
             } else {
-                setZipCode(cityData.default || "");
+                setZipCode(provinceData.default || "0000");
             }
         } else {
             setZipCode("0000"); 
         }
-    }, [selectedCity, selectedBarangay]);
+    }, [selectedProvince, selectedCity, selectedBarangay]);
 
     useEffect(() => {
         if (typeof window !== "undefined" && !window.recaptchaVerifier) {
