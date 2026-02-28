@@ -26,6 +26,16 @@ const allAssignableRoles = [
   "Member", "Admin", "System Admin", "Supporter"
 ];
 
+// POSITIONS THAT CAN ONLY HAVE ONE OCCUPANT NATIONWIDE
+const UNIQUE_ROLES = [
+  'President', 
+  'Chairman', 
+  'Vice Chairman', 
+  'Secretary General', 
+  'Treasurer', 
+  'Auditor'
+];
+
 export default function AdminDashboard() {
     const firestore = useFirestore();
     const storage = useStorage();
@@ -65,7 +75,7 @@ export default function AdminDashboard() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const resumeInputRef = useRef<HTMLInputElement>(null);
 
-    // Real-time Registry Sync
+    // Real-time Registry Sync & Role Tracking
     useEffect(() => {
         setUsersLoading(true);
         const usersCollection = collection(firestore, 'users');
@@ -84,6 +94,13 @@ export default function AdminDashboard() {
 
         return () => unsubscribe();
     }, [firestore]);
+
+    // Track which unique roles are already assigned
+    const takenRoles = useMemo(() => {
+      return allUsers
+        .filter(u => u.isApproved !== false && UNIQUE_ROLES.includes(u.role))
+        .map(u => u.role);
+    }, [allUsers]);
 
     const filteredRegistry = useMemo(() => {
         return allUsers.filter(user => {
@@ -179,6 +196,13 @@ export default function AdminDashboard() {
             return;
         }
         const newRole = user.role === 'Officer' ? 'Supporter' : 'Officer';
+        
+        // Guard against unique role collisions even in quick toggle
+        if (UNIQUE_ROLES.includes(newRole) && takenRoles.includes(newRole)) {
+          toast({ variant: "destructive", title: "Position Occupied", description: `The role of ${newRole} is already filled.` });
+          return;
+        }
+
         setLoading(true);
         try {
             await updateUserDocument(firestore, user.id, { role: newRole });
@@ -295,10 +319,22 @@ export default function AdminDashboard() {
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // UNIQUE ROLE VALIDATION GUARD
+        const isRoleConflict = UNIQUE_ROLES.includes(role) && 
+                               takenRoles.includes(role) && 
+                               (!isEditMode || selectedUser?.role !== role);
+
+        if (isRoleConflict) {
+          toast({ variant: "destructive", title: "Position Occupied", description: "This leadership position is already filled." });
+          return;
+        }
+
         if (password && password !== confirmPassword) {
             toast({ variant: "destructive", title: "Validation Error", description: "Passwords do not match." });
             return;
         }
+
         setLoading(true);
         try {
             let finalPhotoURL = photoURL;
@@ -435,7 +471,17 @@ export default function AdminDashboard() {
                                     <Select onValueChange={setRole} value={role}>
                                         <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                                         <SelectContent>
-                                            {allAssignableRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                                            {allAssignableRoles.map(r => {
+                                              const isTaken = UNIQUE_ROLES.includes(r) && 
+                                                              takenRoles.includes(r) && 
+                                                              (!isEditMode || selectedUser?.role !== r);
+                                              
+                                              return (
+                                                <SelectItem key={r} value={r} disabled={isTaken}>
+                                                  {r} {isTaken ? '(Taken)' : ''}
+                                                </SelectItem>
+                                              );
+                                            })}
                                         </SelectContent>
                                     </Select>
                                 </div>
