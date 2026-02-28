@@ -35,8 +35,7 @@ export function DesktopSidebar() {
   const isPrivilegedEmail = 
     userEmail === 'iamgrecobelgica@gmail.com' ||
     userEmail === 'j.burns372@gmail.com' ||
-    userEmail === 'j.burns2372@gmail.com' ||
-    userEmail === 'mariashellajoygomez@gmail.com';
+    userEmail === 'j.burns2372@gmail.com';
 
   const isPrivileged = !isLoadingRole && (isOfficer || isAdmin || isPrivilegedEmail);
   
@@ -75,8 +74,10 @@ export function DesktopSidebar() {
                         "flex w-full items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest"
                     )}
                 >
-                    <Info className="h-4 w-4" />
-                    <span>About PDDS</span>
+                    <div className="flex items-center gap-3">
+                        <Info className="h-4 w-4" />
+                        <span>About PDDS</span>
+                    </div>
                 </button>
             </AboutPddsDialog>
             

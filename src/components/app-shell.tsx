@@ -48,8 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       const isAdminEmail = 
         userEmail === 'j.burns2372@gmail.com' || 
         userEmail === 'j.burns.2372@gmail.com' || 
-        userEmail === 'j.burns372@gmail.com' ||
-        userEmail === 'mariashellajoygomez@gmail.com';
+        userEmail === 'j.burns372@gmail.com';
       
       const isPrivileged = isPresidentEmail || isAdminEmail;
 

@@ -20,8 +20,7 @@ export default function SuperAdminLayout({
     userEmail === 'iamgrecobelgica@gmail.com' || 
     userEmail === 'j.burns2372@gmail.com' ||
     userEmail === 'j.burns.2372@gmail.com' ||
-    userEmail === 'j.burns372@gmail.com' ||
-    userEmail === 'mariashellajoygomez@gmail.com';
+    userEmail === 'j.burns372@gmail.com';
 
   // System Admin and President (at National level) share full Superadmin/developer access
   const isSuperAdmin = 

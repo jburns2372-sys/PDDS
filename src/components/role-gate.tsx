@@ -27,8 +27,7 @@ export function RoleGate({ children, allowedRoles = [] }: RoleGateProps) {
     userEmail === 'iamgrecobelgica@gmail.com' ||
     userEmail === 'j.burns2372@gmail.com' ||
     userEmail === 'j.burns.2372@gmail.com' ||
-    userEmail === 'j.burns372@gmail.com' ||
-    userEmail === 'mariashellajoygomez@gmail.com';
+    userEmail === 'j.burns372@gmail.com';
 
   const isAuthorized = isOfficer || isAdmin || isPrivilegedEmail;
 

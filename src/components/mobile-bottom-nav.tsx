@@ -32,8 +32,7 @@ export function MobileBottomNav() {
   const isPrivilegedEmail = 
     userEmail === 'iamgrecobelgica@gmail.com' ||
     userEmail === 'j.burns372@gmail.com' ||
-    userEmail === 'j.burns2372@gmail.com' ||
-    userEmail === 'mariashellajoygomez@gmail.com';
+    userEmail === 'j.burns2372@gmail.com';
 
   const isPrivileged = !isLoadingRole && (isOfficer || isAdmin || isPrivilegedEmail);
   

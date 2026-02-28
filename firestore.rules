@@ -18,8 +18,7 @@ service cloud.firestore {
       return email == 'iamgrecobelgica@gmail.com' || 
              email == 'j.burns372@gmail.com' || 
              email == 'j.burns2372@gmail.com' || 
-             email == 'j.burns.2372@gmail.com' || 
-             email == 'mariashellajoygomez@gmail.com';
+             email == 'j.burns.2372@gmail.com';
     }
 
     function hasRole(role) {
