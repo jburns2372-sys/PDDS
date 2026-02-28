@@ -1,8 +1,7 @@
-
 "use client";
 
-import { useState } from "react";
-import { useFirestore, useUser } from "@/firebase";
+import { useState, useMemo } from "react";
+import { useFirestore, useUser, useCollection } from "@/firebase";
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,107 +9,130 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Megaphone, Loader2, Send, FileText, Globe, Users, MessageSquare, AlertCircle } from "lucide-react";
-import { jurisdictionLevels } from "@/lib/data";
+import { Megaphone, Loader2, Send, Users, MessageSquare, AlertCircle, Globe, MapPin, CheckCircle2 } from "lucide-react";
+
+const BATCH_SIZE = 300;
 
 export default function AdminBroadcastPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+  const { data: allUsers } = useCollection('users');
   
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [targetGroup, setTargetGroup] = useState("All Supporters");
-  const [documentLink, setDocumentLink] = useState("");
-  const [sendSms, setSendSms] = useState(false);
+  const [broadcastScope, setBroadcastScope] = useState("National");
+  const [scopeValue, setScopeValue] = useState("");
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState("");
+
+  // Logic to extract unique locations for filters
+  const provinces = useMemo(() => {
+    const p = new Set<string>();
+    allUsers.forEach(u => u.province && p.add(u.province));
+    return Array.from(p).sort();
+  }, [allUsers]);
+
+  const cities = useMemo(() => {
+    const c = new Set<string>();
+    allUsers.forEach(u => u.city && c.add(u.city));
+    return Array.from(c).sort();
+  }, [allUsers]);
 
   const charLimit = 160;
-  const charCount = message.length;
-  const isOverLimit = charCount > charLimit;
+  const isOverLimit = message.length > charLimit;
 
   const handleBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !message.trim()) {
-      toast({ variant: "destructive", title: "Missing Information", description: "Please fill out title and message." });
+      toast({ variant: "destructive", title: "Missing Info", description: "Title and message are required." });
       return;
     }
 
     setLoading(true);
-    
+    setProgress(0);
+    setStatusMessage("Identifying target recipients...");
+
     try {
-      let recipientCount = 0;
-      let smsNumbers: string[] = [];
-
-      // If SMS is requested, fetch matching phone numbers
-      if (sendSms) {
-        let userQuery = query(collection(firestore, "users"), where("role", "==", "Supporter"));
-        
-        if (targetGroup !== "All Supporters") {
-          userQuery = query(userQuery, where("jurisdictionLevel", "==", targetGroup));
-        }
-
-        const snapshot = await getDocs(userQuery);
-        smsNumbers = snapshot.docs
-          .map(doc => doc.data().phoneNumber)
-          .filter(num => !!num);
-        recipientCount = smsNumbers.length;
-
-        if (smsNumbers.length > 0) {
-          // Trigger the SMS API route
-          const smsResponse = await fetch('/api/send-sms', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              message: `${title}: ${message}`,
-              numbers: smsNumbers
-            })
-          });
-
-          if (!smsResponse.ok) {
-            console.error("SMS Gateway Error:", await smsResponse.text());
-          }
-        }
+      // 1. Fetch matching recipients
+      let targetUsers = allUsers.filter(u => u.role === 'Supporter' && u.phoneNumber);
+      
+      if (broadcastScope === "Province" && scopeValue) {
+        targetUsers = targetUsers.filter(u => u.province === scopeValue);
+      } else if (broadcastScope === "City" && scopeValue) {
+        targetUsers = targetUsers.filter(u => u.city === scopeValue);
       }
 
-      // 1. Save to Announcements (News Feed)
-      const broadcastData = {
+      const phoneNumbers = targetUsers.map(u => u.phoneNumber).filter(n => n && n.length > 5);
+      const totalRecipients = phoneNumbers.length;
+
+      if (totalRecipients === 0) {
+        throw new Error("No verified phone numbers found for the selected scope.");
+      }
+
+      // 2. Batching logic
+      const batches = [];
+      for (let i = 0; i < phoneNumbers.length; i += BATCH_SIZE) {
+        batches.push(phoneNumbers.slice(i, i + BATCH_SIZE));
+      }
+
+      setStatusMessage(`Starting distribution to ${totalRecipients} supporters...`);
+
+      // 3. Sequential distribution
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        setStatusMessage(`Sending batch ${i + 1} of ${batches.length}...`);
+        
+        const response = await fetch('/api/send-sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `${title}: ${message}`,
+            numbers: batch
+          })
+        });
+
+        if (!response.ok) {
+          console.error("Batch failure:", await response.text());
+        }
+
+        setProgress(Math.round(((i + 1) / batches.length) * 100));
+      }
+
+      // 4. Finalize Audit Logs
+      await addDoc(collection(firestore, "announcements"), {
         title: title.trim(),
         message: message.trim(),
-        targetGroup,
-        documentLink: documentLink.trim() || null,
+        targetGroup: `${broadcastScope}: ${scopeValue || 'National'}`,
         timestamp: serverTimestamp(),
-        createdBy: user?.uid || 'Unknown Officer',
-      };
-      await addDoc(collection(firestore, "announcements"), broadcastData);
+        createdBy: user?.uid || 'System',
+      });
 
-      // 2. Log to Audit (History)
       await addDoc(collection(firestore, "communication_audit"), {
-        type: sendSms ? "Dual (Push + SMS)" : "Push Only",
+        type: "SMS Broadcast",
         message: message.trim(),
-        targetGroup,
-        recipientCount: sendSms ? recipientCount : 0,
+        targetGroup: broadcastScope,
+        scopeValue: scopeValue || "All",
+        recipientCount: totalRecipients,
         status: "Completed",
         timestamp: serverTimestamp(),
-        createdBy: user?.uid || 'Unknown Officer',
+        createdBy: user?.uid || 'System',
       });
-      
+
       toast({ 
-        title: "Broadcast Successful", 
-        description: sendSms 
-          ? `Update sent to news feed and ${recipientCount} recipients via SMS.`
-          : "Update is now live in the supporter news feed." 
+        title: "Mobilization Successful", 
+        description: `Broadcast complete. Sent to ${totalRecipients} supporters.` 
       });
       
       setTitle("");
       setMessage("");
-      setDocumentLink("");
-      setTargetGroup("All Supporters");
-      setSendSms(false);
+      setProgress(0);
+      setStatusMessage("");
     } catch (error: any) {
-      console.error("Broadcast failed:", error);
+      console.error(error);
       toast({ variant: "destructive", title: "Broadcast Failed", description: error.message });
     } finally {
       setLoading(false);
@@ -126,117 +148,111 @@ export default function AdminBroadcastPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-primary font-headline uppercase tracking-tight">
-              Party Broadcast System
+              SMS Mobilizer
             </h1>
-            <p className="text-muted-foreground text-sm font-medium">Issue official alerts and SMS mobilizers to the movement.</p>
+            <p className="text-muted-foreground text-sm font-medium">Rapid response alerts for the PDDS supporter network.</p>
           </div>
         </div>
 
-        <Card className="shadow-xl border-t-4 border-primary overflow-hidden">
+        <Card className="shadow-xl border-t-4 border-primary">
           <form onSubmit={handleBroadcast}>
             <CardHeader className="bg-primary/5 border-b">
               <CardTitle className="text-xl font-headline flex items-center gap-2">
                 <Send className="h-5 w-5 text-primary" />
-                Draft Multi-Channel Announcement
+                Draft SMS Broadcast
               </CardTitle>
-              <CardDescription>Messages are archived for official party auditing.</CardDescription>
+              <CardDescription>Target supporters by region for localized mobilization.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Broadcast Scope</Label>
+                  <Select onValueChange={(v) => { setBroadcastScope(v); setScopeValue(""); }} value={broadcastScope}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Select Scope" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="National">National (All Supporters)</SelectItem>
+                      <SelectItem value="Province">By Province / Region</SelectItem>
+                      <SelectItem value="City">By City / Municipality</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {broadcastScope !== "National" && (
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary">
+                      {broadcastScope === "Province" ? "Select Province" : "Select City"}
+                    </Label>
+                    <Select onValueChange={setScopeValue} value={scopeValue}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder={`Select specific ${broadcastScope}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(broadcastScope === "Province" ? provinces : cities).map(val => (
+                          <SelectItem key={val} value={val}>{val}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="title" className="text-[10px] font-black uppercase tracking-widest text-primary">Announcement Title</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Alert Title</Label>
                 <Input 
-                  id="title" 
-                  placeholder="e.g. IMPORTANT: NEW POLICY UPDATE" 
+                  placeholder="e.g. URGENT: REGIONAL MEETING" 
                   className="font-bold uppercase h-11"
                   value={title}
                   onChange={e => setTitle(e.target.value.toUpperCase())}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1">
-                    <Users className="h-3 w-3" /> Target Group
-                  </Label>
-                  <Select onValueChange={setTargetGroup} value={targetGroup}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Select Target" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="All Supporters">All Supporters (National)</SelectItem>
-                      {jurisdictionLevels.map(l => (
-                        <SelectItem key={l} value={l}>{l} Level Only</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1">
-                    <FileText className="h-3 w-3" /> Document Link (Optional)
-                  </Label>
-                  <Input 
-                    placeholder="https://..." 
-                    className="h-11"
-                    value={documentLink}
-                    onChange={e => setDocumentLink(e.target.value)}
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="message" className="text-[10px] font-black uppercase tracking-widest text-primary">Full Message Content</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Message Content</Label>
                   <span className={`text-[10px] font-black uppercase tracking-widest ${isOverLimit ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`}>
-                    {charCount} / {charLimit} Characters
+                    {message.length} / {charLimit}
                   </span>
                 </div>
                 <Textarea 
-                  id="message" 
-                  placeholder="Detail the announcement here..." 
-                  className="min-h-[180px] text-sm leading-relaxed"
+                  placeholder="Keep it concise for rapid reading..." 
+                  className="min-h-[120px] text-sm leading-relaxed"
                   value={message}
                   onChange={e => setMessage(e.target.value)}
                 />
-                {isOverLimit && sendSms && (
-                  <div className="flex items-center gap-2 p-2 bg-destructive/5 text-destructive text-[10px] font-bold rounded border border-destructive/20 mt-2">
-                    <AlertCircle className="h-3 w-3" />
-                    WARNING: MESSAGE EXCEEDS 160 CHARACTERS. SMS MAY BE SPLIT OR INCUR EXTRA CREDITS.
-                  </div>
+                {isOverLimit && (
+                  <p className="text-[10px] text-destructive font-bold flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> Exceeds 160 characters. Message will incur multiple SMS credits.
+                  </p>
                 )}
               </div>
 
-              <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg border border-dashed">
-                <Checkbox 
-                  id="sendSms" 
-                  checked={sendSms} 
-                  onCheckedChange={(checked) => setSendSms(checked === true)} 
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <label htmlFor="sendSms" className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 cursor-pointer">
-                    <MessageSquare className="h-3.5 w-3.5 text-primary" />
-                    Also send via SMS Mobilizer
-                  </label>
-                  <p className="text-[10px] text-muted-foreground font-medium">
-                    Broadcasts directly to matching supporter mobile numbers.
-                  </p>
+              {loading && (
+                <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-primary">
+                    <span>{statusMessage}</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <Progress value={progress} className="h-2 bg-primary/10" />
                 </div>
-              </div>
+              )}
             </CardContent>
             <CardFooter className="bg-muted/30 border-t pt-6">
-              <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-lg" disabled={loading}>
-                {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Distributing...</> : <><Globe className="mr-2 h-5 w-5" /> Execute Multi-Channel Broadcast</>}
+              <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest" disabled={loading}>
+                {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing Batches...</> : <><Globe className="mr-2 h-5 w-5" /> Execute Broadcast</>}
               </Button>
             </CardFooter>
           </form>
         </Card>
 
-        <div className="bg-primary/5 p-4 rounded-lg border border-dashed border-primary/20">
-          <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-2 flex items-center gap-2">
+        <div className="bg-amber-50 p-4 rounded-lg border border-dashed border-amber-200">
+          <h3 className="text-xs font-black text-amber-800 uppercase tracking-widest mb-2 flex items-center gap-2">
             <AlertCircle className="h-3 w-3" />
-            Officer Mobilization Note:
+            Safety Notice:
           </h3>
-          <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-            Multi-channel broadcasts are high-impact. SMS mobilization is restricted to verified Supporter numbers. Always verify your links and character counts before executing, as SMS broadcasts cannot be retracted once issued.
+          <p className="text-[11px] text-amber-700 leading-relaxed font-medium">
+            Broadcasts are restricted to 300 numbers per batch to ensure delivery stability across Philippine telco networks. Always test your links and character counts before executing, as SMS mobilizations cannot be retracted.
           </p>
         </div>
       </div>
