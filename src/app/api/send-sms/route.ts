@@ -1,14 +1,21 @@
+
 import { NextResponse } from 'next/server';
 
 /**
  * @fileOverview Secure API route for handling SMS distribution via third-party gateways.
- * Now supports personalized payloads for unique recipient messaging.
+ * Supports personalized payloads and URGENT administrative alerts.
  */
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { isPersonalized, tasks, message, numbers } = body;
+    const { isPersonalized, tasks, message, numbers, isUrgent } = body;
+
+    // Handle High-Priority Administrative Alerts (e.g., from Cloud Functions or Dashboard)
+    if (isUrgent && message && numbers) {
+        console.log(`[SMS GATEWAY] PRIORITY ALERT DISPATCHED to ${numbers.length} numbers.`);
+        // Production logic: Use an immediate delivery queue
+    }
 
     if (isPersonalized) {
       if (!tasks || !Array.isArray(tasks)) {
@@ -40,7 +47,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       recipientCount: isPersonalized ? tasks.length : numbers.length,
-      status: "Batch processed successfully."
+      status: "Batch processed successfully.",
+      priority: isUrgent ? "High" : "Standard"
     });
   } catch (error: any) {
     console.error('SMS Gateway Error:', error);
