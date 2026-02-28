@@ -57,6 +57,10 @@ service cloud.firestore {
       allow write: if isOfficerOrAdmin();
     }
 
+    match /attendance/{attendanceId} {
+      allow read, create: if isOfficerOrAdmin();
+    }
+
     match /vault/{docId} {
       allow read: if isSignedIn() && (
         isOfficerOrAdmin() || 

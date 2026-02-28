@@ -40,75 +40,17 @@
       },
       "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
     },
-    "meeting_agenda": {
-      "title": "Meeting Agenda",
-      "description": "A scheduled meeting or briefing for specific party roles.",
+    "attendance_record": {
+      "title": "Attendance Record",
+      "description": "A check-in record for a specific event.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "date": { "type": "string" },
-        "time": { "type": "string" },
-        "meetingLink": { "type": "string", "format": "uri" },
-        "targetAudience": { "type": "array", "items": { "type": "string" } },
-        "createdBy": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["title", "date", "time", "meetingLink", "targetAudience"]
-    },
-    "vault_document": {
-      "title": "Vault Document",
-      "description": "Official party material stored securely.",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "fileUrl": { "type": "string", "format": "uri" },
-        "fileType": { "type": "string" },
-        "uploadedBy": { "type": "string" },
-        "targetAudience": { "type": "array", "items": { "type": "string" } },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["title", "fileUrl", "fileType", "targetAudience"]
-    },
-    "campaign_action": {
-      "title": "Campaign Action",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "targetSignatures": { "type": "number" },
-        "signedBy": { "type": "array", "items": { "type": "string" } }
-      },
-      "required": ["title", "description", "targetSignatures", "signedBy"]
-    },
-    "poll": {
-      "title": "Poll",
-      "type": "object",
-      "properties": {
-        "question": { "type": "string" },
-        "options": { "type": "array", "items": { "type": "string" } },
-        "votes": { "type": "object" },
-        "votedBy": { "type": "array", "items": { "type": "string" } },
-        "isActive": { "type": "boolean" }
-      },
-      "required": ["question", "options", "votes", "votedBy", "isActive"]
-    },
-    "community_feedback": {
-      "title": "Community Feedback",
-      "description": "Suggestions and concerns from supporters.",
-      "type": "object",
-      "properties": {
-        "topic": { "type": "string", "enum": ["Local Infrastructure", "Social Services", "Community Concerns", "Security", "Others"] },
-        "message": { "type": "string" },
-        "status": { "type": "string", "enum": ["Received", "Under Review", "Addressed"] },
-        "submittedBy": { "type": "string" },
-        "submitterUid": { "type": "string" },
-        "location": { "type": "string" },
-        "officialReply": { "type": "string" },
+        "eventId": { "type": "string" },
+        "userId": { "type": "string" },
+        "scannedBy": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" }
       },
-      "required": ["topic", "message", "status", "submittedBy", "submitterUid", "location", "timestamp"]
+      "required": ["eventId", "userId", "scannedBy", "timestamp"]
     }
   },
   "auth": {
@@ -119,29 +61,9 @@
       "schema": { "$ref": "#/backend/entities/user" },
       "description": "Stores user profile information."
     },
-    "/meeting_agendas/{agendaId}": {
-      "schema": { "$ref": "#/backend/entities/meeting_agenda" },
-      "description": "Stores scheduled meetings and briefings."
-    },
-    "/vault/{docId}": {
-      "schema": { "$ref": "#/backend/entities/vault_document" },
-      "description": "Stores official party materials and documents."
-    },
-    "/campaign_actions/{actionId}": {
-      "schema": { "$ref": "#/backend/entities/campaign_action" },
-      "description": "Stores petitions and supporter campaign actions."
-    },
-    "/polls/{pollId}": {
-      "schema": { "$ref": "#/backend/entities/poll" },
-      "description": "Stores party polls and surveys."
-    },
-    "/community_feedback/{feedbackId}": {
-      "schema": { "$ref": "#/backend/entities/community_feedback" },
-      "description": "Stores member feedback and official replies."
-    },
-    "/announcements/{announcementId}": {
-      "schema": { "$ref": "#/backend/entities/announcement" },
-      "description": "Stores official party broadcasts."
+    "/attendance/{attendanceId}": {
+      "schema": { "$ref": "#/backend/entities/attendance_record" },
+      "description": "Stores official event attendance records."
     }
   }
 }
