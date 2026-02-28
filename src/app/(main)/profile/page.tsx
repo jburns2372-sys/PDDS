@@ -18,38 +18,34 @@ import { updateUserDocument } from "@/firebase/firestore/firestore-service";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, User, Loader2, LogOut, Save, Phone, Lock, Eye, EyeOff, X, Check, ShieldCheck, MapPin } from "lucide-react";
 
-declare global {
-  interface Window {
-    recaptchaVerifier: RecaptchaVerifier;
-  }
-}
-
 const NCR_CODE = "130000000";
 
 // Comprehensive Zip Code Map (Synchronized with Join Page)
 const ZIP_CODE_MAP: Record<string, any> = {
     "METRO MANILA (NCR)": {
         "CITY OF MANILA": { 
-            default: "1000", "SAMPALOC": "1008", "MALATE": "1004", "BINONDO": "1006", 
-            "ERMITA": "1000", "QUIAPO": "1001", "TONDO": "1012", "SANTA CRUZ": "1014", 
-            "SANTA ANA": "1009", "SAN MIGUEL": "1005", "SAN NICOLAS": "1010", 
-            "PANDACAN": "1011", "PACO": "1007", "INTRAMUROS": "1002", "PORT AREA": "1018"
+            default: "1000", "SAMPALOC": "1008", "MALATE": "1004", "BINONDO": "1006", "ERMITA": "1000", "QUIAPO": "1001", "TONDO": "1012", "SANTA CRUZ": "1014", "SANTA ANA": "1009", "SAN MIGUEL": "1005", "SAN NICOLAS": "1010", "PANDACAN": "1011", "PACO": "1007", "INTRAMUROS": "1002", "PORT AREA": "1018"
         },
         "QUEZON CITY": { 
-            default: "1100", "COMMONWEALTH": "1121", "DILIMAN": "1101", 
-            "BATASAN HILLS": "1126", "CUBAO": "1109", "LOYOLA HEIGHTS": "1108",
-            "PASONG TAMO": "1107", "PAANG BUNDOK": "1114", "BAGONG SILANGAN": "1119",
-            "NOVALICHES": "1123", "NEW ERA": "1107", "SAN BARTOLOME": "1116",
-            "TANDANG SORA": "1116", "PROJECT 4": "1109", "PROJECT 6": "1100",
-            "PROJECT 7": "1105", "PROJECT 8": "1106", "FAIRVIEW": "1118",
-            "HOLY SPIRIT": "1127", "PAYATAS": "1119", "UP CAMPUS": "1101"
+            default: "1100", "COMMONWEALTH": "1121", "DILIMAN": "1101", "BATASAN HILLS": "1126", "CUBAO": "1109", "LOYOLA HEIGHTS": "1108", "PASONG TAMO": "1107", "PAANG BUNDOK": "1114", "BAGONG SILANGAN": "1119", "NOVALICHES": "1123", "NEW ERA": "1107", "SAN BARTOLOME": "1116", "TANDANG SORA": "1116", "PROJECT 4": "1109", "PROJECT 6": "1100", "PROJECT 7": "1105", "PROJECT 8": "1106", "FAIRVIEW": "1118", "HOLY SPIRIT": "1127", "PAYATAS": "1119", "UP CAMPUS": "1101"
         },
         "MAKATI CITY": { 
-            default: "1200", "BEL-AIR": "1209", "FORBES PARK": "1219", 
-            "MAGALLANES VILLAGE": "1232", "DASMARIÑAS VILLAGE": "1222", 
-            "GUADALUPE NUEVO": "1212", "GUADALUPE VIEJO": "1211", "POBLACION": "1210",
-            "SAN LORENZO": "1223", "URA-DANZA": "1200"
+            default: "1200", "BEL-AIR": "1209", "FORBES PARK": "1219", "MAGALLANES VILLAGE": "1232", "DASMARIÑAS VILLAGE": "1222", "GUADALUPE NUEVO": "1212", "GUADALUPE VIEJO": "1211", "POBLACION": "1210", "SAN LORENZO": "1223", "URA-DANZA": "1200"
         },
+        "CALOOCAN CITY": "1400",
+        "PASIG CITY": "1600",
+        "TAGUIG CITY": "1630",
+        "PARAÑAQUE CITY": "1700",
+        "VALENZUELA CITY": "1440",
+        "LAS PIÑAS CITY": "1740",
+        "MUNTINLUPA CITY": "1770",
+        "MARIKINA CITY": "1800",
+        "PASAY CITY": "1300",
+        "MALABON CITY": "1470",
+        "NAVOTAS CITY": "1485",
+        "SAN JUAN CITY": "1500",
+        "PATEROS": "1620",
+        "default": "1000"
     },
     "BASILAN": {
         "CITY OF LAMITAN": "7302",
@@ -82,6 +78,47 @@ const ZIP_CODE_MAP: Record<string, any> = {
     "ILOILO": {
         "ILOILO CITY": "5000",
         "default": "5000"
+    },
+    "PANGASINAN": {
+        "DAGUPAN CITY": "2400",
+        "LINGAYEN": "2401",
+        "URDANETA CITY": "2428",
+        "default": "2400"
+    },
+    "BULACAN": {
+        "CITY OF MALOLOS": "3000",
+        "CITY OF MEYCAUAYAN": "3020",
+        "CITY OF SAN JOSE DEL MONTE": "3023",
+        "default": "3000"
+    },
+    "CAVITE": {
+        "CITY OF IMUS": "4103",
+        "CITY OF BACOOR": "4102",
+        "CITY OF DASMARIÑAS": "4114",
+        "TAGAYTAY CITY": "4120",
+        "default": "4100"
+    },
+    "LAGUNA": {
+        "CITY OF CALAMBA": "4027",
+        "CITY OF BIÑAN": "4024",
+        "CITY OF SANTA ROSA": "4026",
+        "default": "4000"
+    },
+    "RIZAL": {
+        "ANTIPOLO CITY": "1870",
+        "CAINTA": "1900",
+        "TAYTAY": "1920",
+        "default": "1900"
+    },
+    "BATANGAS": {
+        "BATANGAS CITY": "4200",
+        "LIPA CITY": "4217",
+        "default": "4200"
+    },
+    "PAMPANGA": {
+        "CITY OF SAN FERNANDO": "2000",
+        "ANGELES CITY": "2009",
+        "default": "2000"
     }
 };
 
@@ -129,6 +166,7 @@ export default function ProfilePage() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const verifierRef = useRef<RecaptchaVerifier | null>(null);
 
     // Fetch Provinces on mount
     useEffect(() => {
@@ -240,13 +278,23 @@ export default function ProfilePage() {
         }
     }, [selectedProvince, selectedCity, selectedBarangay]);
 
-    // Initialize Recaptcha
+    // Robust reCAPTCHA initialization
     useEffect(() => {
-        if (typeof window !== "undefined" && !window.recaptchaVerifier) {
-            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-profile', {
-                'size': 'invisible',
-            });
+        if (!verifierRef.current && typeof window !== "undefined") {
+            try {
+                verifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container-profile', {
+                    'size': 'invisible',
+                });
+            } catch (e) {
+                console.error("reCAPTCHA init failed:", e);
+            }
         }
+        return () => {
+            if (verifierRef.current) {
+                verifierRef.current.clear();
+                verifierRef.current = null;
+            }
+        };
     }, [auth]);
 
     const startCamera = async () => {
@@ -317,14 +365,20 @@ export default function ProfilePage() {
         }
         setSaving(true);
         try {
-            const appVerifier = window.recaptchaVerifier;
-            const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            if (!verifierRef.current) {
+                verifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container-profile', { 'size': 'invisible' });
+            }
+            const result = await signInWithPhoneNumber(auth, phoneNumber, verifierRef.current);
             setConfirmationResult(result);
             setShowOtpInput(true);
             toast({ title: "Verification Sent", description: "Please enter the code sent to your mobile." });
         } catch (error: any) {
             console.error(error);
             toast({ variant: "destructive", title: "SMS Failed", description: error.message });
+            if (error.message.includes('reCAPTCHA client element has been removed')) {
+                if (verifierRef.current) verifierRef.current.clear();
+                verifierRef.current = null;
+            }
         } finally {
             setSaving(false);
         }
