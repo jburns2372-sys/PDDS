@@ -17,8 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info, UserX, UserCheck, ArrowRightLeft, MapPin, Phone } from "lucide-react";
-import { collection, onSnapshot, serverTimestamp, doc, setDoc } from "firebase/firestore";
+import { Shield, UserPlus, Users, Camera, Pencil, Trash2, Loader2, Search, Eye, EyeOff, FileText, Upload, Type, Info, UserX, UserCheck, ArrowRightLeft, MapPin, Phone, Database } from "lucide-react";
+import { collection, onSnapshot, serverTimestamp, doc, setDoc, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { pddsLeadershipRoles, jurisdictionLevels } from "@/lib/data";
 
 const allAssignableRoles = [
@@ -208,16 +208,42 @@ export default function AdminDashboard() {
 
         setLoading(true);
         try {
-            // Optimistic UI Update: Filter out from local state for instant removal
             setAllUsers(prev => prev.filter(u => u.id !== user.id));
-            
             await deleteUserDocument(firestore, user.id);
             toast({ title: "Success", description: "Supporter successfully removed from the registry." });
         } catch (error: any) {
              console.error("Revocation Error:", error);
              toast({ variant: "destructive", title: "Revocation Error", description: "Failed to remove member. Please try again." });
-             
-             // The real-time listener will restore the state if the deletion actually failed
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleBulkDeleteSupporters = async () => {
+        const confirmation = window.prompt('Type DELETE to confirm wiping all supporters from the database. This action is IRREVERSIBLE and intended for cleaning test data.');
+        if (confirmation !== 'DELETE') return;
+
+        setLoading(true);
+        try {
+            const q = query(collection(firestore, 'users'), where('role', '==', 'Supporter'));
+            const snapshot = await getDocs(q);
+            
+            if (snapshot.empty) {
+                toast({ title: "No Supporters Found", description: "The supporter registry is already empty." });
+                setLoading(false);
+                return;
+            }
+
+            const batch = writeBatch(firestore);
+            snapshot.docs.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+
+            await batch.commit();
+            toast({ title: "Test Data Wiped", description: `${snapshot.size} supporters have been permanently removed.` });
+        } catch (error: any) {
+            console.error("Bulk Delete Error:", error);
+            toast({ variant: "destructive", title: "Bulk Delete Failed", description: error.message });
         } finally {
             setLoading(false);
         }
@@ -357,6 +383,15 @@ export default function AdminDashboard() {
                     </h1>
                     <p className="text-muted-foreground mt-2">Maintain the official leadership and supporter database.</p>
                 </div>
+                <Button 
+                    variant="destructive" 
+                    onClick={handleBulkDeleteSupporters}
+                    className="font-black uppercase tracking-widest text-[10px] h-9 shadow-lg"
+                    disabled={loading}
+                >
+                    <Database className="h-3.5 w-3.5 mr-2" />
+                    Wipe Test Supporters
+                </Button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
