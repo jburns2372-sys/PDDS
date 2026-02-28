@@ -199,16 +199,25 @@ export default function AdminDashboard() {
 
     const handleRevoke = async (user: any) => {
         if (user.id === currentUser?.uid) {
-            toast({ variant: "destructive", title: "Action Restricted", description: "You cannot revoke your own access." });
+            toast({ variant: "destructive", title: "Action Restricted", description: "You cannot remove your own access." });
             return;
         }
-        if (!confirm(`Revoke all access for ${user.fullName || user.email}? This will trigger the security bouncer and log them out instantly.`)) return;
+        
+        const confirmed = confirm(`Are you sure you want to remove ${user.fullName || 'this member'}? This will permanently delete their profile and jurisdiction data.`);
+        if (!confirmed) return;
+
         setLoading(true);
         try {
+            // Optimistic UI Update: Filter out from local state for instant removal
+            setAllUsers(prev => prev.filter(u => u.id !== user.id));
+            
             await deleteUserDocument(firestore, user.id);
-            toast({ title: "Success", description: "Account removed from registry." });
+            toast({ title: "Success", description: "Supporter successfully removed from the registry." });
         } catch (error: any) {
-             toast({ variant: "destructive", title: "Revocation Error", description: error.message });
+             console.error("Revocation Error:", error);
+             toast({ variant: "destructive", title: "Revocation Error", description: "Failed to remove member. Please try again." });
+             
+             // The real-time listener will restore the state if the deletion actually failed
         } finally {
             setLoading(false);
         }
