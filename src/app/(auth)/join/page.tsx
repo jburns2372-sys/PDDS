@@ -168,6 +168,8 @@ export default function JoinPage() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    
+    // reCAPTCHA Verifier Ref
     const verifierRef = useRef<RecaptchaVerifier | null>(null);
 
     // UI State
@@ -278,10 +280,14 @@ export default function JoinPage() {
         }
     }, [selectedProvince, selectedCity, selectedBarangay]);
 
-    useEffect(() => {
-        // Robust reCAPTCHA initialization with cleanup
-        if (!verifierRef.current && typeof window !== "undefined") {
+    /**
+     * Singleton Pattern for reCAPTCHA initialization
+     * and Cleanup logic to prevent memory leaks.
+     */
+    const initRecaptcha = () => {
+        if (typeof window !== "undefined" && !verifierRef.current) {
             try {
+                // Invisible mode as requested
                 verifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
                     'size': 'invisible',
                 });
@@ -289,11 +295,18 @@ export default function JoinPage() {
                 console.error("reCAPTCHA init failed:", e);
             }
         }
+    };
+
+    useEffect(() => {
+        initRecaptcha();
         return () => {
             if (verifierRef.current) {
                 verifierRef.current.clear();
                 verifierRef.current = null;
             }
+            // Cleanup container HTML on unmount
+            const container = document.getElementById('recaptcha-container');
+            if (container) container.innerHTML = "";
             stopCamera();
         };
     }, [auth]);
@@ -380,10 +393,11 @@ export default function JoinPage() {
 
         setLoading(true);
         try {
-            // Re-initialize if cleared
-            if (!verifierRef.current) {
-                verifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
-            }
+            // Singleton check before execution
+            initRecaptcha();
+            
+            if (!verifierRef.current) throw new Error("reCAPTCHA failed to initialize.");
+
             const result = await signInWithPhoneNumber(auth, phoneTrimmed, verifierRef.current);
             setConfirmationResult(result);
             setShowOtpInput(true);
@@ -391,10 +405,17 @@ export default function JoinPage() {
         } catch (error: any) {
             console.error(error);
             toast({ variant: "destructive", title: "SMS Failed", description: error.message });
-            // If the recaptcha element was removed, we should try to clear the ref so it re-inits
-            if (error.message.includes('reCAPTCHA client element has been removed')) {
-                if (verifierRef.current) verifierRef.current.clear();
-                verifierRef.current = null;
+            
+            // Error Recovery: Manual reset of reCAPTCHA widget if SMS fails
+            if (typeof window !== "undefined" && (window as any).grecaptcha) {
+                try {
+                    (window as any).grecaptcha.reset();
+                } catch (resetError) {
+                    // Fallback reset: re-init singleton
+                    if (verifierRef.current) verifierRef.current.clear();
+                    verifierRef.current = null;
+                    initRecaptcha();
+                }
             }
         } finally {
             setLoading(false);
@@ -457,7 +478,6 @@ export default function JoinPage() {
 
             await setDoc(doc(firestore, "users", user.uid), supporterData);
 
-            // Increment inviter's count if referral exists
             if (referralUid && !isFirstUser) {
               const referrerRef = doc(firestore, "users", referralUid);
               updateDoc(referrerRef, {
@@ -488,8 +508,6 @@ export default function JoinPage() {
 
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-gray-100 p-4 pb-12">
-            <div id="recaptcha-container"></div>
-            
             <div className="mb-8 flex items-center gap-4">
                 <PddsLogo className="h-12 w-12 text-primary" />
                 <h1 className="text-3xl font-bold tracking-tighter text-primary font-headline">
@@ -573,10 +591,11 @@ export default function JoinPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="fullName">Full Name</Label>
-                                    <Input 
+                                    <input 
                                         id="fullName" 
                                         placeholder="JUAN DELA CRUZ" 
                                         required 
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                         value={fullName} 
                                         onChange={e => setFullName(e.target.value.toUpperCase())} 
                                         disabled={loading} 
@@ -584,7 +603,7 @@ export default function JoinPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email Address</Label>
-                                    <Input id="email" type="email" placeholder="juan@example.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
+                                    <input id="email" type="email" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="juan@example.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
                                 </div>
                             </div>
 
@@ -592,10 +611,11 @@ export default function JoinPage() {
                                 <div className="space-y-2">
                                     <Label htmlFor="password">Password</Label>
                                     <div className="relative">
-                                        <Input 
+                                        <input 
                                             id="password" 
                                             type={showPassword ? "text" : "password"} 
                                             required 
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                             value={password} 
                                             onChange={e => setPassword(e.target.value)} 
                                             minLength={6} 
@@ -608,7 +628,7 @@ export default function JoinPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="phoneNumber">Phone Number</Label>
-                                    <Input id="phoneNumber" placeholder="+639123456789" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} disabled={loading} />
+                                    <input id="phoneNumber" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="+639123456789" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} disabled={loading} />
                                 </div>
                             </div>
 
@@ -663,13 +683,13 @@ export default function JoinPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="zipCode">Zip Code (Auto)</Label>
-                                        <Input id="zipCode" value={zipCode} readOnly className="bg-muted" disabled={loading} />
+                                        <input id="zipCode" value={zipCode} readOnly className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" disabled={loading} />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label htmlFor="streetAddress">Street Address / House No.</Label>
-                                    <Input id="streetAddress" placeholder="Block No., Street Name, Phase" required value={streetAddress} onChange={e => setStreetAddress(e.target.value.toUpperCase())} disabled={loading} />
+                                    <input id="streetAddress" placeholder="Block No., Street Name, Phase" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={streetAddress} onChange={e => setStreetAddress(e.target.value.toUpperCase())} disabled={loading} />
                                 </div>
                             </div>
 
@@ -700,7 +720,7 @@ export default function JoinPage() {
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="otp">6-Digit Code</Label>
-                                <Input id="otp" placeholder="000000" maxLength={6} className="text-center text-2xl tracking-[1em] h-14" value={otp} onChange={e => setOtp(e.target.value)} />
+                                <input id="otp" placeholder="000000" maxLength={6} className="flex h-14 w-full rounded-md border border-input bg-background px-3 py-2 text-center text-2xl tracking-[1em] ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={otp} onChange={e => setOtp(e.target.value)} />
                             </div>
                             <Button className="w-full h-12 text-lg font-bold" onClick={handleVerifyAndComplete} disabled={loading || otp.length !== 6}>
                                 {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Verifying...</> : "Confirm & Complete"}
@@ -710,6 +730,9 @@ export default function JoinPage() {
                     </div>
                 )}
             </Card>
+
+            {/* reCAPTCHA DOM Stability: Placed at the very bottom and never hidden by conditional logic */}
+            <div id="recaptcha-container"></div>
         </div>
     );
 }
