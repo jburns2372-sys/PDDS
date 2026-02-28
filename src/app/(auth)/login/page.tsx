@@ -41,10 +41,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-gray-100 p-4">
         <div className="mb-8 flex items-center gap-4">
-            <div className="bg-white p-2 rounded-full shadow-sm">
-                <PddsLogo className="h-16 w-16" />
-            </div>
-            <h1 className="text-4xl font-bold tracking-tighter text-primary font-headline uppercase">
+            <PddsLogo className="h-16 w-16" />
+            <h1 className="text-5xl font-black tracking-tighter text-primary font-headline uppercase">
                 PDDS Portal
             </h1>
       </div>
