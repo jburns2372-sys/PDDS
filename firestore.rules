@@ -44,6 +44,10 @@ service cloud.firestore {
       return hasRole('Treasurer') || isExecutive();
     }
 
+    function isCoordinator() {
+      return hasRole('Coordinator') || isExecutive();
+    }
+
     // ==========================================
     // COLLECTION RULES
     // ==========================================
@@ -65,6 +69,34 @@ service cloud.firestore {
       allow write: if isPRO();
     }
 
+    match /chat_rooms/{roomId} {
+      allow read: if isSignedIn();
+      allow write: if isExecutive();
+
+      match /messages/{msgId} {
+        // Only allow members to read messages if it's their city or they are National Executives
+        allow read: if isSignedIn() && (
+          roomId == 'National' || 
+          getUserData().city == roomId || 
+          isExecutive()
+        );
+
+        // Only verified members can send messages
+        allow create: if isSignedIn() && 
+          getUserData().isVerified == true && 
+          (roomId == 'National' || getUserData().city == roomId) &&
+          request.resource.data.senderUid == request.auth.uid;
+
+        // Coordinators can delete messages in their assigned city room
+        allow delete: if isSignedIn() && (
+          isExecutive() || 
+          (hasRole('Coordinator') && getUserData().city == roomId)
+        );
+
+        allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isReported']);
+      }
+    }
+
     match /calendar_activities/{activityId} {
       allow read: if isSignedIn() && (resource.data.isAuthorized == true || isExecutive());
       allow create: if isSignedIn() && (
@@ -74,15 +106,6 @@ service cloud.firestore {
       allow delete: if isExecutive();
     }
 
-    match /vault/{docId} {
-      allow read: if isSignedIn() && (
-        isExecutive() || 
-        resource.data.targetAudience.contains('All Members') || 
-        resource.data.targetAudience.contains(getUserData().role)
-      );
-      allow write: if isExecutive() || isSecGen() || isPRO();
-    }
-
     match /logistics_logs/{logId} {
       allow read: if isSignedIn() && (isTreasurer() || isExecutive());
       allow write: if isTreasurer() || isExecutive();
@@ -90,31 +113,11 @@ service cloud.firestore {
 
     match /polls/{id} {
       allow read: if isSignedIn();
-      
-      // Allow members to vote: update votes map and votedBy array
       allow update: if isSignedIn() && 
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'votedBy']) &&
         !resource.data.votedBy.contains(request.auth.uid) &&
         request.resource.data.votedBy.contains(request.auth.uid);
-        
       allow write: if isPRO() || isExecutive();
-    }
-
-    match /community_feedback/{feedbackId} {
-      allow read: if isExecutive() || (isSignedIn() && resource.data.submitterUid == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.submitterUid == request.auth.uid;
-      allow update, delete: if isExecutive();
-    }
-
-    match /campaign_actions/{actionId} {
-      allow read: if isSignedIn();
-      allow update: if isSignedIn(); 
-      allow write: if isExecutive();
-    }
-
-    match /communication_audit/{auditId} {
-      allow read: if isExecutive();
-      allow create: if isSignedIn();
     }
   }
 }

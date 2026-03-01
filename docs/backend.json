@@ -59,70 +59,34 @@
       },
       "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
     },
-    "attendance_record": {
-      "title": "Attendance Record",
-      "description": "A check-in record for a specific event.",
+    "chat_room": {
+      "title": "Chat Room",
+      "description": "A jurisdictional conversation hub.",
       "type": "object",
       "properties": {
-        "eventId": { "type": "string" },
-        "userId": { "type": "string" },
-        "scannedBy": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "name": { "type": "string" },
+        "city": { "type": "string" },
+        "isNational": { "type": "boolean" },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["eventId", "userId", "scannedBy", "timestamp"]
+      "required": ["name"]
     },
-    "calendar_activity": {
-      "title": "Calendar Activity",
-      "description": "An official party activity or event.",
+    "chat_message": {
+      "title": "Chat Message",
+      "description": "An individual message in a town square.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "startDate": { "type": "string", "format": "date-time" },
-        "endDate": { "type": "string", "format": "date-time" },
-        "scope": { "type": "string", "enum": ["National", "Regional"] },
-        "targetProvince": { "type": "string" },
-        "targetCity": { "type": "string" },
-        "meetingLink": { "type": "string" },
-        "locationAddress": { "type": "string" },
-        "organizerName": { "type": "string" },
-        "organizerUid": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "text": { "type": "string" },
+        "senderUid": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderRole": { "type": "string" },
+        "senderVetting": { "type": "string" },
+        "senderPhoto": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "isReported": { "type": "boolean" }
       },
-      "required": ["title", "startDate", "scope"]
-    },
-    "logistics_record": {
-      "title": "Logistics Record",
-      "description": "Record of party resource distribution.",
-      "type": "object",
-      "properties": {
-        "recipientId": { "type": "string" },
-        "recipientName": { "type": "string" },
-        "item": { "type": "string" },
-        "quantity": { "type": "number" },
-        "status": { "type": "string" },
-        "dispatchedAt": { "type": "string", "format": "date-time" },
-        "loggedBy": { "type": "string" }
-      },
-      "required": ["recipientId", "item", "quantity", "status"]
-    },
-    "poll": {
-      "title": "Interactive Poll",
-      "description": "A party referendum or community pulse poll.",
-      "type": "object",
-      "properties": {
-        "question": { "type": "string" },
-        "options": { "type": "array", "items": { "type": "string" } },
-        "targetGroup": { "type": "string", "description": "National or specific city name." },
-        "targetRole": { "type": "string", "description": "Specific role target (e.g. Vetted Officers) or 'All Members'." },
-        "votes": { "type": "object", "description": "Map of option strings to vote counts." },
-        "votedBy": { "type": "array", "items": { "type": "string" }, "description": "Array of member UIDs who have voted." },
-        "isActive": { "type": "boolean" },
-        "endDate": { "type": "string", "format": "date-time" },
-        "createdBy": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["question", "options", "isActive"]
+      "required": ["text", "senderUid", "senderName", "timestamp"]
     }
   },
   "auth": {
@@ -133,21 +97,13 @@
       "schema": { "$ref": "#/backend/entities/user" },
       "description": "Stores user profile information."
     },
-    "/attendance/{attendanceId}": {
-      "schema": { "$ref": "#/backend/entities/attendance_record" },
-      "description": "Stores official event attendance records."
+    "/chat_rooms/{roomId}": {
+      "schema": { "$ref": "#/backend/entities/chat_room" },
+      "description": "Stores chat room metadata."
     },
-    "/calendar_activities/{activityId}": {
-      "schema": { "$ref": "#/backend/entities/calendar_activity" },
-      "description": "Stores official party events and activities."
-    },
-    "/logistics_logs/{logId}": {
-      "schema": { "$ref": "#/backend/entities/logistics_record" },
-      "description": "Stores party resource distribution logs."
-    },
-    "/polls/{pollId}": {
-      "schema": { "$ref": "#/backend/entities/poll" },
-      "description": "Stores party referendum and feedback polls."
+    "/chat_rooms/{roomId}/messages/{messageId}": {
+      "schema": { "$ref": "#/backend/entities/chat_message" },
+      "description": "Stores individual messages within a room."
     }
   }
 }

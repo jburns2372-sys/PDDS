@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, MessageSquare, Megaphone, Map, Info, Library, Newspaper, LayoutGrid } from "lucide-react";
+import { Home, Users, BookText, UserCircle, MessageSquare, Megaphone, Map, Info, Library, Newspaper, LayoutGrid, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AboutPddsDialog } from "./about-pdds-dialog";
 import { useUserData } from "@/context/user-data-context";
@@ -10,9 +11,9 @@ import { pddsLeadershipRoles } from "@/lib/data";
 
 const baseNavItems = [
   { href: "/home", icon: Home, label: "Home" },
+  { href: "/chat", icon: MessageCircle, label: "Chat" },
   { href: "/directory", icon: Users, label: "Directory" },
   { href: "/vault", icon: Library, label: "Vault" },
-  { href: "/about", icon: Info, label: "About", isDialog: true },
 ];
 
 const profileNavItem = { href: "/profile", icon: UserCircle, label: "Profile" };
@@ -33,7 +34,6 @@ export function MobileBottomNav() {
   
   const visibleNavItems = [...baseNavItems];
   if (isPrivileged) {
-      visibleNavItems.push(bulletinNavItem);
       if (['Treasurer', 'President', 'Admin', 'System Admin'].includes(userRole)) {
         visibleNavItems.push(logisticsNavItem);
       }

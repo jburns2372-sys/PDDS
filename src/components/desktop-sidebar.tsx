@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks, Gavel, Newspaper, LayoutGrid } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks, Gavel, Newspaper, LayoutGrid, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -12,6 +13,7 @@ import { pddsLeadershipRoles } from "@/lib/data";
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
+  { href: '/chat', label: 'Town Square', icon: MessageCircle },
   { href: '/directory', label: 'Directory', icon: Users },
   { href: '/calendar', label: 'Activities', icon: Calendar },
   { href: '/agendas', label: 'Agendas', icon: BookText },
@@ -84,7 +86,6 @@ export function DesktopSidebarContent() {
                 <div className="px-4 py-2 mt-6 mb-1 text-[10px] font-black uppercase text-primary/40 tracking-[0.2em]">Leadership Tools</div>
                 {adminNavItems.map((item) => {
                   const isActive = pathname.startsWith(item.href);
-                  // Strict visibility for Logistics - only Treasurer, President, or Admin
                   if (item.href === '/admin/logistics' && !['Treasurer', 'President', 'Admin', 'System Admin'].includes(userRole)) return null;
 
                   return (
