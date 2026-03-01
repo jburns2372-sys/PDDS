@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -128,6 +129,7 @@ export default function JoinPage() {
                 recruitCount: 0,
                 referredBy: referralUid || null,
                 createdAt: serverTimestamp(),
+                lastActive: serverTimestamp(),
             };
 
             await setDoc(doc(firestore, "users", user.uid), supporterData);
@@ -171,8 +173,11 @@ export default function JoinPage() {
                     kartilyaAgreed: true,
                     recruitCount: 0,
                     createdAt: serverTimestamp(),
+                    lastActive: serverTimestamp(),
                 });
                 toast({ title: "Welcome!", description: "You have been registered as a Supporter." });
+            } else {
+                updateDoc(userRef, { lastActive: serverTimestamp() }).catch(e => console.error(e));
             }
 
             setTimeout(() => {

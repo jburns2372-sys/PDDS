@@ -19,12 +19,13 @@ import {
   ShieldAlert,
   TrendingUp,
   ShieldCheck,
-  Clock
+  Clock,
+  Activity
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { doc, deleteDoc, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -32,7 +33,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 
 /**
  * @fileOverview Supporter Recruitment Dashboard with Live Metrics.
- * Displays real-time induction stats and a searchable list of all supporters.
+ * Displays real-time induction stats and engagement tracking (Last Active).
  */
 export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
@@ -59,8 +60,8 @@ export default function AdminSupporterDashboard() {
       (s.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (s.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     ).sort((a: any, b: any) => {
-      const dateA = a.joinedAt?.seconds || a.createdAt?.seconds || 0;
-      const dateB = b.joinedAt?.seconds || b.createdAt?.seconds || 0;
+      const dateA = a.lastActive?.seconds || a.joinedAt?.seconds || a.createdAt?.seconds || 0;
+      const dateB = b.lastActive?.seconds || b.joinedAt?.seconds || b.createdAt?.seconds || 0;
       return dateB - dateA;
     });
   }, [supporters, searchTerm]);
@@ -113,17 +114,18 @@ export default function AdminSupporterDashboard() {
 
   // 📂 The CSV Export Function
   const exportToCSV = () => {
-    const headers = ["Full Name", "Email", "Joined Date", "Role", "Verified Status"];
+    const headers = ["Full Name", "Email", "Joined Date", "Last Active", "Verified Status"];
     const rows = filteredSupporters.map(user => {
       const joinDate = user.joinedAt?.toDate ? user.joinedAt.toDate() : 
                        user.createdAt?.toDate ? user.createdAt.toDate() : 
                        user.createdAt ? new Date(user.createdAt) : new Date();
+      const activeDate = user.lastActive?.toDate ? user.lastActive.toDate() : joinDate;
       
       return [
         `"${user.fullName || 'Anonymous'}"`,
         `"${user.email || ''}"`,
         `"${format(joinDate, 'yyyy-MM-dd')}"`,
-        `"${user.role || 'Supporter'}"`,
+        `"${format(activeDate, 'yyyy-MM-dd HH:mm')}"`,
         `"${user.isVerified ? 'Verified' : 'Unverified'}"`
       ].join(",");
     });
@@ -162,7 +164,7 @@ export default function AdminSupporterDashboard() {
               <Users className="h-6 w-6 md:h-8 md:w-8" />
               Recruitment Command
             </h1>
-            <p className="text-muted-foreground text-sm mt-1 font-medium italic">Monitoring real-time induction of new advocates.</p>
+            <p className="text-muted-foreground text-sm mt-1 font-medium italic">Monitoring real-time induction and member engagement.</p>
           </div>
           
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
@@ -229,10 +231,10 @@ export default function AdminSupporterDashboard() {
           <CardHeader className="bg-primary text-primary-foreground py-4 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              Induction Log ({filteredSupporters.length})
+              Mobilization Log ({filteredSupporters.length})
             </CardTitle>
             <Badge variant="outline" className="border-white/20 text-white text-[9px] font-black uppercase tracking-widest px-3">
-              Real-Time Stream
+              Real-Time Engagement Stream
             </Badge>
           </CardHeader>
           <div className="overflow-x-auto">
@@ -241,7 +243,7 @@ export default function AdminSupporterDashboard() {
                 <TableRow className="bg-muted/50 border-b">
                   <TableHead className="pl-6 text-[10px] font-black uppercase tracking-widest">Profile</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Full Name</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Email Address</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Engagement</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Verification</TableHead>
                   <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Action</TableHead>
                 </TableRow>
@@ -257,57 +259,67 @@ export default function AdminSupporterDashboard() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredSupporters.map((user: any) => (
-                    <TableRow key={user.uid || user.id} className="hover:bg-muted/30 transition-colors group">
-                      <TableCell className="pl-6">
-                        <Avatar className="h-10 w-10 border-2 border-primary/5 shadow-sm group-hover:scale-110 transition-transform">
-                          <AvatarImage src={user.photoURL} />
-                          <AvatarFallback className="bg-primary/5 text-primary font-black">
-                            {user.fullName?.charAt(0) || <User className="h-5 w-5" />}
-                          </AvatarFallback>
-                        </Avatar>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-black text-sm uppercase text-primary leading-tight">{user.fullName}</div>
-                        <div className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5 flex items-center gap-1">
-                          <Clock className="h-2.5 w-2.5" /> 
-                          {user.joinedAt?.toDate ? format(user.joinedAt.toDate(), 'MMM dd, p') : 'Pending Induction'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-                          <Mail className="h-3.5 w-3.5 text-primary/30" />
-                          {user.email}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <button 
-                          onClick={() => handleToggleVerification(user.id, !!user.isVerified)}
-                          className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ${
-                            user.isVerified 
-                              ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
-                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                          }`}
-                        >
-                          {user.isVerified ? (
-                            <><CheckCircle2 className="h-3 w-3" /> Verified</>
-                          ) : (
-                            <><ShieldAlert className="h-3 w-3" /> Unverified</>
-                          )}
-                        </button>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-destructive hover:bg-destructive hover:text-white transition-colors rounded-full"
-                          onClick={() => handleDelete(user.id, user.fullName)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredSupporters.map((user: any) => {
+                    const lastActive = user.lastActive?.toDate ? formatDistanceToNow(user.lastActive.toDate(), { addSuffix: true }) : 'Inducting...';
+                    
+                    return (
+                      <TableRow key={user.uid || user.id} className="hover:bg-muted/30 transition-colors group">
+                        <TableCell className="pl-6">
+                          <Avatar className="h-10 w-10 border-2 border-primary/5 shadow-sm group-hover:scale-110 transition-transform">
+                            <AvatarImage src={user.photoURL} />
+                            <AvatarFallback className="bg-primary/5 text-primary font-black">
+                              {user.fullName?.charAt(0) || <User className="h-5 w-5" />}
+                            </AvatarFallback>
+                          </Avatar>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-black text-sm uppercase text-primary leading-tight">{user.fullName}</div>
+                          <div className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5 flex items-center gap-1">
+                            <Mail className="h-2.5 w-2.5" /> 
+                            {user.email}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase">
+                              <Activity className="h-3 w-3 text-accent" />
+                              Active: {lastActive}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase">
+                              <CalendarDays className="h-2.5 w-2.5" />
+                              Joined: {user.joinedAt?.toDate ? format(user.joinedAt.toDate(), 'MMM dd, yyyy') : 'Recently'}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <button 
+                            onClick={() => handleToggleVerification(user.id, !!user.isVerified)}
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ${
+                              user.isVerified 
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                                : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                            }`}
+                          >
+                            {user.isVerified ? (
+                              <><CheckCircle2 className="h-3 w-3" /> Verified</>
+                            ) : (
+                              <><ShieldAlert className="h-3 w-3" /> Unverified</>
+                            )}
+                          </button>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive hover:bg-destructive hover:text-white transition-colors rounded-full"
+                            onClick={() => handleDelete(user.id, user.fullName)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

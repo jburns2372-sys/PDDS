@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -9,14 +10,16 @@ import { Label } from "@/components/ui/label";
 import PddsLogo from "@/components/icons/pdds-logo";
 import { useAuth, useFirestore } from "@/firebase";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Loader2, XCircle } from "lucide-react";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 /**
  * @fileOverview Login Page with Social and Credential access.
- * Robust error handling for popup blockers and configuration mismatches.
+ * Robust error handling for popup blockers and activity tracking.
  */
 export default function LoginPage() {
     const auth = useAuth();
@@ -35,6 +38,12 @@ export default function LoginPage() {
             const user = userCredential.user;
 
             const userRef = doc(firestore, 'users', user.uid);
+            
+            // Log Activity
+            updateDoc(userRef, { lastActive: serverTimestamp() }).catch(err => {
+                console.error("Activity log failed", err);
+            });
+
             const userSnap = await getDoc(userRef);
 
             if (userSnap.exists()) {
@@ -65,8 +74,6 @@ export default function LoginPage() {
             const userSnap = await getDoc(userRef);
 
             if (!userSnap.exists()) {
-                // Initial baseline profile creation
-                // The Cloud Function will trigger to ensure role is forced to Supporter
                 await setDoc(userRef, {
                     uid: user.uid,
                     email: userEmail,
@@ -78,11 +85,21 @@ export default function LoginPage() {
                     kartilyaAgreed: true,
                     recruitCount: 0,
                     createdAt: serverTimestamp(),
+                    lastActive: serverTimestamp(),
                 });
                 toast({ title: "Welcome!", description: "You have been registered as a Supporter." });
+            } else {
+                // Track returning user activity
+                updateDoc(userRef, { lastActive: serverTimestamp() }).catch(async (serverError) => {
+                    const permissionError = new FirestorePermissionError({
+                        path: userRef.path,
+                        operation: 'update',
+                        requestResourceData: { lastActive: 'serverTimestamp()' }
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                });
             }
 
-            // Sync buffer to allow Firestore listeners to catch the new doc
             setTimeout(() => {
                 window.location.href = "/home";
             }, 500);
@@ -91,7 +108,7 @@ export default function LoginPage() {
             
             let errorMessage = error.message;
             if (error.code === 'auth/popup-blocked') {
-                errorMessage = "Login popup was blocked by your browser. Please allow popups for this site in your browser settings (usually in the address bar).";
+                errorMessage = "Login popup was blocked by your browser. Please allow popups for this site in your browser settings.";
             } else if (error.code === 'auth/popup-closed-by-user') {
                 errorMessage = "The login window was closed. Please try again.";
             }
@@ -138,7 +155,7 @@ export default function LoginPage() {
                 PDDS Portal
             </h1>
       </div>
-      <Card className="w-full max-md shadow-2xl border-t-4 border-primary bg-white">
+      <Card className="w-full max-w-md shadow-2xl border-t-4 border-primary bg-white">
         <CardHeader>
             <CardTitle className="text-2xl text-center font-headline uppercase">Member Login</CardTitle>
             <CardDescription className="text-center font-medium text-muted-foreground">Access your PDDS War Room account.</CardDescription>
