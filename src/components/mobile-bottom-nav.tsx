@@ -1,9 +1,8 @@
-
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, MessageSquare, Megaphone, Map, Info, Library, Newspaper } from "lucide-react";
+import { Home, Users, BookText, UserCircle, MessageSquare, Megaphone, Map, Info, Library, Newspaper, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AboutPddsDialog } from "./about-pdds-dialog";
 import { useUserData } from "@/context/user-data-context";
@@ -19,6 +18,7 @@ const baseNavItems = [
 const profileNavItem = { href: "/profile", icon: UserCircle, label: "Profile" };
 const auditNavItem = { href: "/admin/audit", icon: MessageSquare, label: "Audit" };
 const bulletinNavItem = { href: "/admin/bulletin", icon: Newspaper, label: "Bulletin" };
+const logisticsNavItem = { href: "/admin/logistics", icon: LayoutGrid, label: "Logistics" };
 const analyticsNavItem = { href: "/admin/analytics", icon: Map, label: "Map" };
 
 export function MobileBottomNav() {
@@ -34,6 +34,9 @@ export function MobileBottomNav() {
   const visibleNavItems = [...baseNavItems];
   if (isPrivileged) {
       visibleNavItems.push(bulletinNavItem);
+      if (['Treasurer', 'President', 'Admin', 'System Admin'].includes(userRole)) {
+        visibleNavItems.push(logisticsNavItem);
+      }
       visibleNavItems.push(auditNavItem);
       visibleNavItems.push(analyticsNavItem);
   }

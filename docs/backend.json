@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "user": {
@@ -27,7 +26,7 @@
             "Treasurer", "Auditor", "VP Ways & Means Chair", "VP Media Comms",
             "VP Soc Med Comms", "VP Events and Programs", "VP Membership",
             "VP legal affairs", "Officer", "Member", "Admin", "System Admin", 
-            "Supporter", "Volunteer", "Coordinator", "Moderator"
+            "Supporter", "Volunteer", "Coordinator", "Moderator", "Public Relations Officer"
           ]
         },
         "isAdmin": { "type": "boolean", "default": false },
@@ -90,18 +89,20 @@
       },
       "required": ["title", "startDate", "scope"]
     },
-    "campaign_plan": {
-      "title": "Campaign Plan",
-      "description": "Strategic mobilization plans for regional activities.",
+    "logistics_record": {
+      "title": "Logistics Record",
+      "description": "Record of party resource distribution.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "objective": { "type": "string" },
-        "targetRegion": { "type": "string" },
-        "strategy": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "recipientId": { "type": "string" },
+        "recipientName": { "type": "string" },
+        "item": { "type": "string" },
+        "quantity": { "type": "number" },
+        "status": { "type": "string" },
+        "dispatchedAt": { "type": "string", "format": "date-time" },
+        "loggedBy": { "type": "string" }
       },
-      "required": ["title", "objective"]
+      "required": ["recipientId", "item", "quantity", "status"]
     }
   },
   "auth": {
@@ -120,9 +121,9 @@
       "schema": { "$ref": "#/backend/entities/calendar_activity" },
       "description": "Stores official party events and activities."
     },
-    "/campaign_plans/{planId}": {
-      "schema": { "$ref": "#/backend/entities/campaign_plan" },
-      "description": "Stores strategic campaign mobilization plans."
+    "/logistics_logs/{logId}": {
+      "schema": { "$ref": "#/backend/entities/logistics_record" },
+      "description": "Stores party resource distribution logs."
     }
   }
 }
