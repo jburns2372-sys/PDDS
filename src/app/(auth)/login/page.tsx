@@ -59,25 +59,39 @@ export default function LoginPage() {
         try {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
+            const userEmail = (user.email || '').toLowerCase();
+
+            // Privilege Check: Ensure we don't overwrite existing leadership roles
+            const isPresidentEmail = userEmail === 'iamgrecobelgica@gmail.com';
+            const isAdminEmail = 
+                userEmail === 'j.burns2372@gmail.com' || 
+                userEmail === 'j.burns.2372@gmail.com' || 
+                userEmail === 'j.burns372@gmail.com';
 
             // Check if user exists in registry
             const userRef = doc(firestore, 'users', user.uid);
             const userSnap = await getDoc(userRef);
 
             if (!userSnap.exists()) {
+                // Determine Initial Role: Hardcoded leadership or Default Supporter
+                let initialRole = "Supporter";
+                if (isPresidentEmail) initialRole = "President";
+                else if (isAdminEmail) initialRole = "Admin";
+
                 // Auto-provision as Supporter if they are joining via this method
                 await setDoc(userRef, {
                     uid: user.uid,
-                    email: user.email,
+                    email: userEmail,
                     fullName: user.displayName?.toUpperCase() || "NEW SUPPORTER",
                     photoURL: user.photoURL || null,
-                    role: "Supporter",
+                    role: initialRole,
+                    jurisdictionLevel: initialRole === "Supporter" ? "Local" : "National",
                     isApproved: true,
                     kartilyaAgreed: true,
                     recruitCount: 0,
                     createdAt: serverTimestamp(),
                 });
-                toast({ title: "Welcome!", description: "You have been registered as a Supporter." });
+                toast({ title: "Welcome!", description: `You have been registered as a ${initialRole}.` });
             }
 
             // Hard redirect to ensure shell catches the new state

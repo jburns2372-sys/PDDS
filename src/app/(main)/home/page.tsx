@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -137,111 +138,77 @@ export default function HomePage() {
         
         <VipVerificationBanner />
 
-        {isSupporter && (
-            <div className="grid gap-8 lg:grid-cols-12 items-start">
-                <div className="lg:col-span-4 flex flex-col gap-8">
-                    <DigitalIdCard userData={userData} />
-                    
-                    <Card className="shadow-lg border-t-4 border-primary">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                          <Bell className="h-3 w-3 text-primary" />
-                          Alert Preferences
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {userData?.fcmToken ? (
-                          <div className="flex items-center gap-2 text-green-600">
-                            <Sparkles className="h-4 w-4" />
-                            <span className="text-xs font-bold uppercase">Push Alerts Enabled</span>
-                          </div>
-                        ) : (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full text-[10px] font-black uppercase tracking-widest border-primary/20"
-                            onClick={handleEnableNotifications}
-                            disabled={notifLoading}
-                          >
-                            {notifLoading ? <Loader2 className="animate-spin h-3 w-3 mr-2" /> : <Bell className="h-3 w-3 mr-2 text-primary" />}
-                            Enable Party Alerts
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
+        <div className="grid gap-8 lg:grid-cols-12 items-start">
+            <div className="lg:col-span-4 flex flex-col gap-8">
+                <DigitalIdCard userData={userData} />
+                
+                <Card className="shadow-lg border-t-4 border-primary">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                      <Bell className="h-3 w-3 text-primary" />
+                      Alert Preferences
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {userData?.fcmToken ? (
+                      <div className="flex items-center gap-2 text-green-600">
+                        <Sparkles className="h-4 w-4" />
+                        <span className="text-xs font-bold uppercase">Push Alerts Enabled</span>
+                      </div>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full text-[10px] font-black uppercase tracking-widest border-primary/20"
+                        onClick={handleEnableNotifications}
+                        disabled={notifLoading}
+                      >
+                        {notifLoading ? <Loader2 className="animate-spin h-3 w-3 mr-2" /> : <Bell className="h-3 w-3 mr-2 text-primary" />}
+                        Enable Party Alerts
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
 
-                    <Card className="shadow-lg border-t-4 border-accent">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                          <Trophy className="h-4 w-4 text-accent" />
-                          Recruitment Power
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-1">
-                            <p className="text-3xl font-bold text-primary">{userData?.recruitCount || 0}</p>
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Supporters Recruited</p>
-                          </div>
+                {isSupporter && (
+                  <Card className="shadow-lg border-t-4 border-accent">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-accent" />
+                        Recruitment Power
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="text-3xl font-bold text-primary">{userData?.recruitCount || 0}</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Supporters Recruited</p>
                         </div>
-                        <div className="pt-4 border-t space-y-3">
-                          <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Your Referral Link</Label>
-                          <div className="flex gap-2">
-                            <Input value={referralLink} readOnly className="text-xs bg-muted font-mono" />
-                            <Button size="icon" variant="outline" onClick={copyLink} className="shrink-0"><Copy className="h-4 w-4" /></Button>
-                          </div>
+                      </div>
+                      <div className="pt-4 border-t space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Your Referral Link</Label>
+                        <div className="flex gap-2">
+                          <Input value={referralLink} readOnly className="text-xs bg-muted font-mono" />
+                          <Button size="icon" variant="outline" onClick={copyLink} className="shrink-0"><Copy className="h-4 w-4" /></Button>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-                    <DailyPulse />
-                </div>
-                <div className="lg:col-span-8 space-y-12">
-                    <section id="announcements" onMouseEnter={markAnnouncementsSeen}>
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-3">
-                                <Megaphone className="h-6 w-6" />
-                                National Bulletin
-                                {hasNewAnnouncements && (
-                                    <Badge variant="destructive" className="animate-pulse font-black text-[9px] uppercase tracking-widest px-2">New</Badge>
-                                )}
-                            </h2>
-                        </div>
-                        <div className="space-y-6">
-                            {announcementsLoading ? (
-                                <Skeleton className="h-48 w-full" />
-                            ) : announcements.length === 0 ? (
-                                <Card className="p-12 text-center border-dashed bg-muted/20">
-                                    <p className="text-muted-foreground font-medium">No official updates at this moment.</p>
-                                </Card>
-                            ) : (
-                                announcements.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).map((item: any) => (
-                                    <AnnouncementCard 
-                                        key={item.id}
-                                        title={item.title}
-                                        date={item.timestamp ? new Date(item.timestamp.toDate()).toLocaleDateString() : 'Just now'}
-                                        fullText={item.message}
-                                        link={item.documentLink}
-                                    />
-                                ))
-                            )}
-                        </div>
-                    </section>
-                    
-                    <RecruitmentLeaderboard />
-                    <ActionCenter />
-                    <CommunityFeedback />
-                </div>
+                <DailyPulse />
             </div>
-        )}
-
-        {!isSupporter && (
-            <div className="space-y-12">
-                <section>
-                    <h2 className="text-2xl font-bold font-headline text-primary uppercase tracking-tight mb-6 flex items-center gap-3">
-                        <Megaphone className="h-6 w-6" />
-                        National Bulletin
-                    </h2>
+            <div className="lg:col-span-8 space-y-12">
+                <section id="announcements" onMouseEnter={markAnnouncementsSeen}>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-2xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-3">
+                            <Megaphone className="h-6 w-6" />
+                            National Bulletin
+                            {hasNewAnnouncements && (
+                                <Badge variant="destructive" className="animate-pulse font-black text-[9px] uppercase tracking-widest px-2">New</Badge>
+                            )}
+                        </h2>
+                    </div>
                     <div className="space-y-6">
                         {announcementsLoading ? (
                             <Skeleton className="h-48 w-full" />
@@ -262,8 +229,12 @@ export default function HomePage() {
                         )}
                     </div>
                 </section>
+                
+                {isSupporter && <RecruitmentLeaderboard />}
+                <ActionCenter />
+                <CommunityFeedback />
             </div>
-        )}
+        </div>
       </div>
     </div>
   );
