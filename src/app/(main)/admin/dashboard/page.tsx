@@ -20,11 +20,11 @@ import { Shield, UserPlus, Users, Pencil, Trash2, Loader2, Search, ArrowRightLef
 import { collection, onSnapshot, serverTimestamp, doc, setDoc, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { pddsLeadershipRoles } from "@/lib/data";
 
-const UNLIMITED_ROLES = ['Member', 'Supporter'];
+const UNLIMITED_ROLES = ['Member', 'Supporter', 'Volunteer', 'Coordinator', 'Moderator'];
 
 const allAssignableRoles = [
   ...pddsLeadershipRoles,
-  "Member", "Admin"
+  "Member", "Admin", "Volunteer", "Coordinator", "Moderator"
 ].filter(r => r !== 'Supporter' && r !== 'System Admin');
 
 export default function AdminDashboard() {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCollection, useFirestore } from "@/firebase";
@@ -31,11 +32,11 @@ import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
-const PROMOTABLE_ROLES = ["Supporter", "Member", "Officer"];
+const PROMOTABLE_ROLES = ["Supporter", "Volunteer", "Coordinator", "Moderator", "Member", "Officer"];
 
 /**
  * @fileOverview Recruitment & Command Dashboard.
- * Manages the transition of Supporters to official Ranks (Member/Officer).
+ * Manages the transition of Supporters to official Ranks (Member/Officer/Coordinator).
  * Displays real-time induction stats and engagement tracking.
  */
 export default function AdminSupporterDashboard() {

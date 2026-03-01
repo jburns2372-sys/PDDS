@@ -75,6 +75,15 @@ service cloud.firestore {
     }
 
     /**
+     * Strategic Campaign Plans: Restricted access for mobilization.
+     * Only Coordinators and Executives can access.
+     */
+    match /campaign_plans/{planId} {
+      allow read: if isSignedIn() && (getUserData().role == 'Coordinator' || isExecutive());
+      allow write: if isExecutive();
+    }
+
+    /**
      * Calendar Activities: The operational heartbeat of the movement.
      */
     match /calendar_activities/{activityId} {

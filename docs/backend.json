@@ -21,7 +21,8 @@
             "President", "Chairman", "Vice Chairman", "VP", "Secretary General",
             "Treasurer", "Auditor", "VP Ways & Means Chair", "VP Media Comms",
             "VP Soc Med Comms", "VP Events and Programs", "VP Membership",
-            "VP legal affairs", "Officer", "Member", "Admin", "System Admin", "Supporter"
+            "VP legal affairs", "Officer", "Member", "Admin", "System Admin", 
+            "Supporter", "Volunteer", "Coordinator", "Moderator"
           ]
         },
         "isAdmin": { "type": "boolean", "default": false },
@@ -74,6 +75,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["title", "startDate", "scope"]
+    },
+    "campaign_plan": {
+      "title": "Campaign Plan",
+      "description": "Strategic mobilization plans for regional activities.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "objective": { "type": "string" },
+        "targetRegion": { "type": "string" },
+        "strategy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "objective"]
     }
   },
   "auth": {
@@ -91,6 +105,10 @@
     "/calendar_activities/{activityId}": {
       "schema": { "$ref": "#/backend/entities/calendar_activity" },
       "description": "Stores official party events and activities."
+    },
+    "/campaign_plans/{planId}": {
+      "schema": { "$ref": "#/backend/entities/campaign_plan" },
+      "description": "Stores strategic campaign mobilization plans."
     }
   }
 }
