@@ -68,7 +68,12 @@ export default function DocumentVaultPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const hasExecutiveAccess = userData?.role === 'President' || userData?.role === 'Admin' || userData?.isSuperAdmin;
+  // Privileged roles recognized for vault management
+  const hasExecutiveAccess = 
+    userData?.role === 'President' || 
+    userData?.role === 'Admin' || 
+    userData?.role === 'Public Relations Officer' || 
+    userData?.isSuperAdmin;
 
   // RBAC Filtering & Search
   const visibleDocs = useMemo(() => {
@@ -101,7 +106,7 @@ export default function DocumentVaultPage() {
 
       // 2. Save Metadata to Firestore
       await addDoc(collection(firestore, 'vault'), {
-        title: title.trim(),
+        title: title.trim().toUpperCase(),
         description: description.trim(),
         fileUrl: downloadURL,
         fileType: selectedFile.type,
@@ -128,6 +133,7 @@ export default function DocumentVaultPage() {
   };
 
   const getFileIcon = (type: string) => {
+    if (!type) return <FileIcon className="h-8 w-8 text-primary" />;
     if (type.includes('pdf')) return <FileText className="h-8 w-8 text-destructive" />;
     if (type.includes('image')) return <ImageIcon className="h-8 w-8 text-blue-500" />;
     return <FileIcon className="h-8 w-8 text-primary" />;
@@ -139,10 +145,10 @@ export default function DocumentVaultPage() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary uppercase tracking-tight">
-              Secure Document Vault
+              National Tactical Library
             </h1>
             <p className="mt-2 text-muted-foreground font-medium">
-              Access official party directives, policies, and operational materials.
+              Access official party posters, directives, policies, and operational materials.
             </p>
           </div>
 
@@ -151,7 +157,7 @@ export default function DocumentVaultPage() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input 
                 className="pl-10 w-64 bg-background" 
-                placeholder="Search materials..." 
+                placeholder="Search tactical assets..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -178,14 +184,14 @@ export default function DocumentVaultPage() {
                     </DialogHeader>
                     <div className="py-6 space-y-4">
                       <div className="space-y-2">
-                        <Label>Material Title</Label>
+                        <Label>Material Name</Label>
                         <Input placeholder="e.g. 2025 Campaign Handbook" value={title} onChange={e => setTitle(e.target.value)} required />
                       </div>
                       <div className="space-y-2">
                         <Label>File Selection</Label>
                         <div 
                           onClick={() => fileInputRef.current?.click()}
-                          className="border-2 border-dashed border-primary/20 rounded-xl p-8 text-center cursor-pointer hover:bg-primary/5 transition-colors"
+                          className="border-2 border-dashed border-primary/20 rounded-xl p-8 text-center cursor-pointer hover:bg-primary/5 transition-colors bg-white"
                         >
                           {selectedFile ? (
                             <div className="flex items-center justify-center gap-2">
@@ -195,7 +201,7 @@ export default function DocumentVaultPage() {
                           ) : (
                             <div className="space-y-2">
                               <FileDown className="h-8 w-8 mx-auto text-muted-foreground" />
-                              <p className="text-[10px] font-black uppercase text-muted-foreground">Click to select PDF or Image</p>
+                              <p className="text-[10px] font-black uppercase text-muted-foreground">Select PDF or Image Asset</p>
                             </div>
                           )}
                           <input 
@@ -245,7 +251,7 @@ export default function DocumentVaultPage() {
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input 
               className="pl-10 bg-card" 
-              placeholder="Search materials..." 
+              placeholder="Search tactical assets..." 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -255,13 +261,13 @@ export default function DocumentVaultPage() {
         {docsLoading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Decrypting National Files...</p>
+            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Decrypting Tactical Files...</p>
           </div>
         ) : visibleDocs.length === 0 ? (
           <Card className="p-24 text-center border-dashed bg-muted/20">
             <div className="flex flex-col items-center gap-4">
               <Library className="h-12 w-12 text-muted-foreground/30" />
-              <p className="text-muted-foreground font-medium">No documents found in your clearance level.</p>
+              <p className="text-muted-foreground font-medium">No materials found in your clearance level.</p>
             </div>
           </Card>
         ) : (
@@ -286,7 +292,7 @@ export default function DocumentVaultPage() {
                 </CardHeader>
                 <CardContent className="pt-4 flex-1">
                   <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed font-medium italic">
-                    "{doc.description || "Official party material for verified personnel. Handle with care and maintain operational security."}"
+                    "{doc.description || "Official party material for verified personnel. Maintain operational security."}"
                   </p>
                   
                   <div className="mt-4 flex flex-wrap gap-1.5">
@@ -306,7 +312,7 @@ export default function DocumentVaultPage() {
                   <Button asChild className="w-full font-black uppercase tracking-widest h-11 shadow-md">
                     <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      Download Material
+                      Access Material
                     </a>
                   </Button>
                 </CardFooter>
@@ -319,7 +325,7 @@ export default function DocumentVaultPage() {
       <div className="bg-primary text-primary-foreground p-4 text-center">
         <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] opacity-60">
           <Lock className="h-3 w-3" />
-          End-to-End Encrypted Storage & Retrieval
+          End-to-End Encrypted Tactical Storage
         </div>
       </div>
     </div>
