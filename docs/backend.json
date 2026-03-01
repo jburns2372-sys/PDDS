@@ -105,6 +105,23 @@
         "loggedBy": { "type": "string" }
       },
       "required": ["recipientId", "item", "quantity", "status"]
+    },
+    "poll": {
+      "title": "Interactive Poll",
+      "description": "A party referendum or community pulse poll.",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "targetGroup": { "type": "string", "description": "National or specific city name." },
+        "votes": { "type": "object", "description": "Map of option strings to vote counts." },
+        "votedBy": { "type": "array", "items": { "type": "string" }, "description": "Array of member UIDs who have voted." },
+        "isActive": { "type": "boolean" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["question", "options", "isActive"]
     }
   },
   "auth": {
@@ -126,6 +143,10 @@
     "/logistics_logs/{logId}": {
       "schema": { "$ref": "#/backend/entities/logistics_record" },
       "description": "Stores party resource distribution logs."
+    },
+    "/polls/{pollId}": {
+      "schema": { "$ref": "#/backend/entities/poll" },
+      "description": "Stores party referendum and feedback polls."
     }
   }
 }

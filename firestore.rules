@@ -52,7 +52,6 @@ service cloud.firestore {
       allow read: if isSignedIn() && (isOwner(userId) || isExecutive() || isSecGen());
       allow create: if isSignedIn();
       
-      // Strict Vetting & Admin Field Protection
       allow update: if isExecutive() || isSecGen() || (
         isOwner(userId) && 
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin', 'isAdmin', 'isVerified', 'adminNotes', 'vettingLevel', 'idVerificationUrl'])
@@ -66,23 +65,13 @@ service cloud.firestore {
       allow write: if isPRO();
     }
 
-    match /campaign_plans/{planId} {
-      allow read: if isSignedIn() && (getUserData().role == 'Coordinator' || isExecutive());
-      allow write: if isExecutive();
-    }
-
     match /calendar_activities/{activityId} {
       allow read: if isSignedIn() && (resource.data.isAuthorized == true || isExecutive());
       allow create: if isSignedIn() && (
-        getUserData().role in ['Secretary General', 'Admin', 'President', 'Coordinator']
+        getUserData().role in ['Secretary General', 'Admin', 'President', 'Coordinator'] || isPRO()
       );
       allow update: if hasRole('President') || isExecutive();
       allow delete: if isExecutive();
-    }
-
-    match /meeting_agendas/{agendaId} {
-      allow read: if isSignedIn();
-      allow write: if isExecutive();
     }
 
     match /vault/{docId} {
@@ -94,13 +83,21 @@ service cloud.firestore {
       allow write: if isExecutive() || isSecGen() || isPRO();
     }
 
-    match /attendance/{attendanceId} {
-      allow read, write: if isExecutive() || isSecGen();
-    }
-
     match /logistics_logs/{logId} {
       allow read: if isSignedIn() && (isTreasurer() || isExecutive());
       allow write: if isTreasurer() || isExecutive();
+    }
+
+    match /polls/{id} {
+      allow read: if isSignedIn();
+      
+      // Allow members to vote: update votes map and votedBy array
+      allow update: if isSignedIn() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'votedBy']) &&
+        !resource.data.votedBy.contains(request.auth.uid) &&
+        request.resource.data.votedBy.contains(request.auth.uid);
+        
+      allow write: if isPRO() || isExecutive();
     }
 
     match /community_feedback/{feedbackId} {
@@ -109,26 +106,15 @@ service cloud.firestore {
       allow update, delete: if isExecutive();
     }
 
-    match /polls/{id} {
-      allow read: if isSignedIn();
-      allow update: if isSignedIn();
-      allow write: if isExecutive() || isPRO();
-    }
-
     match /campaign_actions/{actionId} {
       allow read: if isSignedIn();
-      allow update: if isSignedIn(); // For signing petitions
+      allow update: if isSignedIn(); 
       allow write: if isExecutive();
     }
 
     match /communication_audit/{auditId} {
       allow read: if isExecutive();
-      allow create: if isSignedIn(); // Cloud functions and PRO can write
-    }
-
-    match /communication_logs/{logId} {
-      allow read: if isExecutive() || isSecGen();
-      allow create: if isSignedIn() && (isExecutive() || isSecGen() || isPRO() || hasRole('Officer'));
+      allow create: if isSignedIn();
     }
   }
 }

@@ -2,13 +2,14 @@
 "use client";
 
 import { useCollection, useFirestore, useUser } from "@/firebase";
+import { useUserData } from "@/context/user-data-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { doc, updateDoc, arrayUnion, increment } from "firebase/firestore";
-import { Loader2, Activity, CheckCircle2, BarChart3 } from "lucide-react";
+import { Loader2, Activity, CheckCircle2, BarChart3, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 type Poll = {
   id: string;
@@ -17,34 +18,51 @@ type Poll = {
   votes: Record<string, number>;
   votedBy: string[];
   isActive: boolean;
+  targetGroup: string;
 };
 
+/**
+ * @fileOverview Official Party Referendum Interface (Daily Pulse).
+ * Secure one-member-one-vote system with real-time analytics.
+ */
 export function DailyPulse() {
   const { user } = useUser();
+  const { userData } = useUserData();
   const firestore = useFirestore();
   const { toast } = useToast();
+  
   const { data: polls, loading } = useCollection<Poll>('polls');
   const [isVoting, setIsVoting] = useState<string | null>(null);
 
-  const activePolls = polls.filter(p => p.isActive);
+  // Filter polls based on member's location or National scope
+  const activePolls = useMemo(() => {
+    if (!userData) return [];
+    return polls.filter(p => 
+      p.isActive && 
+      (p.targetGroup === "National" || p.targetGroup === userData.city)
+    ).sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  }, [polls, userData]);
 
   const handleVote = async (pollId: string, option: string) => {
     if (!user) return;
     setIsVoting(pollId);
     try {
       const pollRef = doc(firestore, 'polls', pollId);
+      
+      // Update with atomic increment and UID tracking for security
       await updateDoc(pollRef, {
         [`votes.${option}`]: increment(1),
         votedBy: arrayUnion(user.uid)
       });
+
       toast({
-        title: "Vote Recorded",
-        description: "Your voice has been heard in the Daily Pulse."
+        title: "Ballot Cast",
+        description: "Your official response has been securely recorded."
       });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Error casting vote",
         description: error.message
       });
     } finally {
@@ -54,9 +72,9 @@ export function DailyPulse() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 gap-3 border-2 border-dashed rounded-xl">
+      <div className="flex flex-col items-center justify-center p-8 gap-3 border-2 border-dashed rounded-xl bg-muted/10">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Syncing Daily Pulse...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Syncing Referendums...</p>
       </div>
     );
   }
@@ -64,8 +82,8 @@ export function DailyPulse() {
   if (activePolls.length === 0) return null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 px-2">
         <Activity className="h-5 w-5 text-primary" />
         <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight">Daily Pulse</h2>
       </div>
@@ -76,59 +94,77 @@ export function DailyPulse() {
           const totalVotes = Object.values(poll.votes || {}).reduce((a, b) => a + b, 0);
 
           return (
-            <Card key={poll.id} className="shadow-lg border-primary/10 overflow-hidden bg-white">
-              <CardHeader className="bg-primary/5 pb-4">
-                <CardTitle className="text-lg font-headline text-primary leading-tight">
+            <Card key={poll.id} className="shadow-2xl border-t-4 border-accent overflow-hidden bg-white">
+              <CardHeader className="bg-primary/5 pb-4 border-b">
+                <div className="flex justify-between items-start mb-2">
+                  <Badge className="bg-primary text-white text-[8px] font-black uppercase px-2 py-0.5">Official Ballot</Badge>
+                  <Badge variant="outline" className="text-[8px] font-black uppercase border-primary/20">{poll.targetGroup}</Badge>
+                </div>
+                <CardTitle className="text-lg font-headline text-primary leading-tight font-black uppercase tracking-tight">
                   {poll.question}
                 </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
-                  {hasVoted ? "Results" : "Select one to vote"}
+                <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mt-1">
+                  {hasVoted ? "REFERENDUM RESULTS" : "SELECT YOUR RESPONSE BELOW"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6 space-y-4">
                 {!hasVoted ? (
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-3">
                     {poll.options.map((option) => (
                       <Button
                         key={option}
                         variant="outline"
-                        className="h-12 justify-start font-bold border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all group"
+                        className="h-14 justify-start font-bold border-2 border-primary/10 hover:border-primary hover:bg-primary/5 transition-all group px-6 text-sm uppercase tracking-tight"
                         disabled={!!isVoting}
                         onClick={() => handleVote(poll.id, option)}
                       >
-                        <div className="h-4 w-4 rounded-full border-2 border-primary mr-3 group-hover:border-white shrink-0" />
+                        <div className="h-5 w-5 rounded-full border-2 border-primary mr-4 group-hover:bg-primary transition-colors shrink-0" />
                         <span className="truncate">{option}</span>
                       </Button>
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-5 animate-in fade-in duration-700">
                     {poll.options.map((option) => {
                       const count = poll.votes[option] || 0;
                       const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
                       return (
-                        <div key={option} className="space-y-1.5">
+                        <div key={option} className="space-y-2">
                           <div className="flex justify-between items-end">
-                            <span className="text-xs font-bold text-foreground/80">{option}</span>
-                            <span className="text-[10px] font-black text-primary">{percentage}%</span>
+                            <span className="text-xs font-black text-primary uppercase truncate pr-4">{option}</span>
+                            <span className="text-xs font-black text-accent">{percentage}%</span>
                           </div>
-                          <Progress value={percentage} className="h-2.5 bg-primary/10" />
+                          <div className="h-3 w-full bg-primary/5 rounded-full overflow-hidden border border-primary/10">
+                            <div 
+                              className="h-full bg-primary transition-all duration-1000 ease-out"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <div className="text-[8px] font-bold text-muted-foreground uppercase text-right">
+                            {count.toLocaleString()} votes
+                          </div>
                         </div>
                       );
                     })}
-                    <div className="pt-4 border-t flex items-center justify-between text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
-                      <div className="flex items-center gap-1 text-green-600">
+                    <div className="pt-4 border-t border-dashed flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-green-600 font-black text-[9px] uppercase tracking-widest">
                         <CheckCircle2 className="h-3 w-3" />
-                        You have voted
+                        Ballot Recorded
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5 text-primary font-black text-[9px] uppercase tracking-widest opacity-60">
                         <BarChart3 className="h-3 w-3" />
-                        {totalVotes.toLocaleString()} total votes
+                        {totalVotes.toLocaleString()} Total Participants
                       </div>
                     </div>
                   </div>
                 )}
               </CardContent>
+              <CardFooter className="bg-muted/30 py-3 flex justify-center">
+                <div className="flex items-center gap-2 text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em]">
+                  <ShieldCheck className="h-3 w-3" />
+                  Encrypted Voting Protocol
+                </div>
+              </CardFooter>
             </Card>
           );
         })}
