@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCollection } from "@/firebase";
@@ -5,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Search, MapPin, CalendarDays } from "lucide-react";
+import { Loader2, Users, Search, MapPin, CalendarDays, User } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
@@ -13,6 +14,7 @@ import { format } from "date-fns";
 /**
  * @fileOverview Supporter Recruitment Dashboard.
  * Displays real-time list of all supporters registered in the National Registry.
+ * Synchronized with the 'captureGoogleUserInfo' Cloud Function.
  */
 export default function AdminSupporterDashboard() {
   const { data: supporters, loading } = useCollection('users', {
@@ -83,16 +85,17 @@ export default function AdminSupporterDashboard() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 border-b">
-                <TableHead className="pl-6 text-[10px] font-black uppercase">Advocate</TableHead>
-                <TableHead className="text-[10px] font-black uppercase">Jurisdiction</TableHead>
+                <TableHead className="pl-6 text-[10px] font-black uppercase">Photo</TableHead>
+                <TableHead className="text-[10px] font-black uppercase">Full Name</TableHead>
+                <TableHead className="text-[10px] font-black uppercase">Email</TableHead>
                 <TableHead className="text-[10px] font-black uppercase">Joined On</TableHead>
-                <TableHead className="text-right pr-6 text-[10px] font-black uppercase">Induction Status</TableHead>
+                <TableHead className="text-right pr-6 text-[10px] font-black uppercase">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredSupporters.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-24 text-muted-foreground italic">
+                  <TableCell colSpan={5} className="text-center py-24 text-muted-foreground italic">
                     No matching supporters found in the registry.
                   </TableCell>
                 </TableRow>
@@ -104,29 +107,22 @@ export default function AdminSupporterDashboard() {
                   return (
                     <TableRow key={user.uid || user.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="pl-6">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border shadow-sm">
-                            <AvatarImage src={user.photoURL} />
-                            <AvatarFallback className="bg-primary/5 text-primary font-bold">
-                              {user.fullName?.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-black text-sm uppercase text-primary leading-tight">{user.fullName}</div>
-                            <div className="text-[10px] text-muted-foreground font-medium">{user.email}</div>
-                          </div>
-                        </div>
+                        <Avatar className="h-10 w-10 border shadow-sm">
+                          <AvatarImage src={user.photoURL} />
+                          <AvatarFallback className="bg-primary/5 text-primary font-bold">
+                            <User className="h-5 w-5" />
+                          </AvatarFallback>
+                        </Avatar>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="h-3 w-3 text-primary/40" />
-                          <div className="text-[11px] font-bold uppercase">{user.city || 'National'}</div>
-                        </div>
-                        <div className="text-[9px] text-muted-foreground uppercase pl-4.5">{user.province || 'Registry'}</div>
+                        <div className="font-black text-sm uppercase text-primary leading-tight">{user.fullName}</div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1.5 text-[11px] font-medium">
-                          <CalendarDays className="h-3 w-3 text-primary/40" />
+                        <div className="text-xs text-muted-foreground font-medium">{user.email}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                          <CalendarDays className="h-3.5 w-3.5 text-primary/40" />
                           {format(joinDate, 'MMM dd, yyyy')}
                         </div>
                       </TableCell>

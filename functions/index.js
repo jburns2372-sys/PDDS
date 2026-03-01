@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Firebase Cloud Functions for PatriotLink.
  * Handles automated role assignment and security triggers for the National Registry.
@@ -36,7 +37,7 @@ exports.captureGoogleUserInfo = onUserCreated(async (event) => {
       fullName: (user.displayName || "Anonymous Supporter").toUpperCase(),
       photoURL: user.photoURL || "",
       role: "Supporter", // Forced role: cannot be Admin or President
-      isAdmin: false,    // Strictly denied Admin status for security
+      isAdmin: false,    // Strictly denied Admin status for security as requested
       isApproved: true,
       kartilyaAgreed: true,
       jurisdictionLevel: "National",

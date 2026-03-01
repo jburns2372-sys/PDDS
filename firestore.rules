@@ -38,12 +38,14 @@ service cloud.firestore {
 
     /**
      * Comprehensive check for Executive (President or Admin) access.
-     * Strictly relies on the database role. No email backdoors.
+     * Strictly relies on the database role or the isAdmin flag.
      */
     function isExecutive() {
       if (!isSignedIn()) return false;
-      let userRole = getUserData().role;
-      return userRole == 'President' || userRole == 'Admin' || userRole == 'System Admin';
+      let userData = getUserData();
+      let userRole = userData.role;
+      let isAdmin = userData.get('isAdmin', false);
+      return userRole == 'President' || userRole == 'Admin' || userRole == 'System Admin' || isAdmin == true;
     }
 
     // ==========================================
@@ -54,7 +56,7 @@ service cloud.firestore {
      * Member Registry: Protects sensitive personal information.
      */
     match /users/{userId} {
-      // Read: Users can read their own profile. Executives can read all for directory/management.
+      // Read: Users can read their own profile. Executives and Admins can read all for directory/management.
       allow read: if isSignedIn() && (isOwner(userId) || isExecutive());
       
       // Create: Allow initial registration.
@@ -64,7 +66,7 @@ service cloud.firestore {
       // Executives have full update authority.
       allow update: if isExecutive() || (
         isOwner(userId) && 
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin'])
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin', 'isAdmin'])
       );
       
       // Delete: Strictly restricted to President/Admin.
@@ -75,18 +77,11 @@ service cloud.firestore {
      * Calendar Activities: The operational heartbeat of the movement.
      */
     match /calendar_activities/{activityId} {
-      // Read: Public view restricted to authorized events. Executives see drafts for audit.
       allow read: if isSignedIn() && (resource.data.isAuthorized == true || isExecutive());
-      
-      // Create: Restricted to Secretary General, Admin, and President.
       allow create: if isSignedIn() && (
         getUserData().role in ['Secretary General', 'Admin', 'President']
       );
-      
-      // Update: Strictly restrict authorization (flipping isAuthorized) to the President ONLY.
       allow update: if hasRole('President');
-      
-      // Delete: Executives only.
       allow delete: if isExecutive();
     }
 
@@ -147,13 +142,13 @@ service cloud.firestore {
 
     match /polls/{id} {
       allow read: if isSignedIn();
-      allow update: if isSignedIn(); // Voting logic
+      allow update: if isSignedIn();
       allow write: if isExecutive();
     }
 
     match /campaign_actions/{id} {
       allow read: if isSignedIn();
-      allow update: if isSignedIn(); // Signing logic
+      allow update: if isSignedIn();
       allow write: if isExecutive();
     }
   }
