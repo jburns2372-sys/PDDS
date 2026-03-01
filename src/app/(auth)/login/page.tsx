@@ -15,6 +15,10 @@ import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
+/**
+ * @fileOverview Login Page with Social and Credential access.
+ * Strict Supporter role enforcement for all social sign-ins.
+ */
 export default function LoginPage() {
     const auth = useAuth();
     const firestore = useFirestore();
@@ -57,44 +61,66 @@ export default function LoginPage() {
         setLoading(true);
         const provider = providerType === 'google' ? new GoogleAuthProvider() : new FacebookAuthProvider();
         
+        // Configuration Check: Scopes for basic profile
+        if (providerType === 'facebook') {
+            provider.addScope('email');
+            provider.addScope('public_profile');
+        }
+
         try {
+            // 1. Authenticate with Social Provider
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
             const userEmail = (user.email || '').toLowerCase();
 
-            // Check if user exists in registry
+            // 2. Registry Check
             const userRef = doc(firestore, 'users', user.uid);
             const userSnap = await getDoc(userRef);
 
             if (!userSnap.exists()) {
-                // ALL users signing in through Social are strictly Supporters
-                const initialRole = "Supporter";
-
-                // Auto-provision as Supporter
+                // FORCE SUPPORTER ROLE: Irrevocable assignment for all social sign-ups
                 await setDoc(userRef, {
                     uid: user.uid,
                     email: userEmail,
-                    fullName: user.displayName?.toUpperCase() || "NEW SUPPORTER",
+                    fullName: user.displayName?.toUpperCase() || "NEW PDDS SUPPORTER",
                     photoURL: user.photoURL || null,
-                    role: initialRole,
+                    role: "Supporter", // Pure supporter access
                     jurisdictionLevel: "Local",
                     isApproved: true,
                     kartilyaAgreed: true,
                     recruitCount: 0,
                     createdAt: serverTimestamp(),
                 });
-                toast({ title: "Welcome!", description: `You have been registered as a ${initialRole}.` });
+                toast({ title: "Welcome!", description: "You have been registered as a Supporter." });
             }
 
-            // Hard redirect to ensure shell catches the new state
+            // 3. Hard Redirect to stabilize state
             window.location.href = "/home";
         } catch (error: any) {
+            console.error("Social Auth Error:", error);
+            
+            let errorMessage = error.message;
+            
+            // Handle specific social auth failures
+            if (error.code === 'auth/popup-closed-by-user') {
+                errorMessage = "The login window was closed. Please try again.";
+            } else if (error.code === 'auth/internal-error' || error.message.includes('Can\'t load URL')) {
+                errorMessage = "Facebook configuration error. Please ensure your domain is whitelisted in Meta settings.";
+            } else if (error.code === 'auth/operation-not-supported-in-this-environment') {
+                errorMessage = "Social login is not supported in this environment.";
+            }
+
             toast({
                 variant: "destructive",
                 title: "Authentication Failed",
-                description: error.message,
+                description: errorMessage,
             });
+            
+            // Critical: Clear loading state to prevent "hanging"
             setLoading(false);
+        } finally {
+            // Ensure UI is interactive if the catch block was bypassed or didn't run
+            setTimeout(() => setLoading(false), 5000); 
         }
     };
 
@@ -106,6 +132,13 @@ export default function LoginPage() {
                 <p className="text-lg font-black uppercase tracking-widest text-primary animate-pulse text-center px-4 font-headline">
                     Securing your place in the national registry...
                 </p>
+                <Button 
+                    variant="ghost" 
+                    className="mt-8 text-xs font-bold uppercase text-muted-foreground"
+                    onClick={() => setLoading(false)}
+                >
+                    Cancel Connection
+                </Button>
             </div>
         )}
 
