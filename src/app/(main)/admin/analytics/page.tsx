@@ -15,7 +15,7 @@ import {
   Tooltip
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Map, TrendingUp, Users, Loader2, Sparkles, Trophy, Globe, CalendarDays, ShieldCheck, Package, Flag, Medal } from "lucide-react";
+import { Map, TrendingUp, Users, Loader2, Sparkles, Trophy, Globe, CalendarDays, ShieldCheck, Package, Flag, Medal, Activity, BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { subDays, isAfter } from "date-fns";
@@ -40,6 +40,7 @@ const NationalFootprintMap = dynamic(
 export default function AdminAnalyticsPage() {
   const { data: users, loading: usersLoading } = useCollection('users');
   const { data: logistics, loading: logisticsLoading } = useCollection('logistics_logs');
+  const { data: polls, loading: pollsLoading } = useCollection('polls');
 
   // Logic to process Membership Density, Growth, and Executive Metrics
   const stats = useMemo(() => {
@@ -54,17 +55,14 @@ export default function AdminAnalyticsPage() {
     const supporters = users.filter(u => u.role === 'Supporter');
 
     users.forEach(user => {
-      // 1. Group by Province
       const prov = user.province || "Unknown Region";
       provinceMap[prov] = (provinceMap[prov] || 0) + 1;
 
-      // 2. Group by City for Rankings
       const city = user.city || "Unknown City";
       if (!cityRankingMap[city]) cityRankingMap[city] = { total: 0, verified: 0 };
       cityRankingMap[city].total++;
       if (user.isVerified) cityRankingMap[city].verified++;
 
-      // 3. Calculate Growth (New this week)
       if (user.createdAt) {
         const createdDate = user.createdAt.toDate ? user.createdAt.toDate() : new Date(user.createdAt);
         if (isAfter(createdDate, sevenDaysAgo)) {
@@ -72,13 +70,11 @@ export default function AdminAnalyticsPage() {
         }
       }
 
-      // 4. Executive Metric: Vetted Officer Corps
       if (user.isVerified === true && user.role !== 'Supporter') {
         verifiedOfficers++;
       }
     });
 
-    // 5. Logistics Aggregation (Treasurer Data)
     let totalShirts = 0;
     let totalFlags = 0;
     logistics.forEach(log => {
@@ -86,12 +82,10 @@ export default function AdminAnalyticsPage() {
       if (log.item === "Flags") totalFlags += (log.quantity || 0);
     });
 
-    // Sort Strongholds (Provinces)
     const sortedHotspots = Object.entries(provinceMap)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
 
-    // Sort Rankings by Verified count (Quality over Quantity)
     const sortedRankings = Object.entries(cityRankingMap)
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => b.verified - a.verified || b.total - a.total);
@@ -109,7 +103,7 @@ export default function AdminAnalyticsPage() {
     };
   }, [users, logistics]);
 
-  if (usersLoading || logisticsLoading) {
+  if (usersLoading || logisticsLoading || pollsLoading) {
     return (
       <div className="flex h-[80vh] w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -128,6 +122,8 @@ export default function AdminAnalyticsPage() {
       color: "hsl(var(--accent))",
     },
   };
+
+  const activePolls = polls.filter(p => p.isActive);
 
   return (
     <div className="p-6 bg-background min-h-screen pb-24">
@@ -155,7 +151,7 @@ export default function AdminAnalyticsPage() {
                 </h1>
               </div>
               <p className="text-primary-foreground/70 font-medium italic">
-                "In Pederalismo, we trust the people, but we track the progress."
+                "Real-time telemetry for national mobilization and sentiment."
               </p>
             </div>
 
@@ -169,12 +165,12 @@ export default function AdminAnalyticsPage() {
                 <p className="text-2xl font-black text-accent">{stats.vettedCount}</p>
               </div>
               <div className="text-center md:text-right px-4 border-r border-white/10 last:border-0">
-                <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Growth (7D)</p>
-                <p className="text-2xl font-black text-green-400">+{stats.growth}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Active Polls</p>
+                <p className="text-2xl font-black text-white">{activePolls.length}</p>
               </div>
               <div className="text-center md:text-right px-4">
-                <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Resources</p>
-                <p className="text-2xl font-black">{(stats.shirts + stats.flags).toLocaleString()}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Growth (7D)</p>
+                <p className="text-2xl font-black text-green-400">+{stats.growth}</p>
               </div>
             </div>
           </div>
@@ -221,6 +217,78 @@ export default function AdminAnalyticsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* 📊 National Sentiment Pulse */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 px-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight">National Sentiment Monitor</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {activePolls.length === 0 ? (
+              <Card className="p-12 text-center border-2 border-dashed bg-muted/20 col-span-full">
+                <Activity className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-muted-foreground font-medium uppercase text-xs">No active referendums to monitor.</p>
+              </Card>
+            ) : (
+              activePolls.map((poll: any) => {
+                const chartData = poll.options.map((opt: string) => ({
+                  name: opt,
+                  votes: poll.votes[opt] || 0
+                }));
+                const totalVotes = Object.values(poll.votes || {}).reduce((a: any, b: any) => a + b, 0);
+
+                return (
+                  <Card key={poll.id} className="shadow-xl border-t-4 border-accent overflow-hidden flex flex-col">
+                    <CardHeader className="bg-primary/5 pb-4 border-b">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-sm font-black uppercase text-primary font-headline leading-snug max-w-[80%]">
+                          {poll.question}
+                        </CardTitle>
+                        <Badge className="bg-accent text-accent-foreground text-[8px] font-black">LIVE</Badge>
+                      </div>
+                      <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Target: {poll.targetGroup} • Tier: {poll.targetRole}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6 flex-1 min-h-[250px]">
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+                          <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                          <YAxis hide />
+                          <Tooltip 
+                            cursor={{ fill: 'rgba(0,0,0,0.05)' }} 
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                return (
+                                  <div className="bg-primary text-white p-2 rounded-lg shadow-xl text-[10px] font-bold uppercase">
+                                    {payload[0].payload.name}: {payload[0].value} votes
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Bar dataKey="votes" radius={[4, 4, 0, 0]}>
+                            {chartData.map((entry: any, index: number) => (
+                              <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'hsl(var(--primary))' : 'hsl(var(--accent))'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                      <div className="mt-4 pt-4 border-t border-dashed flex justify-between items-center text-[9px] font-black uppercase text-primary/60">
+                        <span>Total Participation: {totalVotes}</span>
+                        <Badge variant="outline" className="text-[8px] opacity-50">REF: {poll.id.substring(0,6)}</Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        </section>
 
         {/* 🗺️ Tactical Deployment Map */}
         <section className="space-y-4">

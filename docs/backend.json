@@ -59,6 +59,23 @@
       },
       "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
     },
+    "poll": {
+      "title": "Referendum Poll",
+      "description": "An official party ballot question.",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "targetGroup": { "type": "string", "description": "National or City name." },
+        "targetRole": { "type": "string" },
+        "votes": { "type": "object", "description": "Map of option string to integer count." },
+        "votedBy": { "type": "array", "items": { "type": "string" }, "description": "List of UIDs who voted." },
+        "isActive": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["question", "options", "votes", "votedBy", "isActive"]
+    },
     "calendar_activity": {
       "title": "Official Calendar Activity",
       "description": "A high-level party directive or mobilization event.",
@@ -188,6 +205,10 @@
     "/calendar_activities/{activityId}": {
       "schema": { "$ref": "#/backend/entities/calendar_activity" },
       "description": "Stores official party calendar events."
+    },
+    "/polls/{pollId}": {
+      "schema": { "$ref": "#/backend/entities/poll" },
+      "description": "Stores official party referendums and sentiment ballots."
     }
   }
 }
