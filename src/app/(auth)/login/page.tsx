@@ -17,7 +17,7 @@ import { Loader2, XCircle } from "lucide-react";
 
 /**
  * @fileOverview Login Page with Social and Credential access.
- * Strict Supporter role enforcement for all social sign-ins via Cloud Functions.
+ * Robust error handling for popup blockers and configuration mismatches.
  */
 export default function LoginPage() {
     const auth = useAuth();
@@ -72,7 +72,7 @@ export default function LoginPage() {
 
             if (!userSnap.exists()) {
                 // Initial baseline profile creation
-                // The Cloud Function will also trigger to ensure role is forced to Supporter
+                // The Cloud Function will trigger to ensure role is forced to Supporter
                 await setDoc(userRef, {
                     uid: user.uid,
                     email: userEmail,
@@ -114,8 +114,6 @@ export default function LoginPage() {
             
             setLoading(false);
         } finally {
-            // Safety cleanup: If we hit a block or closure, make sure loading is stopped
-            // We don't use a long timeout here anymore because popup-blocked is usually fast
             setLoading(false);
         }
     };
