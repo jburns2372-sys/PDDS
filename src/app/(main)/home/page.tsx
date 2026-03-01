@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { AnnouncementCard } from "@/components/announcement-card";
 import { useUserData } from "@/context/user-data-context";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DigitalIdCard } from "@/components/digital-id-card";
@@ -17,7 +17,7 @@ import { VipVerificationBanner } from "@/components/vip-verification-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, CheckCircle2 } from "lucide-react";
+import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMessaging, useFirestore, useCollection } from "@/firebase";
 import { getToken } from "firebase/messaging";
@@ -25,7 +25,7 @@ import { doc, updateDoc } from "firebase/firestore";
 
 function UserHeader({userData}: {userData: any}) {
   return (
-    <div className="bg-card p-6 md:p-8 border-b">
+    <div className="bg-card p-6 md:p-8 border-b shadow-sm">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary uppercase tracking-tight">
           Welcome, {userData?.fullName?.split(' ')[0] || 'MEMBER'}
@@ -36,6 +36,62 @@ function UserHeader({userData}: {userData: any}) {
         </div>
       </div>
     </div>
+  );
+}
+
+function LocalChapterSection({ userData }: { userData: any }) {
+  const { data: users, loading } = useCollection('users');
+  
+  const localCoordinator = useMemo(() => {
+    if (!userData || !users.length) return null;
+    return users.find(u => 
+      u.role === 'Coordinator' && 
+      (u.city === userData.city || u.province === userData.province)
+    );
+  }, [userData, users]);
+
+  if (loading) return <Skeleton className="h-32 w-full" />;
+
+  return (
+    <Card className="shadow-lg border-t-4 border-primary bg-primary/5">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-primary">
+          <MapPin className="h-4 w-4 text-accent" />
+          Your Local Chapter
+        </CardTitle>
+        <CardDescription className="text-[10px] font-bold uppercase">
+          {userData?.city || 'National'} Jurisdiction
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-2">
+        {localCoordinator ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary border border-primary/20 shadow-sm">
+                {localCoordinator.fullName?.charAt(0)}
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase text-primary leading-tight">{localCoordinator.fullName}</p>
+                <p className="text-[9px] font-bold text-muted-foreground uppercase">Regional Coordinator</p>
+              </div>
+            </div>
+            <Button 
+              className="w-full h-11 font-black uppercase tracking-widest text-xs shadow-md"
+              onClick={() => window.open(`mailto:${localCoordinator.email}?subject=PDDS Member Inquiry - ${userData.fullName}`, '_blank')}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Contact Coordinator
+            </Button>
+          </div>
+        ) : (
+          <div className="py-4 text-center border-2 border-dashed rounded-xl bg-white/50">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed px-4">
+              Finding an active coordinator for {userData?.city || 'your area'}...
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -123,6 +179,7 @@ export default function HomePage() {
   }
 
   const isSupporter = userData?.role === 'Supporter';
+  const isMember = userData?.role === 'Member';
   const referralLink = `${domain}/join?ref=${userData?.uid}`;
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);
@@ -132,7 +189,7 @@ export default function HomePage() {
   const hasNewAnnouncements = announcements.length > 0 && announcements[0].id !== lastSeenAnnouncement;
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col min-h-screen">
       <UserHeader userData={userData} />
       <div className="p-4 md:p-8 space-y-12 max-w-7xl mx-auto w-full">
         
@@ -142,6 +199,8 @@ export default function HomePage() {
             <div className="lg:col-span-4 flex flex-col gap-8">
                 <DigitalIdCard userData={userData} />
                 
+                {(isSupporter || isMember) && <LocalChapterSection userData={userData} />}
+
                 <Card className="shadow-lg border-t-4 border-primary">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -152,7 +211,7 @@ export default function HomePage() {
                   <CardContent>
                     {userData?.fcmToken ? (
                       <div className="flex items-center gap-2 text-green-600">
-                        <Sparkles className="h-4 w-4" />
+                        <UserCheck className="h-4 w-4" />
                         <span className="text-xs font-bold uppercase">Push Alerts Enabled</span>
                       </div>
                     ) : (
