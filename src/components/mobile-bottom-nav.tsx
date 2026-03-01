@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, MessageSquare, Megaphone, Map, Info, Library } from "lucide-react";
+import { Home, Users, BookText, UserCircle, MessageSquare, Megaphone, Map, Info, Library, Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AboutPddsDialog } from "./about-pdds-dialog";
 import { useUserData } from "@/context/user-data-context";
@@ -18,7 +18,7 @@ const baseNavItems = [
 
 const profileNavItem = { href: "/profile", icon: UserCircle, label: "Profile" };
 const auditNavItem = { href: "/admin/audit", icon: MessageSquare, label: "Audit" };
-const broadcastNavItem = { href: "/admin/broadcast", icon: Megaphone, label: "Alert" };
+const bulletinNavItem = { href: "/admin/bulletin", icon: Newspaper, label: "Bulletin" };
 const analyticsNavItem = { href: "/admin/analytics", icon: Map, label: "Map" };
 
 export function MobileBottomNav() {
@@ -33,7 +33,7 @@ export function MobileBottomNav() {
   
   const visibleNavItems = [...baseNavItems];
   if (isPrivileged) {
-      visibleNavItems.push(broadcastNavItem);
+      visibleNavItems.push(bulletinNavItem);
       visibleNavItems.push(auditNavItem);
       visibleNavItems.push(analyticsNavItem);
   }

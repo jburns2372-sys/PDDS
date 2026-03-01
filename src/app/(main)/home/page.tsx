@@ -107,7 +107,7 @@ export default function HomePage() {
   const [lastSeenAnnouncement, setLastSeenAnnouncement] = useState<string | null>(null);
 
   // Fetch real announcements
-  const { data: announcements, loading: announcementsLoading } = useCollection('announcements');
+  const { data: allAnnouncements, loading: announcementsLoading } = useCollection('announcements');
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -116,6 +116,15 @@ export default function HomePage() {
       setLastSeenAnnouncement(saved);
     }
   }, []);
+
+  // Filter announcements by targetGroup
+  const filteredAnnouncements = useMemo(() => {
+    if (!userData) return [];
+    return allAnnouncements.filter(item => {
+      const target = item.targetGroup || "National";
+      return target === "National" || target === userData.city;
+    }).sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+  }, [allAnnouncements, userData]);
 
   // Show Success Toast on Induction Completion
   useEffect(() => {
@@ -158,8 +167,8 @@ export default function HomePage() {
   };
 
   const markAnnouncementsSeen = () => {
-    if (announcements.length > 0) {
-      const newestId = announcements[0].id;
+    if (filteredAnnouncements.length > 0) {
+      const newestId = filteredAnnouncements[0].id;
       localStorage.setItem('last_seen_announcement', newestId);
       setLastSeenAnnouncement(newestId);
     }
@@ -186,7 +195,7 @@ export default function HomePage() {
     toast({ title: "Link Copies", description: "Share this link to recruit new supporters!" });
   };
 
-  const hasNewAnnouncements = announcements.length > 0 && announcements[0].id !== lastSeenAnnouncement;
+  const hasNewAnnouncements = filteredAnnouncements.length > 0 && filteredAnnouncements[0].id !== lastSeenAnnouncement;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -271,12 +280,12 @@ export default function HomePage() {
                     <div className="space-y-6">
                         {announcementsLoading ? (
                             <Skeleton className="h-48 w-full" />
-                        ) : announcements.length === 0 ? (
+                        ) : filteredAnnouncements.length === 0 ? (
                             <Card className="p-12 text-center border-dashed bg-muted/20">
                                 <p className="text-muted-foreground font-medium">No official updates at this moment.</p>
                             </Card>
                         ) : (
-                            announcements.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).map((item: any) => (
+                            filteredAnnouncements.map((item: any) => (
                                 <AnnouncementCard 
                                     key={item.id}
                                     title={item.title}
