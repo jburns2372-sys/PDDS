@@ -5,13 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Loader2, 
   Users, 
   Search, 
   User, 
   Mail, 
-  CalendarDays, 
   Download, 
   Trash2, 
   CheckCircle2, 
@@ -19,7 +19,8 @@ import {
   TrendingUp,
   ShieldCheck,
   Clock,
-  Activity
+  Activity,
+  ArrowUpCircle
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
@@ -30,32 +31,36 @@ import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
+const PROMOTABLE_ROLES = ["Supporter", "Member", "Officer"];
+
 /**
- * @fileOverview Supporter Recruitment Dashboard with Live Metrics & Activity Monitor.
- * Displays real-time induction stats and engagement tracking (Last Active).
+ * @fileOverview Recruitment & Command Dashboard.
+ * Manages the transition of Supporters to official Ranks (Member/Officer).
+ * Displays real-time induction stats and engagement tracking.
  */
 export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // 1. Fetch only 'Supporter' roles using real-time listener
-  const { data: supporters, loading } = useCollection('users', {
-    queries: [{ attribute: 'role', operator: '==', value: 'Supporter' }]
+  // 1. Fetch all non-admin users for hierarchical management
+  const { data: users, loading } = useCollection('users', {
+    queries: [{ attribute: 'isAdmin', operator: '==', value: false }]
   });
 
   const [searchTerm, setSearchTerm] = useState("");
 
   // 2. Metrics Calculation
   const stats = useMemo(() => {
-    const total = supporters.length;
-    const verified = supporters.filter(s => s.isVerified === true).length;
+    const total = users.length;
+    const verified = users.filter(s => s.isVerified === true).length;
     const pending = total - verified;
-    return { total, verified, pending };
-  }, [supporters]);
+    const supporters = users.filter(u => u.role === 'Supporter').length;
+    return { total, verified, pending, supporters };
+  }, [users]);
 
   // 3. Search logic: Filter by Full Name or Email
-  const filteredSupporters = useMemo(() => {
-    return supporters.filter(s => 
+  const filteredUsers = useMemo(() => {
+    return users.filter(s => 
       (s.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (s.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     ).sort((a: any, b: any) => {
@@ -63,7 +68,28 @@ export default function AdminSupporterDashboard() {
       const dateB = b.lastActive?.seconds || b.joinedAt?.seconds || b.createdAt?.seconds || 0;
       return dateB - dateA;
     });
-  }, [supporters, searchTerm]);
+  }, [users, searchTerm]);
+
+  // 🆙 The Role Promotion Function
+  const handleRoleChange = (userId: string, newRole: string) => {
+    const userRef = doc(firestore, "users", userId);
+    
+    updateDoc(userRef, { role: newRole })
+      .then(() => {
+        toast({
+          title: "Rank Updated",
+          description: `User has been promoted to ${newRole}.`
+        });
+      })
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'update',
+          requestResourceData: { role: newRole }
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
+  };
 
   // ✅ The Toggle Verification Function
   const handleToggleVerification = async (userId: string, currentStatus: boolean) => {
@@ -113,8 +139,8 @@ export default function AdminSupporterDashboard() {
 
   // 📂 The CSV Export Function
   const exportToCSV = () => {
-    const headers = ["Full Name", "Email", "Joined Date", "Last Active", "Verified Status"];
-    const rows = filteredSupporters.map(user => {
+    const headers = ["Full Name", "Email", "Role", "Joined Date", "Last Active", "Verified Status"];
+    const rows = filteredUsers.map(user => {
       const joinDate = user.joinedAt?.toDate ? user.joinedAt.toDate() : 
                        user.createdAt?.toDate ? user.createdAt.toDate() : 
                        user.createdAt ? new Date(user.createdAt) : new Date();
@@ -123,6 +149,7 @@ export default function AdminSupporterDashboard() {
       return [
         `"${user.fullName || 'Anonymous'}"`,
         `"${user.email || ''}"`,
+        `"${user.role || ''}"`,
         `"${format(joinDate, 'yyyy-MM-dd')}"`,
         `"${format(activeDate, 'yyyy-MM-dd HH:mm')}"`,
         `"${user.isVerified ? 'Verified' : 'Unverified'}"`
@@ -133,7 +160,7 @@ export default function AdminSupporterDashboard() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `PDDS_Supporters_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.setAttribute("download", `PDDS_Command_Log_${format(new Date(), 'yyyy-MM-dd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -145,7 +172,7 @@ export default function AdminSupporterDashboard() {
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-            Syncing Recruitment Logs...
+            Syncing Command Logs...
           </p>
         </div>
       </div>
@@ -161,9 +188,9 @@ export default function AdminSupporterDashboard() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-primary font-headline flex items-center gap-3 uppercase tracking-tight">
               <Users className="h-6 w-6 md:h-8 md:w-8" />
-              Recruitment Command
+              Command Center
             </h1>
-            <p className="text-muted-foreground text-sm mt-1 font-medium italic">Monitoring real-time induction and member engagement.</p>
+            <p className="text-muted-foreground text-sm mt-1 font-medium italic">Role Management & Real-Time Induction Monitor.</p>
           </div>
           
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
@@ -179,7 +206,7 @@ export default function AdminSupporterDashboard() {
             <Button 
               onClick={exportToCSV}
               className="h-12 w-full sm:w-auto font-black uppercase text-[10px] tracking-widest bg-green-600 hover:bg-green-700 shadow-lg px-6"
-              disabled={filteredSupporters.length === 0}
+              disabled={filteredUsers.length === 0}
             >
               <Download className="mr-2 h-4 w-4" /> Export CSV
             </Button>
@@ -187,15 +214,27 @@ export default function AdminSupporterDashboard() {
         </div>
 
         {/* 📊 Metrics Summary Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="shadow-lg border-l-4 border-l-primary bg-blue-50/30">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Total Supporters</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Total Registry</p>
                 <p className="text-3xl font-black text-primary">{stats.total.toLocaleString()}</p>
               </div>
               <div className="p-3 bg-primary/10 rounded-full text-primary">
                 <Users className="h-6 w-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg border-l-4 border-l-accent bg-amber-50/30">
+            <CardContent className="p-6 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-accent/60 mb-1">Supporters</p>
+                <p className="text-3xl font-black text-accent">{stats.supporters.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-accent/10 rounded-full text-accent">
+                <TrendingUp className="h-6 w-6" />
               </div>
             </CardContent>
           </Card>
@@ -215,7 +254,7 @@ export default function AdminSupporterDashboard() {
           <Card className="shadow-lg border-l-4 border-l-orange-600 bg-orange-50/30">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/60 mb-1">Pending Verification</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/60 mb-1">Pending Check</p>
                 <p className="text-3xl font-black text-orange-600">{stats.pending.toLocaleString()}</p>
               </div>
               <div className="p-3 bg-orange-100 rounded-full text-orange-600">
@@ -225,15 +264,15 @@ export default function AdminSupporterDashboard() {
           </Card>
         </div>
 
-        {/* Supporters Table */}
+        {/* Command Table */}
         <Card className="shadow-2xl overflow-hidden border-none bg-white">
           <CardHeader className="bg-primary text-primary-foreground py-4 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Mobilization Log ({filteredSupporters.length})
+              <ShieldCheck className="h-4 w-4" />
+              Operational Registry ({filteredUsers.length})
             </CardTitle>
             <Badge variant="outline" className="border-white/20 text-white text-[9px] font-black uppercase tracking-widest px-3">
-              Real-Time Engagement Stream
+              Real-Time Role Management
             </Badge>
           </CardHeader>
           <div className="overflow-x-auto">
@@ -241,16 +280,17 @@ export default function AdminSupporterDashboard() {
               <TableHeader>
                 <TableRow className="bg-muted/50 border-b">
                   <TableHead className="pl-6 text-[10px] font-black uppercase tracking-widest">Profile</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Full Name</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Activity Monitor</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Identification</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Assign Rank</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Engagement</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Verification</TableHead>
                   <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSupporters.length === 0 ? (
+                {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-24 text-muted-foreground italic">
+                    <TableCell colSpan={6} className="text-center py-24 text-muted-foreground italic">
                       <div className="flex flex-col items-center gap-2 opacity-50">
                         <Search className="h-8 w-8" />
                         <p className="font-bold uppercase text-xs tracking-widest">No matching induction records.</p>
@@ -258,7 +298,7 @@ export default function AdminSupporterDashboard() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredSupporters.map((user: any) => {
+                  filteredUsers.map((user: any) => {
                     const lastActiveRelative = user.lastActive?.toDate ? formatDistanceToNow(user.lastActive.toDate(), { addSuffix: true }) : 'Inducting...';
                     const lastActiveFull = user.lastActive?.toDate ? format(user.lastActive.toDate(), 'PP p') : 'Never';
                     
@@ -280,10 +320,27 @@ export default function AdminSupporterDashboard() {
                           </div>
                         </TableCell>
                         <TableCell>
+                          <Select
+                            defaultValue={user.role}
+                            onValueChange={(value) => handleRoleChange(user.id, value)}
+                          >
+                            <SelectTrigger className="h-9 w-32 text-[10px] font-black uppercase border-primary/20 shadow-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PROMOTABLE_ROLES.map(role => (
+                                <SelectItem key={role} value={role} className="text-[10px] font-bold uppercase">
+                                  {role}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
                           <div className="space-y-1">
                             <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase">
                               <Activity className="h-3 w-3 text-accent" />
-                              Active: {lastActiveRelative}
+                              {lastActiveRelative}
                             </div>
                             <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
                               <Clock className="h-2.5 w-2.5" />
