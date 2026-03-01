@@ -41,7 +41,9 @@ exports.captureGoogleUserInfo = onUserCreated(async (event) => {
       kartilyaAgreed: true,
       jurisdictionLevel: "National",
       recruitCount: 0,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(), // Duplicate for backward compatibility
+      partyAffiliation: "PDDS"
     };
 
     try {
