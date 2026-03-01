@@ -16,7 +16,8 @@ import {
   Newspaper,
   Users,
   Search,
-  MessageSquare
+  MessageSquare,
+  HeartHandshake
 } from "lucide-react";
 import Link from "next/link";
 
@@ -27,15 +28,23 @@ import Link from "next/link";
 export function CommandSwitchboard() {
   const { userData } = useUserData();
   const role = userData?.role || 'Member';
+  const isGold = userData?.vettingLevel === 'Gold';
 
   const getRoleActions = () => {
+    const baseActions = [];
+    
+    // Responders get Bayanihan Hub
+    if (role === 'Coordinator' || isGold || role === 'President' || role === 'Admin') {
+      baseActions.push({ label: 'Bayanihan', icon: HeartHandshake, href: '/bayanihan', color: 'text-red-600' });
+    }
+
     switch (role) {
       case 'President':
         return [
+          ...baseActions,
           { label: 'Heat Map', icon: Map, href: '/admin/analytics', color: 'text-accent' },
-          { label: 'Broadcast', icon: Megaphone, href: '/admin/broadcast', color: 'text-red-600' },
-          { label: 'Audit Queue', icon: Shield, href: '/admin/audit', color: 'text-primary' }
-        ];
+          { label: 'Broadcast', icon: Megaphone, href: '/admin/broadcast', color: 'text-red-600' }
+        ].slice(0, 3);
       case 'VP':
         return [
           { label: 'Calendar', icon: Calendar, href: '/calendar', color: 'text-primary' },
@@ -63,12 +72,16 @@ export function CommandSwitchboard() {
         ];
       case 'Coordinator':
         return [
+          ...baseActions,
           { label: 'Scanner', icon: QrCode, href: '/admin/scanner', color: 'text-primary' },
-          { label: 'Chapter Map', icon: Map, href: '/home?tab=mobilize', color: 'text-accent' },
           { label: 'Supporter List', icon: Search, href: '/admin/supporters', color: 'text-primary' }
-        ];
+        ].slice(0, 3);
       default:
-        return null;
+        return isGold ? [
+          ...baseActions,
+          { label: 'Directory', icon: Users, href: '/directory', color: 'text-primary' },
+          { label: 'Vault', icon: BookText, href: '/vault', color: 'text-primary' }
+        ].slice(0, 3) : null;
     }
   };
 

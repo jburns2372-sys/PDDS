@@ -104,6 +104,22 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["title", "category", "summary", "documentUrl"]
+    },
+    "sos_alert": {
+      "title": "SOS Alert",
+      "description": "Distress signal from a member in the field.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "location": { "type": "object", "description": "GeoPoint coordinates." },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Resolved"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "resolvedBy": { "type": "string" }
+      },
+      "required": ["uid", "name", "location", "status", "timestamp"]
     }
   },
   "auth": {
@@ -125,6 +141,10 @@
     "/policies/{policyId}": {
       "schema": { "$ref": "#/backend/entities/policy" },
       "description": "Stores official party manifestos and infographics."
+    },
+    "/sos_alerts/{alertId}": {
+      "schema": { "$ref": "#/backend/entities/sos_alert" },
+      "description": "Stores active distress signals from the Bayanihan Network."
     }
   }
 }

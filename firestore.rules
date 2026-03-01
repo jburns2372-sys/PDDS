@@ -38,6 +38,12 @@ service cloud.firestore {
       return hasRole('Public Relations Officer') || isExecutive();
     }
 
+    function isResponder() {
+      if (!isSignedIn()) return false;
+      let userData = getUserData();
+      return userData.role == 'Coordinator' || userData.get('vettingLevel', 'Bronze') == 'Gold' || isExecutive();
+    }
+
     // ==========================================
     // COLLECTION-SPECIFIC POLICIES
     // ==========================================
@@ -88,6 +94,13 @@ service cloud.firestore {
     match /policies/{id} {
       allow read: if isSignedIn();
       allow create, update, delete: if isPRO();
+    }
+
+    match /sos_alerts/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isResponder() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolvedBy']);
+      allow delete: if isExecutive();
     }
 
     match /announcements/{id} {
