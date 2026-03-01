@@ -22,7 +22,7 @@ import {
 import { doc, setDoc, serverTimestamp, increment, updateDoc, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Loader2, XCircle } from "lucide-react";
+import { Loader2, XCircle, ShieldCheck } from "lucide-react";
 import { getIslandGroup } from "@/lib/data";
 
 const NCR_CODE = "130000000";
@@ -30,7 +30,7 @@ const NCR_CODE = "130000000";
 /**
  * @fileOverview Join Page for new members.
  * Handles both SMS-based registry and instant Google induction.
- * Includes Referral & Merit reward logic.
+ * Includes Referral & Merit reward logic and Legal acceptance.
  */
 export default function JoinPage() {
     const auth = useAuth();
@@ -322,9 +322,14 @@ export default function JoinPage() {
                                 </div>
                             </div>
 
-                            <div className="flex items-start space-x-3">
-                                <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} />
-                                <Label htmlFor="terms" className="text-xs font-bold leading-none text-muted-foreground">I agree to the official PDDS Kartilya principles.</Label>
+                            <div className="flex items-start space-x-3 bg-muted/50 p-4 rounded-xl border border-dashed">
+                                <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} className="mt-1" />
+                                <div className="space-y-1">
+                                    <Label htmlFor="terms" className="text-xs font-bold leading-none text-primary uppercase">Accept National Registry Terms</Label>
+                                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                                        By checking this, you agree to the official PDDS Kartilya principles, our <Link href="/legal/terms" target="_blank" className="text-primary underline">Terms of Service</Link>, and the processing of your data as outlined in our <Link href="/legal/privacy" target="_blank" className="text-primary underline">Privacy Policy</Link>.
+                                    </p>
+                                </div>
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-col gap-4">
