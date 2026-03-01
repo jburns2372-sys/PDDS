@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -17,7 +16,6 @@ import {
     signInWithPhoneNumber, 
     ConfirmationResult,
     GoogleAuthProvider,
-    FacebookAuthProvider,
     signInWithPopup
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, increment, updateDoc, getDoc } from "firebase/firestore";
@@ -149,9 +147,9 @@ export default function JoinPage() {
         }
     };
 
-    const handleSocialAuth = async (providerType: 'google' | 'facebook') => {
+    const handleSocialAuth = async () => {
         setLoading(true);
-        const provider = providerType === 'google' ? new GoogleAuthProvider() : new FacebookAuthProvider();
+        const provider = new GoogleAuthProvider();
         
         try {
             const result = await signInWithPopup(auth, provider);
@@ -181,14 +179,11 @@ export default function JoinPage() {
                 window.location.href = "/home";
             }, 500);
         } catch (error: any) {
-            console.error("Social Induction Error:", error);
-            const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
+            console.error("Social Auth Error:", error);
             
             let msg = error.message;
             if (error.code === 'auth/popup-blocked') {
                 msg = "Login popup was blocked by your browser. Please check the address bar and allow popups for this site.";
-            } else if (error.message.includes('Can\'t load URL') || error.message.includes('URL Blocked')) {
-                msg = `Domain Error: Please whitelist ${currentOrigin} in Meta dashboard.`;
             }
             
             toast({ variant: "destructive", title: "Connection Failed", description: msg });
@@ -239,7 +234,7 @@ export default function JoinPage() {
                                     type="button"
                                     variant="outline" 
                                     className="w-full h-14 border-2 border-primary/20 font-black uppercase tracking-widest text-primary hover:bg-primary/5 shadow-md"
-                                    onClick={() => handleSocialAuth('google')}
+                                    onClick={handleSocialAuth}
                                     disabled={loading}
                                 >
                                     <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
@@ -249,18 +244,6 @@ export default function JoinPage() {
                                         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                                     </svg>
                                     Join with Google
-                                </Button>
-                                <Button 
-                                    type="button"
-                                    variant="outline" 
-                                    className="w-full h-14 border-2 border-[#1877F2]/20 font-black uppercase tracking-widest text-[#1877F2] hover:bg-[#1877F2]/5 shadow-md"
-                                    onClick={() => handleSocialAuth('facebook')}
-                                    disabled={loading}
-                                >
-                                    <svg className="mr-2 h-5 w-5 fill-current" viewBox="0 0 24 24">
-                                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                                    </svg>
-                                    Join with Facebook
                                 </Button>
                             </div>
 

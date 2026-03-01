@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -9,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PddsLogo from "@/components/icons/pdds-logo";
 import { useAuth, useFirestore } from "@/firebase";
-import { signInWithEmailAndPassword, GoogleAuthProvider, FacebookAuthProvider, signInWithPopup } from "firebase/auth";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
@@ -53,15 +52,10 @@ export default function LoginPage() {
         }
     };
 
-    const handleSocialAuth = async (providerType: 'google' | 'facebook') => {
+    const handleSocialAuth = async () => {
         setLoading(true);
-        const provider = providerType === 'google' ? new GoogleAuthProvider() : new FacebookAuthProvider();
+        const provider = new GoogleAuthProvider();
         
-        if (providerType === 'facebook') {
-            provider.addScope('email');
-            provider.addScope('public_profile');
-        }
-
         try {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
@@ -96,14 +90,10 @@ export default function LoginPage() {
             console.error("Social Auth Error:", error);
             
             let errorMessage = error.message;
-            const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
-            
             if (error.code === 'auth/popup-blocked') {
                 errorMessage = "Login popup was blocked by your browser. Please allow popups for this site in your browser settings (usually in the address bar).";
             } else if (error.code === 'auth/popup-closed-by-user') {
                 errorMessage = "The login window was closed. Please try again.";
-            } else if (error.message.includes('Can\'t load URL') || error.message.includes('URL Blocked')) {
-                errorMessage = `Domain Error: Please add ${currentOrigin} to your Facebook App Domains and Authorized Origins in Meta dashboard.`;
             }
 
             toast({
@@ -114,8 +104,6 @@ export default function LoginPage() {
             
             setLoading(false);
         } finally {
-            // Safety: Ensure loading state is cleared even if logic fails
-            // But we keep it slightly delayed to allow for potential redirect
             setTimeout(() => {
                 setLoading(false);
             }, 1000);
@@ -183,7 +171,7 @@ export default function LoginPage() {
                 <Button 
                     variant="outline" 
                     className="w-full h-14 border-2 border-primary/20 font-black uppercase tracking-widest text-primary hover:bg-primary/5 shadow-md"
-                    onClick={() => handleSocialAuth('google')}
+                    onClick={handleSocialAuth}
                     disabled={loading}
                 >
                     <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
@@ -205,18 +193,6 @@ export default function LoginPage() {
                         />
                     </svg>
                     Continue with Google
-                </Button>
-
-                <Button 
-                    variant="outline" 
-                    className="w-full h-14 border-2 border-[#1877F2]/20 font-black uppercase tracking-widest text-[#1877F2] hover:bg-[#1877F2]/5 shadow-md"
-                    onClick={() => handleSocialAuth('facebook')}
-                    disabled={loading}
-                >
-                    <svg className="mr-2 h-5 w-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                    Continue with Facebook
                 </Button>
             </div>
         </CardContent>
