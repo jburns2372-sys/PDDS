@@ -12,18 +12,17 @@ import {
   Users, 
   Search, 
   User, 
-  Mail, 
   Download, 
   Trash2, 
   CheckCircle2, 
   ShieldAlert,
-  TrendingUp,
   ShieldCheck,
   Clock,
   Activity,
   MapPin,
   Globe,
-  Filter
+  Filter,
+  FileEdit
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
@@ -33,12 +32,23 @@ import { doc, deleteDoc, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 const PROMOTABLE_ROLES = ["Supporter", "Volunteer", "Coordinator", "Moderator", "Member", "Officer"];
 
 /**
  * @fileOverview Recruitment & Regional Command Dashboard.
- * Manages organizational hierarchy with advanced geographic filtering.
+ * Manages organizational hierarchy with advanced geographic filtering and Admin Notes.
  */
 export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
@@ -51,8 +61,12 @@ export default function AdminSupporterDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDistrict, setFilterDistrict] = useState("All");
   const [filterCity, setFilterCity] = useState("All");
+  
+  // Notes State
+  const [selectedUserForNotes, setSelectedUserForNotes] = useState<any>(null);
+  const [noteContent, setNoteContent] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
-  // 1. Extract unique cities and districts for filter options
   const uniqueDistricts = useMemo(() => {
     const districts = new Set(users.map(u => u.islandGroup).filter(Boolean));
     return Array.from(districts).sort();
@@ -63,7 +77,6 @@ export default function AdminSupporterDashboard() {
     return Array.from(cities).sort();
   }, [users]);
 
-  // 2. Advanced Filter Logic
   const filteredUsers = useMemo(() => {
     return users.filter(s => {
       const matchesSearch = 
@@ -81,7 +94,6 @@ export default function AdminSupporterDashboard() {
     });
   }, [users, searchTerm, filterDistrict, filterCity]);
 
-  // 3. Dynamic Metrics (reflects filters)
   const stats = useMemo(() => {
     const total = filteredUsers.length;
     const verified = filteredUsers.filter(s => s.isVerified === true).length;
@@ -113,6 +125,24 @@ export default function AdminSupporterDashboard() {
       });
   };
 
+  const handleUpdateNotes = async () => {
+    if (!selectedUserForNotes) return;
+    setIsSavingNote(true);
+    const userRef = doc(firestore, "users", selectedUserForNotes.id);
+    
+    updateDoc(userRef, { adminNotes: noteContent })
+      .then(() => {
+        toast({ title: "Notes Saved", description: "Internal metadata updated." });
+        setSelectedUserForNotes(null);
+      })
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: userRef.path, operation: 'update', requestResourceData: { adminNotes: noteContent }
+        }));
+      })
+      .finally(() => setIsSavingNote(false));
+  };
+
   const handleDelete = async (userId: string, userName: string) => {
     if (window.confirm(`Are you sure you want to remove ${userName}? This is irreversible.`)) {
       const docRef = doc(firestore, "users", userId);
@@ -125,7 +155,7 @@ export default function AdminSupporterDashboard() {
   };
 
   const exportToCSV = () => {
-    const headers = ["Full Name", "Email", "Role", "District", "City", "Joined Date", "Verified"];
+    const headers = ["Full Name", "Email", "Role", "District", "City", "Joined Date", "Verified", "Admin Notes"];
     const rows = filteredUsers.map(user => [
       `"${user.fullName || 'Anonymous'}"`,
       `"${user.email || ''}"`,
@@ -133,7 +163,8 @@ export default function AdminSupporterDashboard() {
       `"${user.islandGroup || ''}"`,
       `"${user.city || ''}"`,
       `"${user.joinedAt?.toDate ? format(user.joinedAt.toDate(), 'yyyy-MM-dd') : ''}"`,
-      `"${user.isVerified ? 'Yes' : 'No'}"`
+      `"${user.isVerified ? 'Yes' : 'No'}"`,
+      `"${(user.adminNotes || '').replace(/"/g, '""')}"`
     ].join(","));
     
     const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
@@ -160,7 +191,6 @@ export default function AdminSupporterDashboard() {
     <div className="p-4 md:p-6 bg-background min-h-screen pb-32">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Header & Regional Filters */}
         <div className="flex flex-col gap-6 border-b-2 border-primary pb-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -223,7 +253,6 @@ export default function AdminSupporterDashboard() {
           </div>
         </div>
 
-        {/* 📊 Metrics Summary (Filtered) */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="shadow-lg border-l-4 border-l-primary bg-white">
             <CardContent className="p-6 flex items-center justify-between">
@@ -261,12 +290,11 @@ export default function AdminSupporterDashboard() {
                 <p className="text-[10px] font-black uppercase tracking-widest text-accent/60 mb-1">Supporters</p>
                 <p className="text-3xl font-black text-accent">{stats.supporters.toLocaleString()}</p>
               </div>
-              <TrendingUp className="h-6 w-6 text-accent/20" />
+              <Activity className="h-6 w-6 text-accent/20" />
             </CardContent>
           </Card>
         </div>
 
-        {/* Command Table */}
         <Card className="shadow-2xl overflow-hidden border-none bg-white">
           <CardHeader className="bg-primary text-primary-foreground py-4 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
@@ -284,7 +312,7 @@ export default function AdminSupporterDashboard() {
                   <TableHead className="pl-6 text-[10px] font-black uppercase tracking-widest">Profile</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">City / District</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Assign Rank</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Last Active</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Engagement</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Verification</TableHead>
                   <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Action</TableHead>
                 </TableRow>
@@ -335,9 +363,14 @@ export default function AdminSupporterDashboard() {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase opacity-60">
-                            <Activity className="h-3 w-3 text-accent" />
-                            {lastActiveRelative}
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase opacity-60">
+                              <Activity className="h-3 w-3 text-accent" />
+                              {lastActiveRelative}
+                            </div>
+                            <div className="text-[8px] font-bold text-muted-foreground uppercase">
+                              Recruits: {user.recruitCount || 0}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -351,7 +384,55 @@ export default function AdminSupporterDashboard() {
                             {user.isVerified ? 'Verified' : 'Pending'}
                           </button>
                         </TableCell>
-                        <TableCell className="text-right pr-6">
+                        <TableCell className="text-right pr-6 space-x-1">
+                          <Dialog open={selectedUserForNotes?.id === user.id} onOpenChange={(open) => {
+                            if (open) {
+                              setSelectedUserForNotes(user);
+                              setNoteContent(user.adminNotes || "");
+                            } else {
+                              setSelectedUserForNotes(null);
+                            }
+                          }}>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full">
+                                <FileEdit className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                              <DialogHeader>
+                                <DialogTitle className="font-headline uppercase text-primary">Admin Briefing Notes</DialogTitle>
+                                <DialogDescription className="text-xs font-bold uppercase text-muted-foreground">
+                                  Internal tactical data for {user.fullName}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                  <Label className="text-[10px] font-black uppercase text-primary">Tactical Overview</Label>
+                                  <Textarea 
+                                    placeholder="Add internal notes about recruitment performance, reliability, or regional context..." 
+                                    className="min-h-[150px] text-sm"
+                                    value={noteContent}
+                                    onChange={(e) => setNoteContent(e.target.value)}
+                                  />
+                                </div>
+                                <div className="bg-primary/5 p-3 rounded-lg border border-dashed border-primary/20">
+                                  <p className="text-[9px] font-bold text-primary/70 leading-relaxed italic">
+                                    "Note: These entries are for leadership review only. They are not visible to the supporter."
+                                  </p>
+                                </div>
+                              </div>
+                              <DialogFooter>
+                                <Button 
+                                  className="w-full font-black uppercase tracking-widest h-12" 
+                                  onClick={handleUpdateNotes}
+                                  disabled={isSavingNote}
+                                >
+                                  {isSavingNote ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Secure Notes"}
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-white transition-colors rounded-full" onClick={() => handleDelete(user.id, user.fullName)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>

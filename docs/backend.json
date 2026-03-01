@@ -44,6 +44,7 @@
         "recruitCount": { "type": "number", "default": 0 },
         "referredBy": { "type": "string" },
         "fcmToken": { "type": "string" },
+        "adminNotes": { "type": "string", "description": "Internal administrative notes for leadership only." },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastActive": { "type": "string", "format": "date-time" }
       },

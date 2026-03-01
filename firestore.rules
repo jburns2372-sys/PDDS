@@ -8,38 +8,22 @@ service cloud.firestore {
     // GLOBAL HELPERS
     // ==========================================
 
-    /**
-     * Check if the request is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Check if the user is accessing their own document.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Fetches the current user's profile data from Firestore.
-     */
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    /**
-     * Verification for specific leadership roles.
-     */
     function hasRole(role) {
       return isSignedIn() && getUserData().role == role;
     }
 
-    /**
-     * Comprehensive check for Executive (President or Admin) access.
-     * Strictly relies on the database role or the isAdmin flag.
-     */
     function isExecutive() {
       if (!isSignedIn()) return false;
       let userData = getUserData();
@@ -52,40 +36,25 @@ service cloud.firestore {
     // COLLECTION RULES
     // ==========================================
 
-    /**
-     * Member Registry: Protects sensitive personal information.
-     */
     match /users/{userId} {
-      // Read: Users can read their own profile. Executives and Admins can read all for directory/management.
       allow read: if isSignedIn() && (isOwner(userId) || isExecutive());
-      
-      // Create: Allow initial registration.
       allow create: if isSignedIn();
       
-      // Update: Users can update their bio/photo but CANNOT change their role or status.
-      // Executives have full update authority.
-      // Specifically protects isVerified, role, and administrative flags.
+      // AdminNotes and status fields are strictly protected. 
+      // Only Executives/Admins can write to 'adminNotes', 'isVerified', etc.
       allow update: if isExecutive() || (
         isOwner(userId) && 
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin', 'isAdmin', 'isVerified'])
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin', 'isAdmin', 'isVerified', 'adminNotes'])
       );
       
-      // Delete: Strictly restricted to President/Admin.
       allow delete: if isExecutive();
     }
 
-    /**
-     * Strategic Campaign Plans: Restricted access for mobilization.
-     * Only Coordinators and Executives can access.
-     */
     match /campaign_plans/{planId} {
       allow read: if isSignedIn() && (getUserData().role == 'Coordinator' || isExecutive());
       allow write: if isExecutive();
     }
 
-    /**
-     * Calendar Activities: The operational heartbeat of the movement.
-     */
     match /calendar_activities/{activityId} {
       allow read: if isSignedIn() && (resource.data.isAuthorized == true || isExecutive());
       allow create: if isSignedIn() && (
@@ -95,9 +64,6 @@ service cloud.firestore {
       allow delete: if isExecutive();
     }
 
-    /**
-     * Secure Document Vault: Tiered distribution of intelligence and materials.
-     */
     match /vault/{docId} {
       allow read: if isSignedIn() && (
         isExecutive() || 
@@ -107,23 +73,14 @@ service cloud.firestore {
       allow write: if isExecutive();
     }
 
-    /**
-     * Attendance & QR Scanning: Secure check-in data.
-     */
     match /attendance/{attendanceId} {
       allow read, write: if isExecutive();
     }
 
-    /**
-     * Communication & System Audits: SMS logs and executive history.
-     */
     match /communication_audit/{auditId} {
       allow read, write: if isExecutive();
     }
 
-    /**
-     * Meeting Agendas: Virtual briefing metadata.
-     */
     match /meeting_agendas/{agendaId} {
       allow read: if isSignedIn() && (
         isExecutive() || 
@@ -133,18 +90,12 @@ service cloud.firestore {
       allow write: if isExecutive();
     }
 
-    /**
-     * Community Feedback: Communication between grassroots and leadership.
-     */
     match /community_feedback/{feedbackId} {
       allow read: if isExecutive() || (isSignedIn() && resource.data.submitterUid == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.submitterUid == request.auth.uid;
       allow update, delete: if isExecutive();
     }
 
-    /**
-     * Announcements, Polls, and Campaign Actions.
-     */
     match /announcements/{id} {
       allow read: if isSignedIn();
       allow write: if isExecutive();
