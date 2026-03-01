@@ -190,6 +190,7 @@ export default function JoinPage() {
             toast({ variant: "destructive", title: "Connection Failed", description: msg });
             setLoading(false);
         } finally {
+            // Safety timeout
             setTimeout(() => setLoading(false), 8000);
         }
     };

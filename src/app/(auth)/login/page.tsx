@@ -17,7 +17,7 @@ import { Loader2, XCircle } from "lucide-react";
 
 /**
  * @fileOverview Login Page with Social and Credential access.
- * Strict Supporter role enforcement for all social sign-ins.
+ * Strict Supporter role enforcement for all social sign-ins via Cloud Functions.
  */
 export default function LoginPage() {
     const auth = useAuth();
@@ -71,6 +71,8 @@ export default function LoginPage() {
             const userSnap = await getDoc(userRef);
 
             if (!userSnap.exists()) {
+                // Initial baseline profile creation
+                // The Cloud Function will also trigger to ensure role is forced to Supporter
                 await setDoc(userRef, {
                     uid: user.uid,
                     email: userEmail,
@@ -86,7 +88,7 @@ export default function LoginPage() {
                 toast({ title: "Welcome!", description: "You have been registered as a Supporter." });
             }
 
-            // Sync buffer
+            // Sync buffer to allow Firestore listeners to catch the new doc
             setTimeout(() => {
                 window.location.href = "/home";
             }, 500);
@@ -99,7 +101,8 @@ export default function LoginPage() {
             if (error.code === 'auth/popup-closed-by-user') {
                 errorMessage = "The login window was closed. Please try again.";
             } else if (error.message.includes('Can\'t load URL') || error.message.includes('URL Blocked')) {
-                errorMessage = `Domain Error: Please add ${currentOrigin} to your Facebook App Domains and Authorized Origins.`;
+                // Specific troubleshooting for Cloud Workstations
+                errorMessage = `Domain Error: Please add ${currentOrigin} to your Facebook App Domains and Authorized Origins in Meta dashboard.`;
             }
 
             toast({
@@ -110,7 +113,7 @@ export default function LoginPage() {
             
             setLoading(false);
         } finally {
-            // Safety timeout to prevent permanent hang
+            // Safety timeout to prevent permanent hang if popup fails silently
             setTimeout(() => setLoading(false), 8000); 
         }
     };
