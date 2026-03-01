@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCollection, useFirestore } from "@/firebase";
@@ -23,10 +22,8 @@ import {
   Globe,
   Filter,
   FileEdit,
-  TrendingUp,
-  UserCheck,
-  UserX,
-  Mail
+  Mail,
+  ChevronRight
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
@@ -59,7 +56,6 @@ export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Fetch all users to ensure consistency with the directory
   const { data: allUsers, loading } = useCollection('users');
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -72,22 +68,22 @@ export default function AdminSupporterDashboard() {
   const [isSavingNote, setIsSavingNote] = useState(false);
 
   // STRICT FILTER: Only show users with the 'Supporter' role
-  const users = useMemo(() => {
+  const supporters = useMemo(() => {
     return allUsers.filter(u => u.role === 'Supporter');
   }, [allUsers]);
 
   const uniqueDistricts = useMemo(() => {
-    const districts = new Set(users.map(u => u.islandGroup).filter(Boolean));
+    const districts = new Set(supporters.map(u => u.islandGroup).filter(Boolean));
     return Array.from(districts).sort();
-  }, [users]);
+  }, [supporters]);
 
   const uniqueCities = useMemo(() => {
-    const cities = new Set(users.map(u => u.city).filter(Boolean));
+    const cities = new Set(supporters.map(u => u.city).filter(Boolean));
     return Array.from(cities).sort();
-  }, [users]);
+  }, [supporters]);
 
-  const filteredUsers = useMemo(() => {
-    return users.filter(s => {
+  const filteredSupporters = useMemo(() => {
+    return supporters.filter(s => {
       const matchesSearch = 
         (s.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (s.email || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -101,15 +97,15 @@ export default function AdminSupporterDashboard() {
       const dateB = b.lastActive?.seconds || b.joinedAt?.seconds || b.createdAt?.seconds || 0;
       return dateB - dateA;
     });
-  }, [users, searchTerm, filterDistrict, filterCity]);
+  }, [supporters, searchTerm, filterDistrict, filterCity]);
 
   // Live Metrics Command Center
   const stats = useMemo(() => {
-    const total = filteredUsers.length;
-    const verified = filteredUsers.filter(s => s.isVerified === true).length;
+    const total = filteredSupporters.length;
+    const verified = filteredSupporters.filter(s => s.isVerified === true).length;
     const pending = total - verified;
     return { total, verified, pending };
-  }, [filteredUsers]);
+  }, [filteredSupporters]);
 
   const handleRoleChange = (userId: string, newRole: string) => {
     const userRef = doc(firestore, "users", userId);
@@ -117,7 +113,7 @@ export default function AdminSupporterDashboard() {
       .then(() => {
         toast({ 
           title: "Rank Updated", 
-          description: `Supporter promoted to ${newRole}. They will now appear in the Member Registry.` 
+          description: `Supporter promoted to ${newRole}. They will now move to the general registry.` 
         });
       })
       .catch(async () => {
@@ -175,8 +171,8 @@ export default function AdminSupporterDashboard() {
   };
 
   const exportToCSV = () => {
-    const headers = ["Full Name", "Email", "Role", "District", "City", "Joined Date", "Last Active", "Verified", "Admin Notes"];
-    const rows = filteredUsers.map(user => {
+    const headers = ["Full Name", "Email", "Role", "District", "City", "Last Active", "Verified"];
+    const rows = filteredSupporters.map(user => {
       const lastActive = user.lastActive?.toDate ? format(user.lastActive.toDate(), 'yyyy-MM-dd HH:mm') : 'Never';
       return [
         `"${user.fullName || 'Anonymous'}"`,
@@ -184,17 +180,15 @@ export default function AdminSupporterDashboard() {
         `"${user.role || ''}"`,
         `"${user.islandGroup || ''}"`,
         `"${user.city || ''}"`,
-        `"${user.joinedAt?.toDate ? format(user.joinedAt.toDate(), 'yyyy-MM-dd') : ''}"`,
         `"${lastActive}"`,
-        `"${user.isVerified ? 'Yes' : 'No'}"`,
-        `"${(user.adminNotes || '').replace(/"/g, '""')}"`
+        `"${user.isVerified ? 'Yes' : 'No'}"`
       ].join(",");
     });
     
     const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute("download", `PDDS_Supporter_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.setAttribute("download", `PDDS_Supporters_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -223,10 +217,10 @@ export default function AdminSupporterDashboard() {
                 <Globe className="h-6 w-6 md:h-8 md:w-8" />
                 Supporter Command Center
               </h1>
-              <p className="text-muted-foreground text-sm mt-1 font-medium italic">Managing social inductions and recruitment verification.</p>
+              <p className="text-muted-foreground text-sm mt-1 font-medium italic">Managing recruitment, social inductions, and regional pulse.</p>
             </div>
             <Button onClick={exportToCSV} className="h-12 font-black uppercase text-[10px] tracking-widest bg-green-600 hover:bg-green-700 shadow-lg px-6">
-              <Download className="mr-2 h-4 w-4" /> Export Supporter CSV
+              <Download className="mr-2 h-4 w-4" /> Export Recruitment Log
             </Button>
           </div>
 
@@ -236,7 +230,7 @@ export default function AdminSupporterDashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
                 className="pl-10 h-12 uppercase font-bold text-xs bg-white" 
-                placeholder="Search Name or Email..." 
+                placeholder="Search Identity..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -270,7 +264,7 @@ export default function AdminSupporterDashboard() {
 
             <div className="flex items-center justify-center bg-primary/5 rounded-lg border border-primary/5 px-4 h-12">
               <span className="text-[10px] font-black uppercase text-primary/60 mr-2">Inducted:</span>
-              <span className="text-lg font-black text-primary">{filteredUsers.length}</span>
+              <span className="text-lg font-black text-primary">{filteredSupporters.length}</span>
             </div>
           </div>
         </div>
@@ -280,7 +274,7 @@ export default function AdminSupporterDashboard() {
           <Card className="shadow-lg border-l-4 border-l-primary bg-white">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Total Supporters</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Supporter Base</p>
                 <p className="text-3xl font-black text-primary">{stats.total.toLocaleString()}</p>
               </div>
               <Users className="h-6 w-6 text-primary/20" />
@@ -290,7 +284,7 @@ export default function AdminSupporterDashboard() {
           <Card className="shadow-lg border-l-4 border-l-emerald-600 bg-white">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/60 mb-1">Verified Citizens</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/60 mb-1">Verified Base</p>
                 <p className="text-3xl font-black text-emerald-600">{stats.verified.toLocaleString()}</p>
               </div>
               <ShieldCheck className="h-6 w-6 text-emerald-600/20" />
@@ -300,7 +294,7 @@ export default function AdminSupporterDashboard() {
           <Card className="shadow-lg border-l-4 border-l-orange-600 bg-white">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/60 mb-1">Pending Verification</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/60 mb-1">Pending Audit</p>
                 <p className="text-3xl font-black text-orange-600">{stats.pending.toLocaleString()}</p>
               </div>
               <Clock className="h-6 w-6 text-orange-600/20" />
@@ -313,10 +307,10 @@ export default function AdminSupporterDashboard() {
           <CardHeader className="bg-primary text-primary-foreground py-4 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
-              Supporter Induction Log
+              Recruitment Induction Log
             </CardTitle>
             <Badge variant="outline" className="border-white/20 text-white text-[9px] font-black uppercase tracking-widest px-3">
-              Role: Supporter Only
+              Role: Supporters Only
             </Badge>
           </CardHeader>
           <div className="overflow-x-auto">
@@ -325,22 +319,27 @@ export default function AdminSupporterDashboard() {
                 <TableRow className="bg-muted/50 border-b">
                   <TableHead className="pl-6 text-[10px] font-black uppercase tracking-widest">Profile</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">City / District</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Promote Rank</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Engagement</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Verification</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Promotion</TableHead>
                   <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.length === 0 ? (
+                {filteredSupporters.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-24 text-muted-foreground italic">
-                      No active supporters found in the induction log.
+                      No active supporters found in the induction queue.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map((user: any) => {
-                    const lastActiveRelative = user.lastActive?.toDate ? formatDistanceToNow(user.lastActive.toDate(), { addSuffix: true }) : 'Never';
+                  filteredSupporters.map((user: any) => {
+                    const lastActiveRelative = user.lastActive?.toDate 
+                      ? formatDistanceToNow(user.lastActive.toDate(), { addSuffix: true }) 
+                      : 'Never';
+                    const lastActiveAbsolute = user.lastActive?.toDate 
+                      ? format(user.lastActive.toDate(), 'MMM d, yyyy h:mm a') 
+                      : 'Never';
                     
                     return (
                       <TableRow key={user.uid || user.id} className="hover:bg-muted/30 transition-colors group">
@@ -361,29 +360,20 @@ export default function AdminSupporterDashboard() {
                         <TableCell>
                           <div className="space-y-1">
                             <div className="text-[11px] font-black text-primary uppercase">{user.city || 'Not Set'}</div>
-                            <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase tracking-widest px-2">
+                            <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                              <ChevronRight className="h-2 w-2 text-accent" />
                               {user.islandGroup || 'District'}
-                            </Badge>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Select defaultValue={user.role} onValueChange={(v) => handleRoleChange(user.id, v)}>
-                            <SelectTrigger className="h-9 w-32 text-[10px] font-black uppercase border-primary/20 shadow-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {PROMOTABLE_ROLES.map(role => <SelectItem key={role} value={role} className="text-[10px] font-bold uppercase">{role}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
                           <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase opacity-60">
+                            <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase">
                               <Activity className="h-3 w-3 text-accent" />
                               {lastActiveRelative}
                             </div>
                             <div className="text-[8px] font-bold text-muted-foreground uppercase">
-                              Active in Portal
+                              {lastActiveAbsolute}
                             </div>
                           </div>
                         </TableCell>
@@ -398,12 +388,24 @@ export default function AdminSupporterDashboard() {
                             {user.isVerified ? 'Verified' : 'Pending'}
                           </button>
                         </TableCell>
+                        <TableCell>
+                          <Select defaultValue={user.role} onValueChange={(v) => handleRoleChange(user.id, v)}>
+                            <SelectTrigger className="h-9 w-32 text-[10px] font-black uppercase border-primary/20 shadow-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PROMOTABLE_ROLES.map(role => (
+                                <SelectItem key={role} value={role} className="text-[10px] font-bold uppercase">{role}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                         <TableCell className="text-right pr-6 space-x-1">
                           <Button 
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full" 
-                            title="Direct Message"
+                            title="Direct Outreach"
                             onClick={() => handleSendEmail(user.email, user.fullName)}
                           >
                             <Mail className="h-4 w-4" />
@@ -418,22 +420,22 @@ export default function AdminSupporterDashboard() {
                             }
                           }}>
                             <DialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full" title="Tactical Notes">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full" title="Tactical Briefing">
                                 <FileEdit className="h-4 w-4" />
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-md">
                               <DialogHeader>
-                                <DialogTitle className="font-headline uppercase text-primary">Admin Briefing Notes</DialogTitle>
+                                <DialogTitle className="font-headline uppercase text-primary">Internal Tactical Briefing</DialogTitle>
                                 <DialogDescription className="text-xs font-bold uppercase text-muted-foreground">
-                                  Internal tactical data for {user.fullName}
+                                  Secure metadata for {user.fullName}
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="space-y-4 py-4">
                                 <div className="space-y-2">
-                                  <Label className="text-[10px] font-black uppercase text-primary">Tactical Overview</Label>
+                                  <Label className="text-[10px] font-black uppercase text-primary">Strategic Overview</Label>
                                   <Textarea 
-                                    placeholder="Add internal notes about recruitment performance..." 
+                                    placeholder="Add internal notes on mobilization potential..." 
                                     className="min-h-[150px] text-sm"
                                     value={noteContent}
                                     onChange={(e) => setNoteContent(e.target.value)}
@@ -441,7 +443,7 @@ export default function AdminSupporterDashboard() {
                                 </div>
                                 <div className="bg-primary/5 p-3 rounded-lg border border-dashed border-primary/20">
                                   <p className="text-[9px] font-bold text-primary/70 leading-relaxed italic">
-                                    "Note: These entries are for leadership review only."
+                                    "Confidential: Notes are visible only to authorized leadership."
                                   </p>
                                 </div>
                               </div>
@@ -451,7 +453,7 @@ export default function AdminSupporterDashboard() {
                                   onClick={handleUpdateNotes}
                                   disabled={isSavingNote}
                                 >
-                                  {isSavingNote ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Secure Briefing"}
+                                  {isSavingNote ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Secure Log"}
                                 </Button>
                               </DialogFooter>
                             </DialogContent>

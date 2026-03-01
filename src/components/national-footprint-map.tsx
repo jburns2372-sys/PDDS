@@ -1,11 +1,16 @@
-
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+/**
+ * @fileOverview National Footprint Map Component.
+ * Visualizes supporter density across the Philippines with interactive markers.
+ */
+
+// Fix for default Leaflet marker icon issues in Next.js/Webpack
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -34,6 +39,7 @@ const cityCoords: Record<string, [number, number]> = {
   "MAKATI CITY": [14.5547, 121.0244],
   "ANTIPOLO CITY": [14.5845, 121.1754],
   "CALOOCAN CITY": [14.6416, 120.9762],
+  "MANILA": [14.5995, 120.9842],
 };
 
 interface NationalFootprintMapProps {
@@ -41,6 +47,12 @@ interface NationalFootprintMapProps {
 }
 
 export default function NationalFootprintMap({ supporters }: NationalFootprintMapProps) {
+  // Ensure icons are correctly rendered on mount
+  useEffect(() => {
+    // Resetting prototype just in case of race conditions
+    L.Marker.prototype.options.icon = DefaultIcon;
+  }, []);
+
   return (
     <div className="relative w-full h-[500px] rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-muted/20">
       <MapContainer 
@@ -50,15 +62,16 @@ export default function NationalFootprintMap({ supporters }: NationalFootprintMa
         className="w-full h-full"
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {supporters.map((user) => {
           const cityKey = (user.city || "").toUpperCase();
-          const position = cityCoords[cityKey] || [14.5995, 120.9842]; // Default to Manila if unknown
+          // Use lookup or fall back to slightly jittered Manila coords if unknown to prevent overlap
+          const position = cityCoords[cityKey] || [14.5995 + (Math.random() * 0.1), 120.9842 + (Math.random() * 0.1)];
 
           return (
-            <Marker key={user.id} position={position}>
+            <Marker key={user.id || user.uid} position={position}>
               <Popup className="font-sans">
                 <div className="p-1 space-y-1">
                   <p className="font-black text-primary uppercase text-xs leading-none">{user.fullName}</p>
