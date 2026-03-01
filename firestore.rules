@@ -32,22 +32,34 @@ service cloud.firestore {
       return userRole == 'President' || userRole == 'Admin' || userRole == 'System Admin' || isAdmin == true;
     }
 
+    function isSecGen() {
+      return hasRole('Secretary General') || hasRole('Admin');
+    }
+
+    function isPRO() {
+      return hasRole('Public Relations Officer') || isExecutive();
+    }
+
     // ==========================================
     // COLLECTION RULES
     // ==========================================
 
     match /users/{userId} {
-      allow read: if isSignedIn() && (isOwner(userId) || isExecutive());
+      allow read: if isSignedIn() && (isOwner(userId) || isExecutive() || isSecGen());
       allow create: if isSignedIn();
       
-      // AdminNotes and status fields are strictly protected. 
-      // Only Executives/Admins can write to 'adminNotes', 'isVerified', etc.
-      allow update: if isExecutive() || (
+      // Strict Vetting & Admin Field Protection
+      allow update: if isExecutive() || isSecGen() || (
         isOwner(userId) && 
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin', 'isAdmin', 'isVerified', 'adminNotes'])
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin', 'isAdmin', 'isVerified', 'adminNotes', 'vettingLevel', 'idVerificationUrl'])
       );
       
       allow delete: if isExecutive();
+    }
+
+    match /announcements/{id} {
+      allow read: if isSignedIn();
+      allow write: if isPRO();
     }
 
     match /campaign_plans/{planId} {
@@ -58,7 +70,7 @@ service cloud.firestore {
     match /calendar_activities/{activityId} {
       allow read: if isSignedIn() && (resource.data.isAuthorized == true || isExecutive());
       allow create: if isSignedIn() && (
-        getUserData().role in ['Secretary General', 'Admin', 'President']
+        getUserData().role in ['Secretary General', 'Admin', 'President', 'Coordinator']
       );
       allow update: if hasRole('President');
       allow delete: if isExecutive();
@@ -70,24 +82,11 @@ service cloud.firestore {
         resource.data.targetAudience.contains('All Members') || 
         resource.data.targetAudience.contains(getUserData().role)
       );
-      allow write: if isExecutive();
+      allow write: if isExecutive() || isSecGen();
     }
 
     match /attendance/{attendanceId} {
-      allow read, write: if isExecutive();
-    }
-
-    match /communication_audit/{auditId} {
-      allow read, write: if isExecutive();
-    }
-
-    match /meeting_agendas/{agendaId} {
-      allow read: if isSignedIn() && (
-        isExecutive() || 
-        resource.data.targetAudience.contains('All Members') || 
-        resource.data.targetAudience.contains(getUserData().role)
-      );
-      allow write: if isExecutive();
+      allow read, write: if isExecutive() || isSecGen();
     }
 
     match /community_feedback/{feedbackId} {
@@ -96,21 +95,10 @@ service cloud.firestore {
       allow update, delete: if isExecutive();
     }
 
-    match /announcements/{id} {
-      allow read: if isSignedIn();
-      allow write: if isExecutive();
-    }
-
     match /polls/{id} {
       allow read: if isSignedIn();
       allow update: if isSignedIn();
-      allow write: if isExecutive();
-    }
-
-    match /campaign_actions/{id} {
-      allow read: if isSignedIn();
-      allow update: if isSignedIn();
-      allow write: if isExecutive();
+      allow write: if isExecutive() || isPRO();
     }
   }
 }

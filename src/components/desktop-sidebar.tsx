@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks, Gavel } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -16,6 +17,7 @@ const navItems = [
   { href: '/calendar', label: 'Activities', icon: Calendar },
   { href: '/agendas', label: 'Agendas', icon: BookText },
   { href: '/vault', label: 'Document Vault', icon: Library },
+  { href: '/governance', label: 'Command Manual', icon: Gavel },
 ];
 
 const adminNavItems = [

@@ -3,7 +3,7 @@
  * PDDS Party Configuration & Official References
  */
 
-// Official PDDS leadership roles
+// Official PDDS leadership roles - Synchronized with Command Manual 2025
 export const pddsLeadershipRoles = [
   "President",
   "Chairman",
@@ -11,6 +11,7 @@ export const pddsLeadershipRoles = [
   "VP",
   "Secretary General",
   "Treasurer",
+  "Public Relations Officer",
   "Auditor",
   "VP Ways & Means Chair",
   "VP Media Comms",
