@@ -13,7 +13,7 @@ admin.initializeApp();
 
 /**
  * Trigger: Force Supporter Role for Google Users
- * This script intercepts every new Google sign-in and blocks Admin access.
+ * This script captures Google user info and blocks unauthorized Admin access.
  * It ensures that every social login is forced into the 'Supporter' role by default.
  */
 exports.autoAssignSupporterRole = onUserCreated(async (event) => {
@@ -33,10 +33,10 @@ exports.autoAssignSupporterRole = onUserCreated(async (event) => {
     const supporterProfile = {
       uid: user.uid,
       email: user.email,
-      fullName: (user.displayName || "New PDDS Supporter").toUpperCase(),
+      fullName: (user.displayName || "Anonymous Supporter").toUpperCase(),
       photoURL: user.photoURL || "",
       role: "Supporter", // Forced role: cannot be Admin or President
-      isAdmin: false,    // Strictly denied Admin status per instructions
+      isAdmin: false,    // Strictly denied Admin status per security requirement
       isApproved: true,
       kartilyaAgreed: true,
       jurisdictionLevel: "National",
@@ -48,7 +48,7 @@ exports.autoAssignSupporterRole = onUserCreated(async (event) => {
       // 3. Save the record to your 'users' collection in Firestore
       // Use set with no merge to ensure the role is IRREVOCABLY overwritten to Supporter on creation
       await db.collection('users').doc(user.uid).set(supporterProfile);
-      console.log(`[AUTH SECURITY] Successfully registered Google user ${user.email} as a Supporter.`);
+      console.log(`[AUTH SECURITY] Successfully registered Google user ${user.email} as a Supporter in the National Registry.`);
     } catch (error) {
       console.error("[AUTH SECURITY ERROR] Critical Error during Supporter Registration:", error);
     }
@@ -56,7 +56,7 @@ exports.autoAssignSupporterRole = onUserCreated(async (event) => {
 
 /**
  * Trigger: On Supporter Created
- * Logic: Sends an automated Welcome SMS if a phone number is available.
+ * Logic: Sends an automated Welcome SMS audit if a phone number is available.
  */
 exports.onSupporterCreated = onDocumentCreated("users/{userId}", async (event) => {
     const snapshot = event.data;
@@ -72,7 +72,7 @@ exports.onSupporterCreated = onDocumentCreated("users/{userId}", async (event) =
 
     try {
         if (phoneNumber && phoneNumber.trim() !== "") {
-            const welcomeMessage = `Mabuhay ${fullName}! Welcome to the PDDS movement. 🇵🇭 Your account is now active in the National Registry. Log in to download your Digital ID and view the National Calendar: [Portal-Link.ph]`;
+            const welcomeMessage = `Mabuhay ${fullName}! Welcome to the PDDS movement. 🇵🇭 Your account is now active in the National Registry. Log in to download your Digital ID: [Portal-Link.ph]`;
 
             console.log(`[WELCOME SMS DISPATCH] Target: ${phoneNumber} | Message: ${welcomeMessage}`);
 
@@ -92,7 +92,7 @@ exports.onSupporterCreated = onDocumentCreated("users/{userId}", async (event) =
 
 /**
  * Trigger: On Activity Created
- * Logic: Alerts the President via SMS if a new activity requires authorization.
+ * Logic: Alerts the President via SMS audit if a new activity requires authorization.
  */
 exports.onActivityCreated = onDocumentCreated("calendar_activities/{activityId}", async (event) => {
     const snapshot = event.data;
@@ -121,7 +121,7 @@ exports.onActivityCreated = onDocumentCreated("calendar_activities/{activityId}"
         const title = data.title || "Untitled Activity";
         const creator = data.organizerName || "Secretariat";
         
-        const alertMessage = `URGENT: A new ${category} activity (${title}) has been drafted by ${creator}. Please log in to PatriotLink to review and authorize this event.`;
+        const alertMessage = `URGENT: A new ${category} activity (${title}) has been drafted by ${creator}. Please review and authorize in the Audit Center.`;
 
         console.log(`[SMS DISPATCH] Target: ${presidentPhone} | Message: ${alertMessage}`);
 
