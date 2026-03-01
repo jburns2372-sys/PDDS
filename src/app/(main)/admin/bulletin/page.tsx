@@ -75,6 +75,7 @@ export default function ProBulletinPage() {
   const [policyTitle, setPolicyTitle] = useState("");
   const [policySummary, setPolicySummary] = useState("");
   const [policyCat, setPolicyCat] = useState("Economy");
+  const [policyFileType, setPolicyFileType] = useState("PDF");
   const [policyFile, setPolicyFile] = useState<File | null>(null);
   const policyInputRef = useRef<HTMLInputElement>(null);
   const [isDeployingPolicy, setIsDeployingPolicy] = useState(false);
@@ -191,13 +192,15 @@ export default function ProBulletinPage() {
         category: policyCat,
         summary: policySummary.trim(),
         documentUrl: downloadURL,
+        fileType: policyFileType,
         quiz: policyQuiz,
         shareCount: 0,
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Manifesto Deployed", description: "The platform library has been updated." });
+      toast({ title: "Content Deployed", description: "The platform library has been updated." });
       setPolicyTitle(""); setPolicySummary(""); setPolicyFile(null);
+      setPolicyQuiz([{ question: "", options: ["", "", ""], correctAnswerIndex: 0 }]);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Deployment Failed", description: error.message });
     } finally {
@@ -573,21 +576,38 @@ export default function ProBulletinPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-primary">Manifesto Title</Label>
+                      <Label className="text-[10px] font-black uppercase text-primary">Manifesto/Infographic Title</Label>
                       <Input placeholder="e.g. 10% Flat Tax Framework" value={policyTitle} onChange={e => setPolicyTitle(e.target.value)} className="h-12 border-2" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-primary">Pillar Category</Label>
-                      <Select value={policyCat} onValueChange={setPolicyCat}>
-                        <SelectTrigger className="h-12 border-2"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {policyCategories.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-primary">Pillar Category</Label>
+                        <Select value={policyCat} onValueChange={setPolicyCat}>
+                          <SelectTrigger className="h-12 border-2"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {policyCategories.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-primary">Content Type</Label>
+                        <Select value={policyFileType} onValueChange={setPolicyFileType}>
+                          <SelectTrigger className="h-12 border-2"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PDF">MANIFESTO (PDF)</SelectItem>
+                            <SelectItem value="INFOGRAPHIC">INFOGRAPHIC (IMAGE)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-primary">Document (PDF)</Label>
-                      <Input type="file" accept="application/pdf" onChange={e => setPolicyFile(e.target.files?.[0] || null)} className="h-12 border-2" />
+                      <Label className="text-[10px] font-black uppercase text-primary">Official Document</Label>
+                      <Input 
+                        type="file" 
+                        accept={policyFileType === 'PDF' ? "application/pdf" : "image/*"} 
+                        onChange={e => setPolicyFile(e.target.files?.[0] || null)} 
+                        className="h-12 border-2" 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-black uppercase text-primary">Member Summary</Label>

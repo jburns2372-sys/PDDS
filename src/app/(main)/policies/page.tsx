@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   GraduationCap, 
   Search, 
@@ -19,7 +18,9 @@ import {
   Loader2, 
   Sparkles,
   Trophy,
-  BookOpen
+  BookOpen,
+  Image as ImageIcon,
+  ExternalLink
 } from "lucide-react";
 import { policyCategories } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
@@ -31,14 +32,6 @@ export default function PolicyLibraryPage() {
   const { toast } = useToast();
   
   const { data: policies, loading } = useCollection('policies');
-  const { data: engagements } = useCollection('users', {
-    queries: user ? [{ attribute: 'submitterUid', operator: '==', value: user.uid }] : [],
-    isCollectionGroup: false // Adjusted below via manual fetch logic if needed, but we'll use a simpler subcollection check
-  });
-
-  // Since useCollection doesn't easily handle deep nested subcollections per-item in a list view,
-  // we'll fetch the user's engagement record IDs
-  const [completedPolicyIds, setCompletedPolicyIds] = useState<string[]>([]);
   const { data: userEngagements } = useCollection(`users/${user?.uid}/policy_engagement`);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -115,7 +108,7 @@ export default function PolicyLibraryPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input 
               className="h-14 pl-12 rounded-xl bg-white border-2 text-base font-medium shadow-sm" 
-              placeholder="Search manifestos, keywords, or pillars..." 
+              placeholder="Search manifestos, infographics, or keywords..." 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -153,6 +146,7 @@ export default function PolicyLibraryPage() {
               const categoryData = policyCategories.find(c => c.name === p.category);
               const CategoryIcon = categoryData?.icon || FileText;
               const isCompleted = userEngagements.some(e => e.id === p.id);
+              const isInfographic = p.fileType === 'INFOGRAPHIC';
 
               return (
                 <Card key={p.id} className="group shadow-lg border-t-4 border-t-primary hover:shadow-2xl transition-all flex flex-col relative">
@@ -164,7 +158,7 @@ export default function PolicyLibraryPage() {
                   <CardHeader className="bg-muted/30 pb-4">
                     <div className="flex justify-between items-start mb-2">
                       <div className="p-2 bg-white rounded-lg shadow-sm border border-primary/10">
-                        <CategoryIcon className="h-6 w-6 text-primary" />
+                        {isInfographic ? <ImageIcon className="h-6 w-6 text-primary" /> : <CategoryIcon className="h-6 w-6 text-primary" />}
                       </div>
                       <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-white">
                         {p.category}
@@ -184,8 +178,11 @@ export default function PolicyLibraryPage() {
                         "{p.summary}"
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase">
-                      <Share2 className="h-3 w-3" /> {p.shareCount || 0} Citizens Reached
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase">
+                        <Share2 className="h-3 w-3" /> {p.shareCount || 0} Citizens Reached
+                      </div>
+                      <Badge variant="secondary" className="text-[8px] font-black uppercase">{p.fileType || 'PDF'}</Badge>
                     </div>
                   </CardContent>
                   <CardFooter className="bg-muted/10 border-t pt-4 grid grid-cols-2 gap-3 p-4">
@@ -195,7 +192,8 @@ export default function PolicyLibraryPage() {
                       asChild
                     >
                       <a href={p.documentUrl} target="_blank" rel="noopener noreferrer">
-                        <Download className="mr-2 h-4 w-4" /> Download PDF
+                        {isInfographic ? <ExternalLink className="mr-2 h-4 w-4" /> : <Download className="mr-2 h-4 w-4" />} 
+                        {isInfographic ? 'View Image' : 'Download PDF'}
                       </a>
                     </Button>
                     <Button 

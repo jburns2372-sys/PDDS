@@ -88,6 +88,22 @@
         "isReported": { "type": "boolean" }
       },
       "required": ["text", "senderUid", "senderName", "timestamp"]
+    },
+    "policy": {
+      "title": "Policy manifesto",
+      "description": "Official party stand or educational material.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "summary": { "type": "string" },
+        "documentUrl": { "type": "string" },
+        "fileType": { "type": "string" },
+        "shareCount": { "type": "number", "default": 0 },
+        "quiz": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "summary", "documentUrl"]
     }
   },
   "auth": {
@@ -105,6 +121,10 @@
     "/chat_rooms/{roomId}/messages/{messageId}": {
       "schema": { "$ref": "#/backend/entities/chat_message" },
       "description": "Stores individual messages within a room."
+    },
+    "/policies/{policyId}": {
+      "schema": { "$ref": "#/backend/entities/policy" },
+      "description": "Stores official party manifestos and infographics."
     }
   }
 }

@@ -34,6 +34,10 @@ service cloud.firestore {
       return hasRole('Secretary General') || isExecutive();
     }
 
+    function isPRO() {
+      return hasRole('Public Relations Officer') || isExecutive();
+    }
+
     // ==========================================
     // COLLECTION-SPECIFIC POLICIES
     // ==========================================
@@ -57,6 +61,10 @@ service cloud.firestore {
       );
       
       allow delete: if isExecutive();
+
+      match /policy_engagement/{policyId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     match /chat_rooms/{roomId} {
@@ -65,26 +73,53 @@ service cloud.firestore {
       match /messages/{msgId} {
         allow read: if isSignedIn();
         
-        // Participation Gate: Must be verified AND not muted to speak
-        // Also restricts members to their own city room (or National)
         allow create: if isSignedIn() && 
           getUserData().isVerified == true && 
           getUserData().get('isMuted', false) == false &&
           (roomId == 'National' || getUserData().city == roomId) &&
           request.resource.data.senderUid == request.auth.uid;
 
-        // Moderation: Executive or Regional Coordinator
         allow delete: if isExecutive() || (hasRole('Coordinator') && getUserData().city == roomId);
         
-        // Safety Reporting
         allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isReported']);
       }
     }
 
-    // [Other collections OMITTED for brevity but preserved in database]
-    match /policies/{id} { allow read: if isSignedIn(); }
-    match /polls/{id} { allow read: if isSignedIn(); }
-    match /calendar_activities/{id} { allow read: if isSignedIn(); }
-    match /meeting_requests/{id} { allow read: if isSignedIn(); }
+    match /policies/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isPRO();
+    }
+
+    match /announcements/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isPRO();
+    }
+
+    match /polls/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isPRO();
+    }
+
+    match /calendar_activities/{id} {
+      allow read: if isSignedIn();
+      allow create, delete: if isExecutive() || isPRO();
+      allow update: if isExecutive();
+    }
+
+    match /meeting_requests/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && getUserData().vettingLevel in ['Silver', 'Gold'];
+      allow update, delete: if isExecutive() || (hasRole('Coordinator') && getUserData().city == resource.data.city);
+    }
+
+    match /vault/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isPRO();
+    }
+
+    match /logistics_logs/{id} {
+      allow read: if isExecutive() || hasRole('Treasurer');
+      allow write: if isExecutive() || hasRole('Treasurer');
+    }
   }
 }
