@@ -15,7 +15,7 @@ import {
   Tooltip
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Map, TrendingUp, Users, Loader2, Sparkles, Trophy, Globe, CalendarDays } from "lucide-react";
+import { Map, TrendingUp, Users, Loader2, Sparkles, Trophy, Globe, CalendarDays, ShieldCheck, Package, Flag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { subDays, isAfter } from "date-fns";
 import dynamic from 'next/dynamic';
@@ -32,18 +32,24 @@ const NationalFootprintMap = dynamic(
   }
 );
 
+/**
+ * @fileOverview National Command & Analytics Center.
+ * Aggregates Registry Health, Vetting Tiers, and Logistics Dispatches for the Executive Committee.
+ */
 export default function AdminAnalyticsPage() {
-  const { data: users, loading } = useCollection('users');
+  const { data: users, loading: usersLoading } = useCollection('users');
+  const { data: logistics, loading: logisticsLoading } = useCollection('logistics_logs');
 
-  // Logic to process Membership Density and Growth
+  // Logic to process Membership Density, Growth, and Executive Metrics
   const stats = useMemo(() => {
-    if (!users.length) return { hotspots: [], total: 0, growth: 0, cityStats: [], supporters: [] };
+    if (!users.length) return { hotspots: [], total: 0, growth: 0, cityStats: [], supporters: [], vettedCount: 0, shirts: 0, flags: 0 };
 
     const provinceMap: Record<string, number> = {};
     const cityMap: Record<string, number> = {};
     
     const sevenDaysAgo = subDays(new Date(), 7);
     let newRegistrations = 0;
+    let verifiedOfficers = 0;
     const supporters = users.filter(u => u.role === 'Supporter');
 
     users.forEach(user => {
@@ -62,6 +68,19 @@ export default function AdminAnalyticsPage() {
           newRegistrations++;
         }
       }
+
+      // 4. Executive Metric: Vetted Officer Corps
+      if (user.isVerified === true && user.role !== 'Supporter') {
+        verifiedOfficers++;
+      }
+    });
+
+    // 5. Logistics Aggregation (Treasurer Data)
+    let totalShirts = 0;
+    let totalFlags = 0;
+    logistics.forEach(log => {
+      if (log.item === "Shirts") totalShirts += (log.quantity || 0);
+      if (log.item === "Flags") totalFlags += (log.quantity || 0);
     });
 
     // Sort Strongholds (Provinces)
@@ -81,17 +100,20 @@ export default function AdminAnalyticsPage() {
       cityStats: sortedCities,
       supporters,
       total: users.length,
-      growth: newRegistrations
+      growth: newRegistrations,
+      vettedCount: verifiedOfficers,
+      shirts: totalShirts,
+      flags: totalFlags
     };
-  }, [users]);
+  }, [users, logistics]);
 
-  if (loading) {
+  if (usersLoading || logisticsLoading) {
     return (
       <div className="flex h-[80vh] w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-            Generating National Heat Map...
+            Synchronizing National Executive Metrics...
           </p>
         </div>
       </div>
@@ -109,42 +131,98 @@ export default function AdminAnalyticsPage() {
     <div className="p-6 bg-background min-h-screen pb-24">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Header & National Metrics */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-2 border-primary pb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-primary font-headline flex items-center gap-3 uppercase tracking-tight">
-              <Globe className="h-8 w-8" />
-              National Mobilization Heat Map
-            </h1>
-            <p className="text-muted-foreground mt-1 font-medium italic">Command Center: Visualizing the surge of the Federalismo movement.</p>
+        {/* Executive Header */}
+        <div className="bg-primary p-8 rounded-3xl text-white shadow-2xl relative overflow-hidden group">
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <pattern id="exec-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#exec-grid)" />
+            </svg>
           </div>
           
-          <div className="flex flex-wrap gap-4">
-            <Card className="shadow-lg border-l-4 border-l-primary bg-white px-6 py-3 flex items-center gap-4">
-                <div className="p-2 bg-primary/5 rounded-full text-primary">
-                    <Users className="h-5 w-5" />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="bg-accent p-2 rounded-lg">
+                  <Globe className="h-6 w-6 text-primary" />
                 </div>
-                <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">National Base</p>
-                    <p className="text-2xl font-black text-primary leading-none">{stats.total.toLocaleString()}</p>
-                </div>
-            </Card>
-            
-            <Card className="shadow-lg border-l-4 border-l-green-600 bg-white px-6 py-3 flex items-center gap-4">
-                <div className="p-2 bg-green-50 rounded-full text-green-600">
-                    <TrendingUp className="h-5 w-5" />
-                </div>
-                <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">Growth (7D)</p>
-                    <p className="text-2xl font-black text-green-600 leading-none">+{stats.growth.toLocaleString()}</p>
-                </div>
-            </Card>
+                <h1 className="text-3xl md:text-4xl font-black font-headline uppercase tracking-tighter">
+                  National Command Center
+                </h1>
+              </div>
+              <p className="text-primary-foreground/70 font-medium italic">
+                "In Pederalismo, we trust the people, but we track the progress."
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center md:text-right px-4 border-r border-white/10 last:border-0">
+                <p className="text-[9px] font-black uppercase tracking-widest opacity-60">National Base</p>
+                <p className="text-2xl font-black">{stats.total.toLocaleString()}</p>
+              </div>
+              <div className="text-center md:text-right px-4 border-r border-white/10 last:border-0">
+                <p className="text-[9px] font-black uppercase tracking-widest text-accent">Vetted Officers</p>
+                <p className="text-2xl font-black text-accent">{stats.vettedCount}</p>
+              </div>
+              <div className="text-center md:text-right px-4 border-r border-white/10 last:border-0">
+                <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Growth (7D)</p>
+                <p className="text-2xl font-black text-green-400">+{stats.growth}</p>
+              </div>
+              <div className="text-center md:text-right px-4">
+                <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Resources</p>
+                <p className="text-2xl font-black">{(stats.shirts + stats.flags).toLocaleString()}</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* 🗺️ National Footprint Map */}
+        {/* Tactical Metrics Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="shadow-lg border-l-4 border-l-accent overflow-hidden">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="p-3 bg-accent/10 rounded-2xl">
+                <ShieldCheck className="h-8 w-8 text-accent" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Officer Readiness</p>
+                <p className="text-3xl font-black text-primary">{stats.vettedCount}</p>
+                <p className="text-[9px] font-bold text-muted-foreground uppercase">Verified Officer Corps</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg border-l-4 border-l-primary overflow-hidden">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="p-3 bg-primary/5 rounded-2xl">
+                <Package className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Field Uniforms</p>
+                <p className="text-3xl font-black text-primary">{stats.shirts.toLocaleString()}</p>
+                <p className="text-[9px] font-bold text-muted-foreground uppercase">Dispatched nationwide</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg border-l-4 border-l-red-600 overflow-hidden">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="p-3 bg-red-50 rounded-2xl">
+                <Flag className="h-8 w-8 text-red-600" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Branding Strength</p>
+                <p className="text-3xl font-black text-red-600">{stats.flags.toLocaleString()}</p>
+                <p className="text-[9px] font-bold text-muted-foreground uppercase">Active Flags & Banners</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🗺️ Tactical Deployment Map */}
         <section className="space-y-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-2">
                 <Map className="h-5 w-5 text-primary" />
                 <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight">Geographic Supporter Pulse</h2>
             </div>
@@ -189,17 +267,17 @@ export default function AdminAnalyticsPage() {
             </CardContent>
           </Card>
 
-          {/* GROWTH PULSE & NOTES */}
+          {/* HUB CITIES & CAMPAIGN NOTES */}
           <div className="space-y-6">
             <Card className="shadow-lg border-l-4 border-l-accent overflow-hidden">
                 <CardHeader className="bg-accent/5 pb-2">
                     <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-accent" />
-                        Campaign Note
+                        Campaign Insight
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4 italic text-sm text-muted-foreground leading-relaxed">
-                    "High density in the heat map indicates areas primed for major LEADCON events. Cross-reference these strongholds with recruitment counts to identify your top Regional Organizers."
+                    "High uniform density in strongholds indicates mobilization readiness. Focus banner dispatches to areas with emerging growth but low physical visibility."
                 </CardContent>
             </Card>
 
@@ -229,15 +307,15 @@ export default function AdminAnalyticsPage() {
 
         {/* FULL REGIONAL HEAT GRID */}
         <div className="space-y-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-2">
                 <Map className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight">Full Regional Distribution</h2>
+                <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight">Regional Distribution Index</h2>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.hotspots.map((spot) => {
                     const percentage = Math.round((spot.count / stats.total) * 100);
-                    const intensity = spot.count / stats.hotspots[0].count;
+                    const intensity = spot.count / (stats.hotspots[0]?.count || 1);
                     
                     return (
                         <Card key={spot.name} className="shadow-sm hover:shadow-md transition-all group overflow-hidden border-none bg-white">
