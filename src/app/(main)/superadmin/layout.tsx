@@ -11,22 +11,13 @@ export default function SuperAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, userData, loading } = useUserData();
+  const { userData, loading } = useUserData();
   const router = useRouter();
 
-  const userEmail = (user?.email || '').toLowerCase();
-
-  const isAuthorizedEmail = 
-    userEmail === 'iamgrecobelgica@gmail.com' || 
-    userEmail === 'j.burns2372@gmail.com' ||
-    userEmail === 'j.burns.2372@gmail.com' ||
-    userEmail === 'j.burns372@gmail.com';
-
-  // System Admin and President (at National level) share full Superadmin/developer access
+  // Access is strictly role-based. Backdoor email bypass removed as per instructions.
   const isSuperAdmin = 
-    isAuthorizedEmail || 
     userData?.role === 'System Admin' || 
-    (userData?.jurisdictionLevel === 'National' && userData?.role === 'President');
+    (userData?.jurisdictionLevel === 'National' && (userData?.role === 'President' || userData?.role === 'Admin'));
 
   useEffect(() => {
     if (!loading && !isSuperAdmin) {

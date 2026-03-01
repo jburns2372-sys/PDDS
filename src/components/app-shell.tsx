@@ -54,21 +54,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     const docRef = doc(firestore, "users", user.uid);
 
     const unsubscribe = onSnapshot(docRef, async (docSnap) => {
-      const userEmail = (user.email || '').toLowerCase();
-      
-      const isPresidentEmail = userEmail === 'iamgrecobelgica@gmail.com';
-      const isAdminEmail = 
-        userEmail === 'j.burns2372@gmail.com' || 
-        userEmail === 'j.burns.2372@gmail.com' || 
-        userEmail === 'j.burns372@gmail.com';
-      
-      const isPrivileged = isPresidentEmail || isAdminEmail;
-
       if (docSnap.exists()) {
         const data = docSnap.data();
 
         // Handle Suspended Accounts
-        if (data.isApproved === false && !isPrivileged) {
+        // Executives always have access to manage their accounts
+        const isExecutive = data.role === 'President' || data.role === 'Admin' || data.role === 'System Admin';
+        
+        if (data.isApproved === false && !isExecutive) {
           await auth.signOut();
           toast({
             variant: "destructive",
@@ -80,48 +73,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         }
 
         setUserData({ id: docSnap.id, ...data });
-        
-        // Auto-assign leadership status for privileged emails
-        if (isPrivileged) {
-          const targetRole = isPresidentEmail ? 'President' : 'Admin';
-          if (data.role !== targetRole || data.jurisdictionLevel !== 'National' || data.isApproved === false) {
-            const update = { 
-              role: targetRole, 
-              jurisdictionLevel: 'National',
-              assignedLocation: 'National Headquarters',
-              kartilyaAgreed: true,
-              isApproved: true
-            };
-            await setDoc(docRef, update, { merge: true });
-          }
-        }
         setUserDataLoading(false);
       } else {
         // Redirect to induction if record is missing
-        if (!isPrivileged) {
-          console.log("Registry record missing, redirecting...");
-          window.location.href = '/join?induction=pending';
-          return;
-        }
-
-        // Auto-provision privileged users
-        const targetRole = isPresidentEmail ? 'President' : 'Admin';
-        const newUserProfile = {
-          uid: user.uid,
-          email: userEmail,
-          fullName: user.displayName?.toUpperCase() || userEmail.split('@')[0].toUpperCase() || 'MEMBER',
-          role: targetRole,
-          jurisdictionLevel: 'National',
-          assignedLocation: 'National Headquarters',
-          photoURL: null,
-          kartilyaAgreed: true, 
-          isApproved: true,
-          passwordIsTemporary: false,
-          createdAt: serverTimestamp(),
-        };
-
-        await setDoc(docRef, newUserProfile);
-        setUserDataLoading(false);
+        console.log("Registry record missing, redirecting...");
+        window.location.href = '/join?induction=pending';
       }
     }, (error) => {
       console.error("Critical error in profile sync:", error);

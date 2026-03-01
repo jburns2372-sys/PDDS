@@ -61,31 +61,22 @@ export default function LoginPage() {
             const user = result.user;
             const userEmail = (user.email || '').toLowerCase();
 
-            // Privilege Check: Only specific emails get leadership roles
-            const isPresidentEmail = userEmail === 'iamgrecobelgica@gmail.com';
-            const isAdminEmail = 
-                userEmail === 'j.burns2372@gmail.com' || 
-                userEmail === 'j.burns.2372@gmail.com' || 
-                userEmail === 'j.burns372@gmail.com';
-
             // Check if user exists in registry
             const userRef = doc(firestore, 'users', user.uid);
             const userSnap = await getDoc(userRef);
 
             if (!userSnap.exists()) {
-                // Determine Initial Role: Hardcoded leadership or Default Supporter
-                let initialRole = "Supporter";
-                if (isPresidentEmail) initialRole = "President";
-                else if (isAdminEmail) initialRole = "Admin";
+                // ALL users signing in through Google are strictly Supporters
+                const initialRole = "Supporter";
 
-                // Auto-provision as Supporter (or Leadership if email matches)
+                // Auto-provision as Supporter
                 await setDoc(userRef, {
                     uid: user.uid,
                     email: userEmail,
                     fullName: user.displayName?.toUpperCase() || "NEW SUPPORTER",
                     photoURL: user.photoURL || null,
                     role: initialRole,
-                    jurisdictionLevel: initialRole === "Supporter" ? "Local" : "National",
+                    jurisdictionLevel: "Local",
                     isApproved: true,
                     kartilyaAgreed: true,
                     recruitCount: 0,

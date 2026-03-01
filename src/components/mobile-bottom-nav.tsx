@@ -23,18 +23,13 @@ const analyticsNavItem = { href: "/admin/analytics", icon: Map, label: "Map" };
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const { user, userData, loading: isLoadingRole } = useUserData();
+  const { userData, loading: isLoadingRole } = useUserData();
   const userRole = userData?.role || '';
-  const userEmail = (user?.email || '').toLowerCase();
 
   const isOfficer = pddsLeadershipRoles.includes(userRole) || userRole === 'Officer';
   const isAdmin = userRole === 'Admin' || userRole === 'System Admin';
-  const isPrivilegedEmail = 
-    userEmail === 'iamgrecobelgica@gmail.com' ||
-    userEmail === 'j.burns372@gmail.com' ||
-    userEmail === 'j.burns2372@gmail.com';
 
-  const isPrivileged = !isLoadingRole && (isOfficer || isAdmin || isPrivilegedEmail);
+  const isPrivileged = !isLoadingRole && (isOfficer || isAdmin);
   
   const visibleNavItems = [...baseNavItems];
   if (isPrivileged) {
