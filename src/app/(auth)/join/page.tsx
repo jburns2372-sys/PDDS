@@ -31,6 +31,7 @@ const NCR_CODE = "130000000";
  * @fileOverview Join Page for new members.
  * Handles both SMS-based registry and instant Google induction.
  * Includes Referral metadata for Cloud Function processing.
+ * SMS-verified users are automatically promoted to 'Member' status.
  */
 export default function JoinPage() {
     const auth = useAuth();
@@ -120,7 +121,8 @@ export default function JoinPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            const supporterData = {
+            // SMS Verified users are promoted to 'Member' and marked as 'isVerified'
+            const memberData = {
                 uid: user.uid,
                 email: email.trim().toLowerCase(),
                 fullName: fullName.trim().toUpperCase(),
@@ -129,23 +131,24 @@ export default function JoinPage() {
                 province: selectedProvince,
                 islandGroup: getIslandGroup(selectedProvince),
                 photoURL: null,
-                role: "Supporter",
-                jurisdictionLevel: "National",
+                role: "Member", // Elevated from Supporter
+                jurisdictionLevel: "City/Municipal",
                 isAdmin: false,
                 isApproved: true,
-                isVerified: false,
+                isVerified: true, // Instant verification via SMS
+                vettingLevel: "Bronze",
                 kartilyaAgreed: true,
                 recruitCount: 0,
                 referralCount: 0,
-                meritPoints: 10, // Base points, Cloud Function will handle referral bonus
+                meritPoints: 10,
                 referredBy: referralUid || null,
                 createdAt: serverTimestamp(),
                 lastActive: serverTimestamp(),
             };
 
-            await setDoc(doc(firestore, "users", user.uid), supporterData);
+            await setDoc(doc(firestore, "users", user.uid), memberData);
             
-            toast({ title: "Welcome!", description: "Induction complete. Merit rewards are being processed." });
+            toast({ title: "Welcome!", description: "Induction complete. You are now an official Verified Member." });
             setTimeout(() => {
                 window.location.href = "/home?registered=true";
             }, 500);
