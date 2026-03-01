@@ -5,7 +5,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ==========================================
-    // GLOBAL HELPERS
+    // SECURITY KERNEL HELPERS
     // ==========================================
 
     function isSignedIn() {
@@ -27,13 +27,11 @@ service cloud.firestore {
     function isExecutive() {
       if (!isSignedIn()) return false;
       let userData = getUserData();
-      let userRole = userData.role;
-      let isAdmin = userData.get('isAdmin', false);
-      return userRole == 'President' || userRole == 'Admin' || userRole == 'System Admin' || isAdmin == true;
+      return userData.role in ['President', 'Admin', 'System Admin'] || userData.get('isAdmin', false) == true;
     }
 
     function isSecGen() {
-      return hasRole('Secretary General') || hasRole('Admin') || hasRole('System Admin');
+      return hasRole('Secretary General') || isExecutive();
     }
 
     function isPRO() {
@@ -44,28 +42,35 @@ service cloud.firestore {
       return hasRole('Treasurer') || isExecutive();
     }
 
-    function isCoordinator() {
-      return hasRole('Coordinator') || isExecutive();
-    }
-
     // ==========================================
-    // COLLECTION RULES
+    // COLLECTION-SPECIFIC POLICIES
     // ==========================================
 
     match /users/{userId} {
-      allow read: if isSignedIn() && (isOwner(userId) || isExecutive() || isSecGen());
-      allow create: if isSignedIn();
-      
-      allow update: if isExecutive() || isSecGen() || (
-        isOwner(userId) && 
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin', 'isAdmin', 'isVerified', 'adminNotes', 'vettingLevel', 'idVerificationUrl'])
+      // Visibility: Personal profile or Executive/Coordinator oversight
+      allow read: if isSignedIn() && (
+        isOwner(userId) || 
+        isExecutive() || 
+        isSecGen() || 
+        (hasRole('Coordinator') && getUserData().city == resource.data.city)
       );
       
+      allow create: if isSignedIn();
+      
+      // Update Policy: Owners can edit basic info only. Officers can edit vetting tags.
+      allow update: if isExecutive() || (
+        isSecGen() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isVerified', 'vettingLevel', 'verifiedAt', 'verifiedBy', 'adminNotes'])
+      ) || (
+        isOwner(userId) && 
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isVerified', 'vettingLevel', 'meritPoints', 'isAdmin', 'isSuperAdmin', 'idVerificationUrl'])
+      );
+      
+      allow delete: if isExecutive();
+
       match /policy_engagement/{id} {
         allow read, write: if isOwner(userId);
       }
-      
-      allow delete: if isExecutive();
     }
 
     match /policies/{id} {
@@ -74,48 +79,45 @@ service cloud.firestore {
       allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareCount']);
     }
 
-    match /announcements/{id} {
-      allow read: if isSignedIn();
-      allow write: if isPRO();
-    }
-
     match /chat_rooms/{roomId} {
       allow read: if isSignedIn();
-      allow write: if isExecutive();
-
+      
       match /messages/{msgId} {
-        allow read: if isSignedIn() && (
-          roomId == 'National' || 
-          getUserData().city == roomId || 
-          isExecutive()
-        );
-
+        allow read: if isSignedIn();
+        
+        // Participation Gate: Must be verified to speak
         allow create: if isSignedIn() && 
           getUserData().isVerified == true && 
           (roomId == 'National' || getUserData().city == roomId) &&
           request.resource.data.senderUid == request.auth.uid;
 
-        allow delete: if isSignedIn() && (
-          isExecutive() || 
-          (hasRole('Coordinator') && getUserData().city == roomId)
-        );
-
+        // Moderation: Executive or Regional Coordinator
+        allow delete: if isExecutive() || (hasRole('Coordinator') && getUserData().city == roomId);
+        
+        // Safety Reporting
         allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isReported']);
       }
     }
 
-    match /calendar_activities/{activityId} {
-      allow read: if isSignedIn() && (resource.data.isAuthorized == true || isExecutive());
-      allow create: if isSignedIn() && (
-        getUserData().role in ['Secretary General', 'Admin', 'President', 'Coordinator'] || isPRO()
-      );
-      allow update: if hasRole('President') || isExecutive();
-      allow delete: if isExecutive();
+    match /polls/{id} {
+      allow read: if isSignedIn();
+      allow create: if isPRO() || isExecutive();
+      // One-Member-One-Vote Enforcement
+      allow update: if isSignedIn() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'votedBy']) &&
+        !resource.data.votedBy.contains(request.auth.uid) &&
+        request.resource.data.votedBy.contains(request.auth.uid);
     }
 
     match /logistics_logs/{logId} {
-      allow read: if isSignedIn() && (isTreasurer() || isExecutive());
+      allow read: if isTreasurer() || isExecutive();
       allow write: if isTreasurer() || isExecutive();
+    }
+
+    match /calendar_activities/{id} {
+      allow read: if isSignedIn() && (resource.data.isAuthorized == true || isExecutive());
+      allow create: if isPRO() || isSecGen() || isExecutive();
+      allow update, delete: if isExecutive();
     }
 
     match /meeting_requests/{id} {
@@ -126,19 +128,11 @@ service cloud.firestore {
         resource.data.status == 'Approved'
       );
       allow create: if isSignedIn() && getUserData().vettingLevel in ['Silver', 'Gold'];
-      allow update: if isSignedIn() && (
-        (hasRole('Coordinator') && getUserData().city == resource.data.city) || 
-        isExecutive()
-      );
-      allow delete: if isExecutive() || (hasRole('Coordinator') && getUserData().city == resource.data.city);
+      allow update: if isExecutive() || (hasRole('Coordinator') && getUserData().city == resource.data.city);
     }
 
-    match /polls/{id} {
+    match /vault/{id} {
       allow read: if isSignedIn();
-      allow update: if isSignedIn() && 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'votedBy']) &&
-        !resource.data.votedBy.contains(request.auth.uid) &&
-        request.resource.data.votedBy.contains(request.auth.uid);
       allow write: if isPRO() || isExecutive();
     }
   }

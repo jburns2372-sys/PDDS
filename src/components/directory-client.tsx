@@ -5,7 +5,7 @@ import { useCollection, useFirestore } from '@/firebase';
 import { OfficerCard } from './officer-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { pddsLeadershipRoles, jurisdictionLevels } from '@/lib/data';
-import { Loader2, Users, CheckCircle2, ChevronRight, MapPin, Search, MessageSquare, Phone, MessageCircle } from 'lucide-react';
+import { Loader2, Users, CheckCircle2, ChevronRight, MapPin, Search, MessageSquare, Phone, MessageCircle, ShieldCheck } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { useUserData } from '@/context/user-data-context';
@@ -48,7 +48,6 @@ function QuickMessageDialog({ supporter, isPrivileged }: { supporter: any, isPri
     const messageText = selectedTemplate?.text || "";
 
     try {
-      // Log to communication_logs
       addDoc(collection(firestore, 'communication_logs'), {
         officerUid: userData?.uid,
         officerName: userData?.fullName,
@@ -65,7 +64,7 @@ function QuickMessageDialog({ supporter, isPrivileged }: { supporter: any, isPri
       } else {
         toast({
           title: "In-App Chat initiated",
-          description: "Encrypted channel is being provisioned. Please use SMS for urgent alerts."
+          description: "Encrypted channel is being provisioned."
         });
       }
       setOpen(false);
@@ -117,26 +116,11 @@ function QuickMessageDialog({ supporter, isPrivileged }: { supporter: any, isPri
               </Select>
             </div>
 
-            {template && (
-              <div className="p-4 bg-muted/50 rounded-xl border border-dashed text-sm italic text-muted-foreground leading-relaxed">
-                "{templates.find(t => t.id === template)?.text}"
-              </div>
-            )}
-
             <div className="grid grid-cols-2 gap-4">
-              <Button 
-                onClick={() => handleAction('SMS')} 
-                disabled={!template}
-                className="h-12 font-black uppercase tracking-widest text-xs"
-              >
+              <Button onClick={() => handleAction('SMS')} disabled={!template} className="h-12 font-black uppercase text-xs">
                 <Phone className="h-4 w-4 mr-2" /> Send SMS
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => handleAction('CHAT')} 
-                disabled={!template}
-                className="h-12 font-black uppercase tracking-widest text-xs border-primary text-primary"
-              >
+              <Button variant="outline" onClick={() => handleAction('CHAT')} disabled={!template} className="h-12 font-black uppercase text-xs border-primary text-primary">
                 <MessageCircle className="h-4 w-4 mr-2" /> In-App Chat
               </Button>
             </div>
@@ -153,205 +137,107 @@ export function DirectoryClient() {
   const [activeTab, setActiveTab] = useState('National');
   const [supporterSearch, setSupporterSearch] = useState("");
 
-  // Check if current user has officer/admin privileges
-  // Access is now purely based on the database 'role'. Email backdoors removed.
   const isPrivileged = useMemo(() => {
     if (!userData) return false;
-    const userRole = userData.role || '';
-    return pddsLeadershipRoles.includes(userRole) || userRole === 'Officer' || userRole === 'Admin' || userRole === 'System Admin';
+    return pddsLeadershipRoles.includes(userData.role) || ['Admin', 'Officer', 'System Admin'].includes(userData.role);
   }, [userData]);
 
-  // Set default tab based on user role once data is available
-  useEffect(() => {
-    if (userData?.role === 'Supporter') {
-      setActiveTab('Supporter');
+  const maskPhone = (phone: string) => {
+    if (!phone) return "No contact";
+    if (isPrivileged && (userData?.role === 'President' || userData?.role === 'Secretary General' || userData?.role === 'Admin')) {
+      return phone;
     }
-  }, [userData]);
+    return phone.slice(0, 4) + "*******" + phone.slice(-2);
+  };
 
-  // Logic to group supporters by Province > City, then by Barangay
   const groupedSupporters = useMemo(() => {
     const supporters = (users || []).filter(u => {
       const isSupporter = u.role === 'Supporter';
       const matchesSearch = supporterSearch === "" || 
         (u.fullName || '').toLowerCase().includes(supporterSearch.toLowerCase()) ||
-        (u.city || '').toLowerCase().includes(supporterSearch.toLowerCase()) ||
-        (u.province || '').toLowerCase().includes(supporterSearch.toLowerCase());
+        (u.city || '').toLowerCase().includes(supporterSearch.toLowerCase());
       return isSupporter && matchesSearch;
     });
 
-    const groups: Record<string, Record<string, any[]>> = {};
-
+    const groups = {};
     supporters.forEach(u => {
-      const p = u.province || 'Unknown Province';
-      const c = u.city || 'Unknown City';
+      const key = `${u.province || 'Unknown'} > ${u.city || 'Unknown'}`;
       const b = u.barangay || 'Unknown Barangay';
-      const key = `${p} > ${c}`;
-      
       if (!groups[key]) groups[key] = {};
       if (!groups[key][b]) groups[key][b] = [];
       groups[key][b].push(u);
     });
-
     return groups;
   }, [users, supporterSearch]);
 
-  // Dynamic count logic based on active tab
-  const dynamicCount = useMemo(() => {
-    if (!users) return 0;
-    if (activeTab === 'Supporter') {
-      return users.filter(u => u.role === 'Supporter').length;
-    }
-    // For jurisdiction tabs, show count of people assigned to that level
-    return users.filter(u => u.jurisdictionLevel === activeTab).length;
-  }, [users, activeTab]);
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground font-medium animate-pulse">Syncing Structure...</p>
-      </div>
-    );
-  }
-
-  const tabList = [...jurisdictionLevels, "Supporter"];
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <TabsList className="bg-primary/5 p-1 border border-primary/10 overflow-x-auto justify-start h-auto flex-wrap">
-            {tabList.map(level => (
-              <TabsTrigger 
-                key={level} 
-                value={level} 
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold px-4 py-2"
-              >
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <TabsList className="bg-primary/5 p-1 border border-primary/10 overflow-x-auto justify-start h-auto">
+            {[...jurisdictionLevels, "Supporter"].map(level => (
+              <TabsTrigger key={level} value={level} className="data-[state=active]:bg-primary data-[state=active]:text-white font-bold px-6 py-2 uppercase text-[10px] tracking-widest">
                 {level}
               </TabsTrigger>
             ))}
           </TabsList>
-          
-          <div className="text-sm font-black uppercase tracking-widest text-primary bg-white px-4 py-2 rounded-full border shadow-sm flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Registry Count: {dynamicCount}
-          </div>
         </div>
 
         {jurisdictionLevels.map(level => (
-          <TabsContent key={level} value={level} className="mt-0 focus-visible:outline-none">
-              <Card className="border-none shadow-none bg-transparent">
-                  <CardHeader className="px-0 pt-0">
-                      <CardTitle className="text-xl font-headline text-primary/80 flex items-center gap-2 uppercase tracking-tight">
-                          {level} Leadership Core
-                      </CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-0">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {pddsLeadershipRoles.map((role) => {
-                              const officer = (users || []).find(u => 
-                                  u.role === role && u.jurisdictionLevel === level
-                              );
-                              
-                              return (
-                                  <OfficerCard 
-                                      key={`${level}-${role}`} 
-                                      role={role} 
-                                      name={officer?.fullName || ""} 
-                                      photoURL={officer?.photoURL || ""}
-                                      about={officer?.aboutText || ""}
-                                  />
-                              );
-                          })}
-                      </div>
-                  </CardContent>
-              </Card>
+          <TabsContent key={level} value={level}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {pddsLeadershipRoles.map(role => {
+                const officer = users.find(u => u.role === role && u.jurisdictionLevel === level);
+                return <OfficerCard key={role} role={role} name={officer?.fullName || ""} photoURL={officer?.photoURL} />;
+              })}
+            </div>
           </TabsContent>
         ))}
 
-        <TabsContent value="Supporter" className="mt-0 focus-visible:outline-none">
-          <Card className="border-none shadow-none bg-transparent">
-            <CardHeader className="px-0 pt-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <CardTitle className="text-xl font-headline text-primary/80 flex items-center gap-2 uppercase tracking-tight">
-                National Supporter Network
-              </CardTitle>
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <input 
-                  type="text"
-                  placeholder="Search supporters..."
-                  className="w-full bg-white border border-primary/10 rounded-full h-10 pl-9 pr-4 text-xs font-bold uppercase tracking-widest focus:ring-1 focus:ring-primary outline-none shadow-sm"
-                  value={supporterSearch}
-                  onChange={(e) => setSupporterSearch(e.target.value)}
-                />
-              </div>
-            </CardHeader>
-            <CardContent className="px-0 space-y-4">
-              {Object.keys(groupedSupporters).length === 0 ? (
-                <div className="py-24 text-center border-2 border-dashed rounded-xl bg-muted/20">
-                  <p className="text-muted-foreground font-medium">No supporters found matching your criteria.</p>
-                </div>
-              ) : (
-                <Accordion type="multiple" className="w-full space-y-4">
-                  {Object.keys(groupedSupporters).sort().map(locationKey => (
-                    <AccordionItem key={locationKey} value={locationKey} className="border-none">
-                      <AccordionTrigger className="bg-primary text-primary-foreground px-6 py-4 rounded-xl hover:no-underline shadow-md text-left flex justify-between group transition-all">
-                        <div className="flex items-center gap-3">
-                          <MapPin className="h-5 w-5 shrink-0 text-accent" />
-                          <span className="text-base font-black uppercase tracking-tight line-clamp-1">{locationKey}</span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-4 px-2">
-                        <div className="space-y-10">
-                          {Object.keys(groupedSupporters[locationKey]).sort().map(barangay => (
-                            <div key={barangay} className="space-y-4">
-                              <h3 className="text-[10px] font-black text-primary/40 uppercase tracking-[0.2em] flex items-center gap-2 mb-2 border-b pb-2">
-                                <ChevronRight className="h-3 w-3 text-accent" />
-                                Barangay: {barangay}
-                              </h3>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {groupedSupporters[locationKey][barangay].map(supporter => (
-                                  <Card key={supporter.id} className="shadow-sm border-l-4 border-l-accent hover:shadow-md transition-shadow group">
-                                    <CardContent className="p-4 flex flex-col gap-2">
-                                      <div className="flex justify-between items-start gap-2">
-                                        <div className="min-w-0">
-                                          <p className="font-black text-sm uppercase text-primary leading-tight truncate group-hover:text-accent transition-colors">
-                                            {supporter.fullName}
-                                          </p>
-                                          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1 truncate">
-                                            {supporter.jurisdictionLevel || 'Local'} Jurisdiction
-                                          </p>
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                          {supporter.phoneNumber && (
-                                            <Badge className="bg-green-600 text-[8px] font-black uppercase px-1.5 h-4 shrink-0 shadow-sm">
-                                              <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
-                                              Verified
-                                            </Badge>
-                                          )}
-                                          <QuickMessageDialog supporter={supporter} isPrivileged={isPrivileged} />
-                                        </div>
-                                      </div>
-                                      <div className="pt-2 border-t mt-1 flex justify-between items-center">
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Supporter Category</span>
-                                        <Badge variant="secondary" className="text-[8px] font-bold bg-primary/5 px-2 py-0.5 rounded text-primary uppercase">
-                                          Active
-                                        </Badge>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                ))}
-                              </div>
-                            </div>
+        <TabsContent value="Supporter">
+          <div className="space-y-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input type="text" placeholder="Search supporters..." className="w-full bg-white border rounded-full h-12 pl-10 pr-4 text-xs font-bold uppercase" value={supporterSearch} onChange={e => setSupporterSearch(e.target.value)} />
+            </div>
+            
+            <Accordion type="multiple" className="space-y-4">
+              {Object.keys(groupedSupporters).map(loc => (
+                <AccordionItem key={loc} value={loc} className="border-none">
+                  <AccordionTrigger className="bg-primary text-white px-6 py-4 rounded-xl hover:no-underline shadow-md">
+                    <div className="flex items-center gap-3"><MapPin className="h-4 w-4 text-accent" /><span className="text-sm font-black uppercase">{loc}</span></div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4 px-2">
+                    {Object.keys(groupedSupporters[loc]).map(brgy => (
+                      <div key={brgy} className="mb-6">
+                        <h3 className="text-[9px] font-black text-primary/40 uppercase tracking-widest mb-3 border-b pb-1">Barangay: {brgy}</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {groupedSupporters[loc][brgy].map(s => (
+                            <Card key={s.id} className="shadow-sm border-l-4 border-l-accent group">
+                              <CardContent className="p-4 space-y-2">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-black text-xs uppercase text-primary">{s.fullName}</p>
+                                    <p className="text-[8px] font-bold text-muted-foreground uppercase">{maskPhone(s.phoneNumber)}</p>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    {s.isVerified && <Badge className="bg-green-600 h-4 px-1 text-[7px] font-black uppercase"><ShieldCheck className="h-2 w-2 mr-1" /> VETTED</Badge>}
+                                    <QuickMessageDialog supporter={s} isPrivileged={isPrivileged} />
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
                           ))}
                         </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              )}
-            </CardContent>
-          </Card>
+                      </div>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
