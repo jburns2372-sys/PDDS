@@ -98,10 +98,11 @@ export default function LoginPage() {
             let errorMessage = error.message;
             const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
             
-            if (error.code === 'auth/popup-closed-by-user') {
+            if (error.code === 'auth/popup-blocked') {
+                errorMessage = "Login popup was blocked by your browser. Please allow popups for this site in your browser settings (usually in the address bar).";
+            } else if (error.code === 'auth/popup-closed-by-user') {
                 errorMessage = "The login window was closed. Please try again.";
             } else if (error.message.includes('Can\'t load URL') || error.message.includes('URL Blocked')) {
-                // Specific troubleshooting for Cloud Workstations
                 errorMessage = `Domain Error: Please add ${currentOrigin} to your Facebook App Domains and Authorized Origins in Meta dashboard.`;
             }
 
@@ -113,8 +114,9 @@ export default function LoginPage() {
             
             setLoading(false);
         } finally {
-            // Safety timeout to prevent permanent hang if popup fails silently
-            setTimeout(() => setLoading(false), 8000); 
+            // Safety cleanup: If we hit a block or closure, make sure loading is stopped
+            // We don't use a long timeout here anymore because popup-blocked is usually fast
+            setLoading(false);
         }
     };
 

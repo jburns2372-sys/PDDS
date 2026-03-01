@@ -183,15 +183,18 @@ export default function JoinPage() {
         } catch (error: any) {
             console.error("Social Induction Error:", error);
             const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
+            
             let msg = error.message;
-            if (error.message.includes('Can\'t load URL') || error.message.includes('URL Blocked')) {
+            if (error.code === 'auth/popup-blocked') {
+                msg = "Login popup was blocked by your browser. Please check the address bar and allow popups for this site.";
+            } else if (error.message.includes('Can\'t load URL') || error.message.includes('URL Blocked')) {
                 msg = `Domain Error: Please whitelist ${currentOrigin} in Meta dashboard.`;
             }
+            
             toast({ variant: "destructive", title: "Connection Failed", description: msg });
             setLoading(false);
         } finally {
-            // Safety timeout
-            setTimeout(() => setLoading(false), 8000);
+            setLoading(false);
         }
     };
 
