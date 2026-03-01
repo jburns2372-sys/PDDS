@@ -16,6 +16,7 @@ admin.initializeApp();
  * Trigger: captureGoogleUserInfo
  * Intercepts new Google sign-ins to provision a restricted Supporter profile.
  * Ensures social users do not have administrative access by default.
+ * Sets isVerified to false requiring Admin validation.
  */
 exports.captureGoogleUserInfo = onUserCreated(async (event) => {
     const user = event.data;
@@ -38,6 +39,7 @@ exports.captureGoogleUserInfo = onUserCreated(async (event) => {
       photoURL: user.photoURL || "",
       role: "Supporter", // Forced role: cannot be Admin or President
       isAdmin: false,    // Strictly denied Admin status for security as requested
+      isVerified: false, // Default state: Requires official validation
       isApproved: true,
       kartilyaAgreed: true,
       jurisdictionLevel: "National",

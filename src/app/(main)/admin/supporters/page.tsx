@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Search, User, Mail, CalendarDays, Download, Trash2 } from "lucide-react";
+import { Loader2, Users, Search, User, Mail, CalendarDays, Download, Trash2, CheckCircle2, ShieldAlert } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { doc, deleteDoc } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -19,7 +19,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 /**
  * @fileOverview Supporter Recruitment Dashboard with Management Capabilities.
  * Displays real-time list of all supporters.
- * Includes Search, CSV Export, and Administrative Removal.
+ * Includes Search, CSV Export, Verification Toggle, and Administrative Removal.
  */
 export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
@@ -44,6 +44,29 @@ export default function AdminSupporterDashboard() {
     });
   }, [supporters, searchTerm]);
 
+  // ✅ The Toggle Verification Function
+  const handleToggleVerification = async (userId: string, currentStatus: boolean) => {
+    const userRef = doc(firestore, "users", userId);
+    const newStatus = !currentStatus;
+    
+    // Pattern 1 for mutations: No await, chain catch for permission errors
+    updateDoc(userRef, { isVerified: newStatus })
+      .then(() => {
+        toast({
+          title: newStatus ? "Member Verified" : "Verification Revoked",
+          description: `Registry status updated successfully.`
+        });
+      })
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'update',
+          requestResourceData: { isVerified: newStatus }
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
+  };
+
   // 🗑️ The Delete Function (With Confirmation)
   const handleDelete = async (userId: string, userName: string) => {
     const confirmDelete = window.confirm(`Are you sure you want to remove ${userName} from the PDDS National Registry? This action is irreversible.`);
@@ -51,7 +74,6 @@ export default function AdminSupporterDashboard() {
     if (confirmDelete) {
       const docRef = doc(firestore, "users", userId);
       
-      // NO await here - Pattern 1 for mutations
       deleteDoc(docRef)
         .then(() => {
           toast({
@@ -71,7 +93,7 @@ export default function AdminSupporterDashboard() {
 
   // 📂 The CSV Export Function
   const exportToCSV = () => {
-    const headers = ["Full Name", "Email", "Joined Date", "Role"];
+    const headers = ["Full Name", "Email", "Joined Date", "Role", "Verified Status"];
     const rows = filteredSupporters.map(user => {
       const joinDate = user.joinedAt?.toDate ? user.joinedAt.toDate() : 
                        user.createdAt?.toDate ? user.createdAt.toDate() : 
@@ -81,7 +103,8 @@ export default function AdminSupporterDashboard() {
         `"${user.fullName || 'Anonymous'}"`,
         `"${user.email || ''}"`,
         `"${format(joinDate, 'yyyy-MM-dd')}"`,
-        `"${user.role || 'Supporter'}"`
+        `"${user.role || 'Supporter'}"`,
+        `"${user.isVerified ? 'Verified' : 'Unverified'}"`
       ].join(",");
     });
     
@@ -160,7 +183,7 @@ export default function AdminSupporterDashboard() {
                 <TableHead className="text-[10px] font-black uppercase tracking-widest">Full Name</TableHead>
                 <TableHead className="text-[10px] font-black uppercase tracking-widest">Email Address</TableHead>
                 <TableHead className="text-[10px] font-black uppercase tracking-widest">Induction Date</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-widest">Official Rank</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-widest">Verified Status</TableHead>
                 <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -209,9 +232,20 @@ export default function AdminSupporterDashboard() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className="bg-accent text-accent-foreground text-[9px] font-black uppercase tracking-widest px-3 py-1 shadow-sm border-none">
-                          Supporter
-                        </Badge>
+                        <button 
+                          onClick={() => handleToggleVerification(user.id, !!user.isVerified)}
+                          className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ${
+                            user.isVerified 
+                              ? 'bg-green-600 text-white hover:bg-green-700' 
+                              : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary border'
+                          }`}
+                        >
+                          {user.isVerified ? (
+                            <><CheckCircle2 className="h-3 w-3" /> Verified</>
+                          ) : (
+                            <><ShieldAlert className="h-3 w-3" /> Unverified</>
+                          )}
+                        </button>
                       </TableCell>
                       <TableCell className="text-right pr-6">
                         <Button 
