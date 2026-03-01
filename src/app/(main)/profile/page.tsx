@@ -14,14 +14,14 @@ import { useAuth, useFirestore, useStorage } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { updatePassword, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { updateUserDocument } from "@/firebase/firestore/firestore-service";
+import { doc, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, User, Loader2, LogOut, Save, Phone, Lock, Eye, EyeOff, X, Check, ShieldCheck, MapPin } from "lucide-react";
 import { getIslandGroup } from "@/lib/data";
 
 const NCR_CODE = "130000000";
 
-// Comprehensive Zip Code Map (Synchronized with Join Page)
+// Comprehensive Zip Code Map
 const ZIP_CODE_MAP: Record<string, any> = {
     "METRO MANILA (NCR)": {
         "CITY OF MANILA": { 
@@ -47,79 +47,6 @@ const ZIP_CODE_MAP: Record<string, any> = {
         "SAN JUAN CITY": "1500",
         "PATEROS": "1620",
         "default": "1000"
-    },
-    "BASILAN": {
-        "CITY OF LAMITAN": "7302",
-        "CITY OF ISABELA": "7300",
-        "AKBAR": "7302",
-        "AL-BARKA": "7302",
-        "HADJI MOHAMMAD AJUL": "7302",
-        "HADJI MUHTAMAD": "7300",
-        "LANTAWAN": "7301",
-        "MALUSO": "7303",
-        "SUMISIP": "7305",
-        "TIPO-TIPO": "7304",
-        "TUBURAN": "7302",
-        "UNGKAYA PUKAN": "7304",
-        "default": "7300"
-    },
-    "CEBU": {
-        "CEBU CITY": "6000",
-        "MANDAUE CITY": "6014",
-        "LAPU-LAPU CITY": "6015",
-        "TALISAY CITY": "6045",
-        "CONSOLACION": "6001",
-        "default": "6000"
-    },
-    "DAVAO DEL SUR": {
-        "DAVAO CITY": "8000",
-        "DIGOS CITY": "8002",
-        "default": "8000"
-    },
-    "ILOILO": {
-        "ILOILO CITY": "5000",
-        "default": "5000"
-    },
-    "PANGASINAN": {
-        "DAGUPAN CITY": "2400",
-        "LINGAYEN": "2401",
-        "URDANETA CITY": "2428",
-        "default": "2400"
-    },
-    "BULACAN": {
-        "CITY OF MALOLOS": "3000",
-        "CITY OF MEYCAUAYAN": "3020",
-        "CITY OF SAN JOSE DEL MONTE": "3023",
-        "default": "3000"
-    },
-    "CAVITE": {
-        "CITY OF IMUS": "4103",
-        "CITY OF BACOOR": "4102",
-        "CITY OF DASMARIÑAS": "4114",
-        "TAGAYTAY CITY": "4120",
-        "default": "4100"
-    },
-    "LAGUNA": {
-        "CITY OF CALAMBA": "4027",
-        "CITY OF BIÑAN": "4024",
-        "CITY OF SANTA ROSA": "4026",
-        "default": "4000"
-    },
-    "RIZAL": {
-        "ANTIPOLO CITY": "1870",
-        "CAINTA": "1900",
-        "TAYTAY": "1920",
-        "default": "1900"
-    },
-    "BATANGAS": {
-        "BATANGAS CITY": "4200",
-        "LIPA CITY": "4217",
-        "default": "4200"
-    },
-    "PAMPANGA": {
-        "CITY OF SAN FERNANDO": "2000",
-        "ANGELES CITY": "2009",
-        "default": "2000"
     }
 };
 
@@ -169,29 +96,22 @@ export default function ProfilePage() {
     const streamRef = useRef<MediaStream | null>(null);
     const verifierRef = useRef<RecaptchaVerifier | null>(null);
 
-    // Fetch Provinces on mount
     useEffect(() => {
-        const fetchProvincesAndNCR = async () => {
+        const fetchProvinces = async () => {
             try {
                 const pResp = await fetch('https://psgc.gitlab.io/api/provinces/');
                 const pData = await pResp.json();
                 const ncrResp = await fetch(`https://psgc.gitlab.io/api/regions/${NCR_CODE}`);
                 const ncrData = await ncrResp.json();
-                const combined = [
-                    { ...ncrData, name: "METRO MANILA (NCR)", isNCR: true },
-                    ...pData
-                ].sort((a: any, b: any) => a.name.localeCompare(b.name));
+                const combined = [{ ...ncrData, name: "METRO MANILA (NCR)", isNCR: true }, ...pData].sort((a: any, b: any) => a.name.localeCompare(b.name));
                 setProvinces(combined);
-            } catch (error) {
-                console.error("Error fetching provinces:", error);
-            }
+            } catch (error) {}
         };
-        fetchProvincesAndNCR();
+        fetchProvinces();
     }, []);
 
-    // Set initial form data
     useEffect(() => {
-        if (userData && provinces.length > 0) {
+        if (userData) {
             setFullName(userData.fullName || "");
             setPhoneNumber(userData.phoneNumber || "");
             setStreetAddress(userData.streetAddress || "");
@@ -200,186 +120,89 @@ export default function ProfilePage() {
             setSelectedProvince(userData.province || "");
             setSelectedCity(userData.city || "");
             setSelectedBarangay(userData.barangay || "");
-            setIsPhoneVerified(true);
+            setIsPhoneVerified(!!userData.phoneNumber);
         }
-    }, [userData, provinces]);
+    }, [userData]);
 
-    // Handle Cascading Location Logic
     useEffect(() => {
-        if (!selectedProvince) {
-            setCities([]);
-            return;
-        }
+        if (!selectedProvince) { setCities([]); return; }
         const fetchCities = async () => {
-            try {
-                const province = provinces.find(p => p.name === selectedProvince);
-                if (province) {
-                    const endpoint = province.isNCR 
-                        ? `https://psgc.gitlab.io/api/regions/${NCR_CODE}/cities-municipalities/`
-                        : `https://psgc.gitlab.io/api/provinces/${province.code}/cities-municipalities/`;
-                    const response = await fetch(endpoint);
-                    const data = await response.json();
-                    setCities(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
-                }
-            } catch (error) {
-                console.error("Error fetching cities:", error);
+            const province = provinces.find(p => p.name === selectedProvince);
+            if (province) {
+                const endpoint = province.isNCR 
+                    ? `https://psgc.gitlab.io/api/regions/${NCR_CODE}/cities-municipalities/`
+                    : `https://psgc.gitlab.io/api/provinces/${province.code}/cities-municipalities/`;
+                const response = await fetch(endpoint);
+                const data = await response.json();
+                setCities(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
             }
         };
         fetchCities();
     }, [selectedProvince, provinces]);
 
     useEffect(() => {
-        if (!selectedCity) {
-            setBarangays([]);
-            return;
-        }
+        if (!selectedCity) { setBarangays([]); return; }
         const fetchBarangays = async () => {
-            try {
-                const city = cities.find(c => c.name === selectedCity);
-                if (city) {
-                    const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
-                    const data = await response.json();
-                    setBarangays(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
-                }
-            } catch (error) {
-                console.error("Error fetching barangays:", error);
+            const city = cities.find(c => c.name === selectedCity);
+            if (city) {
+                const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
+                const data = await response.json();
+                setBarangays(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
             }
         };
         fetchBarangays();
     }, [selectedCity, cities]);
-
-    // Intelligent Auto Zip Code Assignment (Synchronized)
-    useEffect(() => {
-        if (!selectedProvince) {
-            setZipCode("");
-            return;
-        }
-
-        const provinceKey = selectedProvince.toUpperCase();
-        const cityKey = selectedCity.toUpperCase();
-        const brgyKey = selectedBarangay.toUpperCase();
-
-        const provinceData = ZIP_CODE_MAP[provinceKey];
-        if (provinceData) {
-            const cityData = provinceData[cityKey];
-            if (cityData) {
-                if (typeof cityData === 'string') {
-                    setZipCode(cityData);
-                } else if (typeof cityData === 'object') {
-                    const matchedBrgyKey = Object.keys(cityData).find(key => 
-                        brgyKey.includes(key) || key.includes(brgyKey)
-                    );
-                    setZipCode(matchedBrgyKey ? cityData[matchedBrgyKey] : (cityData.default || "0000"));
-                }
-            } else {
-                setZipCode(provinceData.default || "0000");
-            }
-        } else {
-            setZipCode("0000"); 
-        }
-    }, [selectedProvince, selectedCity, selectedBarangay]);
-
-    // Robust reCAPTCHA initialization
-    useEffect(() => {
-        if (!verifierRef.current && typeof window !== "undefined") {
-            try {
-                verifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container-profile', {
-                    'size': 'invisible',
-                });
-            } catch (e) {
-                console.error("reCAPTCHA init failed:", e);
-            }
-        }
-        return () => {
-            if (verifierRef.current) {
-                verifierRef.current.clear();
-                verifierRef.current = null;
-            }
-        };
-    }, [auth]);
 
     const startCamera = async () => {
         setIsCameraOpen(true);
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             streamRef.current = stream;
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
+            if (videoRef.current) videoRef.current.srcObject = stream;
             setHasCameraPermission(true);
         } catch (error) {
-            console.error('Error accessing camera:', error);
             setHasCameraPermission(false);
-            toast({
-                variant: 'destructive',
-                title: 'Camera Access Denied',
-                description: 'Please enable camera permissions in your browser settings.',
-            });
+            toast({ variant: 'destructive', title: 'Camera Error', description: 'Enable permissions.' });
         }
     };
 
     const stopCamera = () => {
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop());
-            streamRef.current = null;
-        }
+        if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
         setIsCameraOpen(false);
     };
 
     const capturePhoto = () => {
         if (videoRef.current && canvasRef.current) {
-            const video = videoRef.current;
             const canvas = canvasRef.current;
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const context = canvas.getContext('2d');
-            if (context) {
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        setSelectedFile(blob);
-                        setPhotoURL(canvas.toDataURL('image/jpeg'));
-                        stopCamera();
-                    }
-                }, 'image/jpeg', 0.95);
-            }
-        }
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setSelectedFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPhotoURL(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-            setIsCameraOpen(false);
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    setSelectedFile(blob);
+                    setPhotoURL(canvas.toDataURL('image/jpeg'));
+                    stopCamera();
+                }
+            }, 'image/jpeg', 0.9);
         }
     };
 
     const handleSendVerificationSms = async () => {
-        if (!phoneNumber || phoneNumber.length < 10) {
+        if (!phoneNumber || phoneNumber.length < 13) {
             toast({ variant: "destructive", title: "Invalid Phone Number" });
             return;
         }
         setSaving(true);
         try {
             if (!verifierRef.current) {
-                verifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container-profile', { 'size': 'invisible' });
+                verifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-profile', { 'size': 'invisible' });
             }
             const result = await signInWithPhoneNumber(auth, phoneNumber, verifierRef.current);
             setConfirmationResult(result);
             setShowOtpInput(true);
-            toast({ title: "Verification Sent", description: "Please enter the code sent to your mobile." });
+            toast({ title: "Verification Sent" });
         } catch (error: any) {
-            console.error(error);
             toast({ variant: "destructive", title: "SMS Failed", description: error.message });
-            if (error.message.includes('reCAPTCHA client element has been removed')) {
-                if (verifierRef.current) verifierRef.current.clear();
-                verifierRef.current = null;
-            }
         } finally {
             setSaving(false);
         }
@@ -392,7 +215,7 @@ export default function ProfilePage() {
             await confirmationResult.confirm(otp);
             setIsPhoneVerified(true);
             setShowOtpInput(false);
-            toast({ title: "Phone Verified", description: "You can now save your profile changes." });
+            toast({ title: "Phone Verified" });
         } catch (error: any) {
             toast({ variant: "destructive", title: "Incorrect Code" });
         } finally {
@@ -404,11 +227,6 @@ export default function ProfilePage() {
         e.preventDefault();
         if (!user) return;
 
-        if (newPassword && newPassword !== confirmPassword) {
-            toast({ variant: "destructive", title: "Password Mismatch" });
-            return;
-        }
-
         if (phoneNumber !== userData?.phoneNumber && !isPhoneVerified) {
             handleSendVerificationSms();
             return;
@@ -419,15 +237,14 @@ export default function ProfilePage() {
             let finalPhotoURL = photoURL;
             if (selectedFile) {
                 const storageRef = ref(storage, `users/${user.uid}/profile.jpg`);
-                const uploadResult = await uploadBytes(storageRef, selectedFile);
-                finalPhotoURL = await getDownloadURL(uploadResult.ref);
+                await uploadBytes(storageRef, selectedFile);
+                finalPhotoURL = await getDownloadURL(storageRef);
             }
 
-            if (newPassword) {
-                await updatePassword(user, newPassword);
-            }
+            if (newPassword) await updatePassword(user, newPassword);
 
-            await updateUserDocument(firestore, user.uid, {
+            const userRef = doc(firestore, "users", user.uid);
+            const updates: any = {
                 fullName: fullName.trim().toUpperCase(),
                 phoneNumber: phoneNumber.trim(),
                 streetAddress: streetAddress.trim().toUpperCase(),
@@ -437,42 +254,41 @@ export default function ProfilePage() {
                 islandGroup: getIslandGroup(selectedProvince),
                 zipCode: zipCode.trim(),
                 photoURL: finalPhotoURL,
-            });
+            };
 
-            toast({ title: "Profile Updated", description: "Changes saved to the National Registry." });
-            setNewPassword("");
-            setConfirmPassword("");
-            setSelectedFile(null);
-            setIsPhoneVerified(true);
+            // AUTO-ELEVATION LOGIC
+            if (userData.role === 'Supporter' && isPhoneVerified) {
+                updates.role = 'Member';
+                updates.isVerified = true;
+                updates.jurisdictionLevel = 'City/Municipal';
+                updates.vettingLevel = 'Bronze';
+            }
+
+            await updateDoc(userRef, updates);
+
+            toast({ title: "Profile Updated", description: "Induction record synchronized." });
+            setNewPassword(""); setConfirmPassword(""); setSelectedFile(null);
         } catch (error: any) {
-            console.error("Save error:", error);
             toast({ variant: "destructive", title: "Update Failed", description: error.message });
         } finally {
             setSaving(false);
         }
     };
 
-    const handleLogout = async () => {
-        await auth.signOut();
-        router.push("/login");
-    };
+    if (userLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
-    if (userLoading) {
-        return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-    }
-
-    const needsPhoneVerification = phoneNumber !== userData?.phoneNumber && !isPhoneVerified;
+    const needsVerification = phoneNumber !== userData?.phoneNumber && !isPhoneVerified;
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-50/50 pb-20">
-            <div id="recaptcha-container-profile"></div>
+            <div id="recaptcha-profile"></div>
             <div className="bg-card p-6 md:p-8 border-b shadow-sm">
                 <div className="max-w-5xl mx-auto flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-bold font-headline text-primary uppercase tracking-tight">Member Profile</h1>
-                        <p className="mt-1 text-sm text-muted-foreground font-medium">Manage your personal information and party credentials.</p>
+                        <h1 className="text-3xl font-bold font-headline text-primary uppercase">Member Profile</h1>
+                        <p className="mt-1 text-sm text-muted-foreground font-medium">Manage your tactical credentials.</p>
                     </div>
-                    <Button onClick={handleLogout} variant="outline" size="sm" className="text-destructive font-bold uppercase text-[10px] tracking-widest">
+                    <Button onClick={() => auth.signOut()} variant="outline" size="sm" className="text-destructive font-bold uppercase text-[10px] tracking-widest">
                         <LogOut className="mr-2 h-3 w-3" /> Sign Out
                     </Button>
                 </div>
@@ -480,161 +296,87 @@ export default function ProfilePage() {
 
             <div className="p-4 md:p-8 max-w-5xl mx-auto w-full">
                 <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-24">
-                    
                     <div className="lg:col-span-1 space-y-6">
                         <Card className="shadow-lg overflow-hidden border-primary/10">
-                            <CardHeader className="bg-primary text-primary-foreground text-center pb-8 pt-10 relative overflow-hidden">
-                                <div className="absolute inset-0 opacity-10">
-                                    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                                        <pattern id="grid-profile" width="20" height="20" patternUnits="userSpaceOnUse">
-                                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" strokeWidth="0.5"/>
-                                        </pattern>
-                                        <rect width="100%" height="100%" fill="url(#grid-profile)" />
-                                    </svg>
-                                </div>
-                                <Avatar className="h-32 w-32 border-4 border-white shadow-xl bg-background mx-auto relative z-10">
+                            <CardHeader className="bg-primary text-primary-foreground text-center pb-8 pt-10">
+                                <Avatar className="h-32 w-32 border-4 border-white shadow-xl bg-background mx-auto">
                                     <AvatarImage src={photoURL || ""} className="object-cover" />
-                                    <AvatarFallback className="bg-muted text-muted-foreground text-4xl font-bold">
-                                        {fullName?.charAt(0) || <User className="h-16 w-16" />}
-                                    </AvatarFallback>
+                                    <AvatarFallback className="text-4xl font-bold">{fullName?.charAt(0)}</AvatarFallback>
                                 </Avatar>
-                                <div className="mt-4 relative z-10">
-                                    <h2 className="text-xl font-black uppercase tracking-tight">{fullName || 'MEMBER NAME'}</h2>
-                                    <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{userData?.role || 'Supporter'}</p>
+                                <div className="mt-4">
+                                    <h2 className="text-xl font-black uppercase tracking-tight">{fullName || 'MEMBER'}</h2>
+                                    <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{userData?.role}</p>
                                 </div>
                             </CardHeader>
-                            <CardContent className="pt-6 space-y-4">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-primary text-center block">Update Photo</Label>
+                            <CardContent className="pt-6">
                                 {isCameraOpen ? (
                                     <div className="space-y-3">
-                                        <div className="relative rounded-lg overflow-hidden bg-black aspect-square shadow-inner border">
-                                            <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                                            {hasCameraPermission === false && <Alert variant="destructive"><AlertTitle>Access Denied</AlertTitle></Alert>}
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button type="button" onClick={capturePhoto} className="flex-1 text-xs font-bold"><Check className="mr-2 h-3 w-3" /> Capture</Button>
-                                            <Button type="button" variant="outline" size="sm" onClick={stopCamera}><X className="h-3 w-3" /></Button>
-                                        </div>
+                                        <div className="relative rounded-lg overflow-hidden bg-black aspect-square"><video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline /></div>
+                                        <div className="flex gap-2"><Button type="button" onClick={capturePhoto} className="flex-1 text-xs font-bold">Capture</Button><Button type="button" variant="outline" size="sm" onClick={stopCamera}><X className="h-3 w-3" /></Button></div>
                                         <canvas ref={canvasRef} className="hidden" />
                                     </div>
                                 ) : (
                                     <div className="flex flex-col gap-2">
-                                        <Button type="button" variant="outline" className="w-full text-xs font-bold" onClick={startCamera}><Camera className="mr-2 h-4 w-4 text-primary" /> Take Selfie</Button>
-                                        <Button type="button" variant="ghost" className="w-full text-[10px] font-bold uppercase tracking-widest" onClick={() => fileInputRef.current?.click()}>Upload File</Button>
-                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                                        <Button type="button" variant="outline" className="w-full text-xs font-bold" onClick={startCamera}><Camera className="mr-2 h-4 w-4" /> Take Selfie</Button>
+                                        <Button type="button" variant="ghost" className="w-full text-[10px] font-bold uppercase" onClick={() => fileInputRef.current?.click()}>Upload File</Button>
+                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={e => {const f=e.target.files?.[0]; if(f){setSelectedFile(f); const r=new FileReader(); r.onloadend=()=>setPhotoURL(r.result as string); r.readAsDataURL(f);}}} />
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-
-                        <Card className="shadow-lg border-t-4 border-destructive/20">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                                    <Lock className="h-4 w-4 text-destructive" /> Security
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4 pt-4">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-60">New Password</Label>
-                                    <div className="relative">
-                                        <Input type={showPassword ? "text" : "password"} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" className="h-10 text-xs" />
-                                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-muted-foreground">
-                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-60">Confirm Password</Label>
-                                    <Input type={showPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" className="h-10 text-xs" />
-                                </div>
                             </CardContent>
                         </Card>
                     </div>
 
                     <div className="lg:col-span-2 space-y-6">
                         <Card className="shadow-xl border-t-4 border-primary">
-                            <CardHeader>
-                                <CardTitle className="text-xl font-headline flex items-center gap-2 uppercase tracking-tight">
-                                    <User className="h-5 w-5 text-primary" /> Registry Information
-                                </CardTitle>
-                            </CardHeader>
+                            <CardHeader><CardTitle className="text-xl font-headline flex items-center gap-2 uppercase tracking-tight"><User className="h-5 w-5" /> Registry Information</CardTitle></CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="grid gap-4">
+                                <div className="space-y-4">
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Full Name</Label>
                                         <Input value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="h-11 font-bold uppercase" />
                                     </div>
-
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Contact Number</Label>
                                         <div className="flex gap-2">
                                             <Input value={phoneNumber} onChange={e => {setPhoneNumber(e.target.value); setIsPhoneVerified(false);}} className="h-11" placeholder="+639..." />
-                                            {needsPhoneVerification && !showOtpInput && (
-                                                <Button type="button" onClick={handleSendVerificationSms} variant="outline" className="border-primary text-primary font-bold">Verify</Button>
-                                            )}
+                                            {needsVerification && !showOtpInput && <Button type="button" onClick={handleSendVerificationSms} variant="outline" className="border-primary text-primary font-bold">Verify</Button>}
                                         </div>
                                         {showOtpInput && (
                                             <div className="mt-2 p-4 bg-muted/50 rounded-lg space-y-3">
-                                                <Label className="text-[10px] font-black">Enter 6-Digit Code</Label>
-                                                <div className="flex gap-2">
-                                                    <Input value={otp} onChange={e => setOtp(e.target.value)} placeholder="000000" maxLength={6} className="text-center font-bold tracking-widest" />
-                                                    <Button type="button" onClick={handleVerifyOtp} disabled={saving}>Confirm</Button>
-                                                </div>
+                                                <Label className="text-[10px] font-black">Induction Code</Label>
+                                                <div className="flex gap-2"><Input value={otp} onChange={e => setOtp(e.target.value)} placeholder="000000" maxLength={6} className="text-center font-bold" /><Button type="button" onClick={handleVerifyOtp}>Confirm</Button></div>
                                             </div>
                                         )}
-                                        {isPhoneVerified && phoneNumber !== userData?.phoneNumber && (
-                                            <div className="flex items-center gap-2 text-green-600 text-xs font-bold mt-1">
-                                                <ShieldCheck className="h-3 w-3" /> Verified & Ready to Save
-                                            </div>
-                                        )}
+                                        {isPhoneVerified && phoneNumber !== userData?.phoneNumber && <div className="flex items-center gap-2 text-green-600 text-xs font-bold mt-1"><ShieldCheck className="h-3 w-3" /> Verified & Ready for Promotion</div>}
                                     </div>
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Province / Region</Label>
+                                            <Label className="text-[10px] font-black uppercase text-primary">Province</Label>
                                             <Select onValueChange={setSelectedProvince} value={selectedProvince}>
-                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select Province" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {provinces.map((p) => <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>)}
-                                                </SelectContent>
+                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                <SelectContent>{provinces.map(p => <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
                                             </Select>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary">City / Municipality</Label>
+                                            <Label className="text-[10px] font-black uppercase text-primary">City</Label>
                                             <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
-                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select City" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {cities.map((c) => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}
-                                                </SelectContent>
+                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                <SelectContent>{cities.map(c => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                                             </Select>
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Barangay</Label>
-                                            <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
-                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select Barangay" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {barangays.map((b) => <SelectItem key={b.code} value={b.name}>{b.name}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Zip Code (Auto)</Label>
-                                            <Input value={zipCode} readOnly className="h-11 bg-muted font-mono" />
-                                        </div>
-                                    </div>
-
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Street Address</Label>
-                                        <Input value={streetAddress} onChange={e => setStreetAddress(e.target.value.toUpperCase())} className="h-11 uppercase" />
+                                        <Label className="text-[10px] font-black uppercase text-primary">Barangay</Label>
+                                        <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
+                                            <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
+                                            <SelectContent>{barangays.map(b => <SelectItem key={b.code} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
                             </CardContent>
                             <CardFooter className="bg-muted/30 border-t pt-6">
                                 <Button type="submit" className="w-full md:w-auto h-12 px-10 text-lg font-black uppercase tracking-widest" disabled={saving || (phoneNumber !== userData?.phoneNumber && !isPhoneVerified)}>
-                                    {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><Save className="mr-2 h-5 w-5" /> Save Changes</>}
+                                    {saving ? <Loader2 className="animate-spin" /> : <><Save className="mr-2 h-4 w-4" /> Sync Record</>}
                                 </Button>
                             </CardFooter>
                         </Card>

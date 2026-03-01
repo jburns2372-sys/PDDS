@@ -27,7 +27,7 @@ export function createUserDocument(
 
 /**
  * Isolated update using updateDoc
- * Updated with strict executive check
+ * Allows users to update their own profile while enforcing role gates for others.
  */
 export function updateUserDocument(
   db: Firestore,
@@ -35,9 +35,12 @@ export function updateUserDocument(
   data: Record<string, any>,
   currentUserProfile: any
 ) {
-  // STRICT SECURITY GUARD
-  if (currentUserProfile?.role !== 'President' && currentUserProfile?.role !== 'Admin' && !currentUserProfile?.isSuperAdmin) {
-    throw new Error('Unauthorized: Only the President or Administrators can modify the registry.');
+  const isOwner = currentUserProfile?.uid === userId;
+  const isExecutive = currentUserProfile?.role === 'President' || currentUserProfile?.role === 'Admin' || currentUserProfile?.isSuperAdmin;
+
+  // STRICT SECURITY GUARD: Only Owners or Executives can update
+  if (!isOwner && !isExecutive) {
+    throw new Error('Unauthorized: Only the account owner or Administrators can modify this record.');
   }
 
   const userRef = doc(db, 'users', userId);

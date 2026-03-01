@@ -62,8 +62,17 @@ service cloud.firestore {
         isSecGen() && 
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isVerified', 'vettingLevel', 'verifiedAt', 'verifiedBy', 'adminNotes', 'isMuted'])
       ) || (
-        isOwner(userId) && 
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isVerified', 'vettingLevel', 'meritPoints', 'isAdmin', 'isSuperAdmin', 'idVerificationUrl'])
+        isOwner(userId) && (
+          // Standard update without role change
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isVerified', 'vettingLevel', 'meritPoints', 'isAdmin', 'isSuperAdmin', 'idVerificationUrl']) ||
+          // Allow self-elevation from Supporter to Member if providing phone
+          (
+            resource.data.role == 'Supporter' && 
+            request.resource.data.role == 'Member' && 
+            request.resource.data.isVerified == true &&
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isApproved', 'meritPoints', 'isAdmin', 'isSuperAdmin'])
+          )
+        )
       );
       
       allow delete: if isExecutive();
