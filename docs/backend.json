@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "user": {
@@ -24,6 +23,7 @@
             "VP legal affairs", "Officer", "Member", "Admin", "System Admin", "Supporter"
           ]
         },
+        "isAdmin": { "type": "boolean", "default": false },
         "isSuperAdmin": { "type": "boolean" },
         "jurisdictionLevel": {
           "type": "string",
@@ -74,7 +74,7 @@
     }
   },
   "auth": {
-    "providers": ["email-password", "phone", "google.com", "facebook.com"]
+    "providers": ["email-password", "phone", "google.com"]
   },
   "firestore": {
     "/users/{userId}": {
