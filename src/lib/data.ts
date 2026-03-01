@@ -1,4 +1,6 @@
 
+import { Landmark, Scale, Building2, Shield, HeartHandshake, BookOpen } from "lucide-react";
+
 /**
  * PDDS Party Configuration & Official References
  */
@@ -28,6 +30,15 @@ export const jurisdictionLevels = [
   "Provincial",
   "City/Municipal",
   "Barangay",
+];
+
+export const policyCategories = [
+  { name: "Economy", icon: Landmark },
+  { name: "Justice", icon: Scale },
+  { name: "Local Governance", icon: Building2 },
+  { name: "Security", icon: Shield },
+  { name: "Social Welfare", icon: HeartHandshake },
+  { name: "Education", icon: BookOpen }
 ];
 
 /**

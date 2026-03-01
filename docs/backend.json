@@ -59,6 +59,31 @@
       },
       "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
     },
+    "policy": {
+      "title": "Policy Manifesto",
+      "description": "An official party position or manifesto document.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string", "enum": ["Economy", "Justice", "Local Governance", "Security", "Social Welfare", "Education"] },
+        "summary": { "type": "string" },
+        "documentUrl": { "type": "string" },
+        "shareCount": { "type": "number", "default": 0 },
+        "quiz": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } },
+              "correctAnswerIndex": { "type": "number" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "summary", "documentUrl"]
+    },
     "chat_room": {
       "title": "Chat Room",
       "description": "A jurisdictional conversation hub.",
@@ -117,6 +142,10 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/user" },
       "description": "Stores user profile information."
+    },
+    "/policies/{policyId}": {
+      "schema": { "$ref": "#/backend/entities/policy" },
+      "description": "Stores official party policies and manifestos."
     },
     "/chat_rooms/{roomId}": {
       "schema": { "$ref": "#/backend/entities/chat_room" },

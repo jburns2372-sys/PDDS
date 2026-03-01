@@ -61,7 +61,17 @@ service cloud.firestore {
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin', 'isAdmin', 'isVerified', 'adminNotes', 'vettingLevel', 'idVerificationUrl'])
       );
       
+      match /policy_engagement/{id} {
+        allow read, write: if isOwner(userId);
+      }
+      
       allow delete: if isExecutive();
+    }
+
+    match /policies/{id} {
+      allow read: if isSignedIn();
+      allow write: if isPRO();
+      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareCount']);
     }
 
     match /announcements/{id} {

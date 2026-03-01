@@ -37,12 +37,15 @@ import {
   LayoutList,
   History,
   CheckCircle2,
-  Users
+  Users,
+  GraduationCap,
+  PlusCircle
 } from "lucide-react";
+import { policyCategories } from "@/lib/data";
 
 /**
  * @fileOverview PRO Official Broadcast & Media Center.
- * Handles Press Releases, Asset Library, Tactical Event Deployment, and Poll Management.
+ * Handles Press Releases, Asset Library, Tactical Event Deployment, Poll Management, and Policy Hub.
  */
 export default function ProBulletinPage() {
   const firestore = useFirestore();
@@ -63,6 +66,17 @@ export default function ProBulletinPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Policy Hub State
+  const [policyTitle, setPolicyTitle] = useState("");
+  const [policySummary, setPolicySummary] = useState("");
+  const [policyCat, setPolicyCat] = useState("Economy");
+  const [policyFile, setPolicyFile] = useState<File | null>(null);
+  const policyInputRef = useRef<HTMLInputElement>(null);
+  const [isDeployingPolicy, setIsDeployingPolicy] = useState(false);
+  const [policyQuiz, setPolicyQuiz] = useState<any[]>([
+    { question: "", options: ["", "", ""], correctAnswerIndex: 0 }
+  ]);
 
   // Event Command State
   const [eventTitle, setEventTitle] = useState("");
@@ -147,6 +161,50 @@ export default function ProBulletinPage() {
     }
   };
 
+  const handlePolicyDeploy = async () => {
+    if (!policyFile || !policyTitle || !policySummary) {
+      toast({ variant: "destructive", title: "Missing Policy Data" });
+      return;
+    }
+
+    setIsDeployingPolicy(true);
+    try {
+      const storageRef = ref(storage, `manifestos/${Date.now()}-${policyFile.name}`);
+      const uploadResult = await uploadBytes(storageRef, policyFile);
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+
+      await addDoc(collection(firestore, 'policies'), {
+        title: policyTitle.trim().toUpperCase(),
+        category: policyCat,
+        summary: policySummary.trim(),
+        documentUrl: downloadURL,
+        quiz: policyQuiz,
+        shareCount: 0,
+        createdAt: serverTimestamp()
+      });
+
+      toast({ title: "Manifesto Deployed", description: "The platform library has been updated." });
+      setPolicyTitle(""); setPolicySummary(""); setPolicyFile(null);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Deployment Failed", description: error.message });
+    } finally {
+      setIsDeployingPolicy(false);
+    }
+  };
+
+  const updateQuiz = (idx: number, field: string, val: any) => {
+    const next = [...policyQuiz];
+    if (field === 'question') next[idx].question = val;
+    if (field === 'correct') next[idx].correctAnswerIndex = val;
+    if (field.startsWith('opt-')) {
+      const oIdx = parseInt(field.split('-')[1]);
+      next[idx].options[oIdx] = val;
+    }
+    setPolicyQuiz(next);
+  };
+
+  const addQuizQuestion = () => setPolicyQuiz([...policyQuiz, { question: "", options: ["", "", ""], correctAnswerIndex: 0 }]);
+
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventTitle || !eventDate) {
@@ -183,14 +241,6 @@ export default function ProBulletinPage() {
     } finally {
       setIsCreatingEvent(false);
     }
-  };
-
-  const addPollOption = () => setPollOptions([...pollOptions, ""]);
-  const removePollOption = (index: number) => setPollOptions(pollOptions.filter((_, i) => i !== index));
-  const updatePollOption = (index: number, val: string) => {
-    const next = [...pollOptions];
-    next[index] = val;
-    setPollOptions(next);
   };
 
   const handleCreatePoll = async (e: React.FormEvent) => {
@@ -272,6 +322,9 @@ export default function ProBulletinPage() {
             <TabsTrigger value="announcements" className="px-8 font-black uppercase text-[10px] tracking-widest">
               <Newspaper className="h-4 w-4 mr-2" /> Press Release
             </TabsTrigger>
+            <TabsTrigger value="policy" className="px-8 font-black uppercase text-[10px] tracking-widest">
+              <GraduationCap className="h-4 w-4 mr-2" /> Policy Hub
+            </TabsTrigger>
             <TabsTrigger value="events" className="px-8 font-black uppercase text-[10px] tracking-widest">
               <CalendarDays className="h-4 w-4 mr-2" /> Event Command
             </TabsTrigger>
@@ -282,6 +335,80 @@ export default function ProBulletinPage() {
               <Library className="h-4 w-4 mr-2" /> Asset Manager
             </TabsTrigger>
           </TabsList>
+
+          {/* POLICY HUB TAB */}
+          <TabsContent value="policy">
+            <Card className="shadow-xl border-t-4 border-primary">
+              <CardHeader className="bg-primary/5 border-b">
+                <CardTitle className="text-lg font-headline flex items-center gap-2 text-primary uppercase">
+                  <GraduationCap className="h-5 w-5" />
+                  Party Manifesto Hub
+                </CardTitle>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest">Deploy manifestos and proficiency quizzes to the National Library.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8 pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-primary">Manifesto Title</Label>
+                      <Input placeholder="e.g. 10% Flat Tax Framework" value={policyTitle} onChange={e => setPolicyTitle(e.target.value)} className="h-12 border-2" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-primary">Pillar Category</Label>
+                      <Select value={policyCat} onValueChange={setPolicyCat}>
+                        <SelectTrigger className="h-12 border-2"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {policyCategories.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-primary">Document (PDF)</Label>
+                      <Input type="file" accept="application/pdf" onChange={e => setPolicyFile(e.target.files?.[0] || null)} className="h-12 border-2" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-primary">Member Summary</Label>
+                      <Textarea placeholder="Quick read summary for members..." value={policySummary} onChange={e => setPolicySummary(e.target.value)} className="h-24 border-2" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 border-l pl-6">
+                    <Label className="text-[10px] font-black uppercase text-primary flex items-center justify-between">
+                      Briefing Proficiency Quiz
+                      <Button variant="ghost" size="sm" onClick={addQuizQuestion} className="h-6 text-[8px] font-black"><PlusCircle className="h-3 w-3 mr-1" /> Add Question</Button>
+                    </Label>
+                    <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
+                      {policyQuiz.map((q, qIdx) => (
+                        <Card key={qIdx} className="p-4 bg-muted/30 border-dashed">
+                          <Input placeholder={`Question ${qIdx + 1}`} value={q.question} onChange={e => updateQuiz(qIdx, 'question', e.target.value)} className="mb-3 font-bold" />
+                          <div className="space-y-2">
+                            {q.options.map((o: any, oIdx: any) => (
+                              <div key={oIdx} className="flex gap-2">
+                                <Input placeholder={`Option ${oIdx + 1}`} value={o} onChange={e => updateQuiz(qIdx, `opt-${oIdx}`, e.target.value)} className="h-8 text-xs" />
+                                <Button 
+                                  variant={q.correctAnswerIndex === oIdx ? 'default' : 'outline'} 
+                                  size="sm" 
+                                  onClick={() => updateQuiz(qIdx, 'correct', oIdx)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="bg-muted/30 border-t pt-6">
+                <Button onClick={handlePolicyDeploy} disabled={isDeployingPolicy} className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-2xl">
+                  {isDeployingPolicy ? <><Loader2 className="animate-spin mr-2 h-6 w-6" /> Deploying Manifesto...</> : <><GraduationCap className="mr-2 h-6 w-6" /> Publish to National Library</>}
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
 
           {/* ANNOUNCEMENTS TAB */}
           <TabsContent value="announcements">
