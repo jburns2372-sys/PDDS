@@ -29,6 +29,32 @@ export const jurisdictionLevels = [
   "Barangay",
 ];
 
+/**
+ * Intelligent helper to categorize provinces into island groups.
+ */
+export const getIslandGroup = (province: string) => {
+  const upProv = province.toUpperCase();
+  
+  const mindanaoProvinces = [
+    "DAVAO DEL SUR", "DAVAO DEL NORTE", "DAVAO ORIENTAL", "DAVAO DE ORO", "DAVAO OCCIDENTAL",
+    "ZAMBOANGA DEL SUR", "ZAMBOANGA DEL NORTE", "ZAMBOANGA SIBUGAY",
+    "BUKIDNON", "CAMIGUIN", "LANAO DEL NORTE", "MISAMIS OCCIDENTAL", "MISAMIS ORIENTAL",
+    "COTABATO", "SOUTH COTABATO", "SARANGANI", "SULTAN KUDARAT",
+    "AGUSAN DEL NORTE", "AGUSAN DEL SUR", "SURIGAO DEL NORTE", "SURIGAO DEL SUR", "DINAGAT ISLANDS",
+    "BASILAN", "SULU", "TAWI-TAWI", "LANAO DEL SUR", "MAGUINDANAO DEL NORTE", "MAGUINDANAO DEL SUR"
+  ];
+  
+  const visayasProvinces = [
+    "CEBU", "BOHOL", "SIQUIJOR",
+    "ILOILO", "ANTIQUE", "CAPIZ", "GUIMARAS", "NEGROS OCCIDENTAL",
+    "NEGROS ORIENTAL", "LEYTE", "SOUTHERN LEYTE", "NORTHERN SAMAR", "EASTERN SAMAR", "WESTERN SAMAR", "BILIRAN"
+  ];
+  
+  if (mindanaoProvinces.includes(upProv) || upProv.includes("DAVAO")) return "Mindanao";
+  if (visayasProvinces.includes(upProv)) return "Visayas";
+  return "Luzon"; // Fallback for NCR and Northern regions
+};
+
 export type Agenda = {
   title: string;
   icon: string;

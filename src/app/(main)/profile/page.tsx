@@ -17,6 +17,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { updateUserDocument } from "@/firebase/firestore/firestore-service";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, User, Loader2, LogOut, Save, Phone, Lock, Eye, EyeOff, X, Check, ShieldCheck, MapPin } from "lucide-react";
+import { getIslandGroup } from "@/lib/data";
 
 const NCR_CODE = "130000000";
 
@@ -433,6 +434,7 @@ export default function ProfilePage() {
                 barangay: selectedBarangay,
                 city: selectedCity,
                 province: selectedProvince,
+                islandGroup: getIslandGroup(selectedProvince),
                 zipCode: zipCode.trim(),
                 photoURL: finalPhotoURL,
             });

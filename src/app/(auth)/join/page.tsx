@@ -23,6 +23,7 @@ import { doc, setDoc, serverTimestamp, increment, updateDoc, getDoc } from "fire
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Loader2, XCircle } from "lucide-react";
+import { getIslandGroup } from "@/lib/data";
 
 const NCR_CODE = "130000000";
 
@@ -121,10 +122,12 @@ export default function JoinPage() {
                 phoneNumber: phoneNumber.trim(),
                 city: selectedCity,
                 province: selectedProvince,
+                islandGroup: getIslandGroup(selectedProvince),
                 photoURL: null,
                 role: "Supporter",
                 jurisdictionLevel: "National",
                 isApproved: true,
+                isVerified: false,
                 kartilyaAgreed: true,
                 recruitCount: 0,
                 referredBy: referralUid || null,
@@ -170,6 +173,7 @@ export default function JoinPage() {
                     role: "Supporter",
                     jurisdictionLevel: "National",
                     isApproved: true,
+                    isVerified: false,
                     kartilyaAgreed: true,
                     recruitCount: 0,
                     createdAt: serverTimestamp(),

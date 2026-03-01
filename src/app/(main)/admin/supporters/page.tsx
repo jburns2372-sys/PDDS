@@ -21,7 +21,8 @@ import {
   ShieldCheck,
   Clock,
   Activity,
-  ArrowUpCircle
+  MapPin,
+  Globe
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
@@ -37,7 +38,7 @@ const PROMOTABLE_ROLES = ["Supporter", "Volunteer", "Coordinator", "Moderator", 
 /**
  * @fileOverview Recruitment & Command Dashboard.
  * Manages the transition of Supporters to official Ranks (Member/Officer/Coordinator).
- * Displays real-time induction stats and engagement tracking.
+ * Displays real-time induction stats and regional distribution.
  */
 export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
@@ -59,11 +60,12 @@ export default function AdminSupporterDashboard() {
     return { total, verified, pending, supporters };
   }, [users]);
 
-  // 3. Search logic: Filter by Full Name or Email
+  // 3. Search logic: Filter by Full Name, Email, or District
   const filteredUsers = useMemo(() => {
     return users.filter(s => 
       (s.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (s.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+      (s.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.islandGroup || '').toLowerCase().includes(searchTerm.toLowerCase())
     ).sort((a: any, b: any) => {
       const dateA = a.lastActive?.seconds || a.joinedAt?.seconds || a.createdAt?.seconds || 0;
       const dateB = b.lastActive?.seconds || b.joinedAt?.seconds || b.createdAt?.seconds || 0;
@@ -140,7 +142,7 @@ export default function AdminSupporterDashboard() {
 
   // 📂 The CSV Export Function
   const exportToCSV = () => {
-    const headers = ["Full Name", "Email", "Role", "Joined Date", "Last Active", "Verified Status"];
+    const headers = ["Full Name", "Email", "Role", "District", "Location", "Joined Date", "Last Active", "Verified Status"];
     const rows = filteredUsers.map(user => {
       const joinDate = user.joinedAt?.toDate ? user.joinedAt.toDate() : 
                        user.createdAt?.toDate ? user.createdAt.toDate() : 
@@ -151,6 +153,8 @@ export default function AdminSupporterDashboard() {
         `"${user.fullName || 'Anonymous'}"`,
         `"${user.email || ''}"`,
         `"${user.role || ''}"`,
+        `"${user.islandGroup || ''}"`,
+        `"${user.city || ''}, ${user.province || ''}"`,
         `"${format(joinDate, 'yyyy-MM-dd')}"`,
         `"${format(activeDate, 'yyyy-MM-dd HH:mm')}"`,
         `"${user.isVerified ? 'Verified' : 'Unverified'}"`
@@ -161,7 +165,7 @@ export default function AdminSupporterDashboard() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `PDDS_Command_Log_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.setAttribute("download", `PDDS_Supporters_District_Log_${format(new Date(), 'yyyy-MM-dd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -173,7 +177,7 @@ export default function AdminSupporterDashboard() {
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-            Syncing Command Logs...
+            Syncing District Records...
           </p>
         </div>
       </div>
@@ -189,9 +193,9 @@ export default function AdminSupporterDashboard() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-primary font-headline flex items-center gap-3 uppercase tracking-tight">
               <Users className="h-6 w-6 md:h-8 md:w-8" />
-              Command Center
+              Recruitment Command
             </h1>
-            <p className="text-muted-foreground text-sm mt-1 font-medium italic">Role Management & Real-Time Induction Monitor.</p>
+            <p className="text-muted-foreground text-sm mt-1 font-medium italic">Role Management & Regional District Monitoring.</p>
           </div>
           
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
@@ -199,7 +203,7 @@ export default function AdminSupporterDashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
                 className="pl-10 h-12 uppercase font-bold text-xs border-primary/20 shadow-sm focus:ring-accent" 
-                placeholder="Search by Name or Email..." 
+                placeholder="Search by Name, Email or District..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -219,7 +223,7 @@ export default function AdminSupporterDashboard() {
           <Card className="shadow-lg border-l-4 border-l-primary bg-blue-50/30">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Total Registry</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Total Inductions</p>
                 <p className="text-3xl font-black text-primary">{stats.total.toLocaleString()}</p>
               </div>
               <div className="p-3 bg-primary/10 rounded-full text-primary">
@@ -255,7 +259,7 @@ export default function AdminSupporterDashboard() {
           <Card className="shadow-lg border-l-4 border-l-orange-600 bg-orange-50/30">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/60 mb-1">Pending Check</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/60 mb-1">Audit Queue</p>
                 <p className="text-3xl font-black text-orange-600">{stats.pending.toLocaleString()}</p>
               </div>
               <div className="p-3 bg-orange-100 rounded-full text-orange-600">
@@ -270,10 +274,10 @@ export default function AdminSupporterDashboard() {
           <CardHeader className="bg-primary text-primary-foreground py-4 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
-              Operational Registry ({filteredUsers.length})
+              Strategic Registry ({filteredUsers.length})
             </CardTitle>
             <Badge variant="outline" className="border-white/20 text-white text-[9px] font-black uppercase tracking-widest px-3">
-              Real-Time Role Management
+              National District Control
             </Badge>
           </CardHeader>
           <div className="overflow-x-auto">
@@ -281,7 +285,7 @@ export default function AdminSupporterDashboard() {
               <TableHeader>
                 <TableRow className="bg-muted/50 border-b">
                   <TableHead className="pl-6 text-[10px] font-black uppercase tracking-widest">Profile</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Identification</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">District</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Assign Rank</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Engagement</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Verification</TableHead>
@@ -301,23 +305,36 @@ export default function AdminSupporterDashboard() {
                 ) : (
                   filteredUsers.map((user: any) => {
                     const lastActiveRelative = user.lastActive?.toDate ? formatDistanceToNow(user.lastActive.toDate(), { addSuffix: true }) : 'Inducting...';
-                    const lastActiveFull = user.lastActive?.toDate ? format(user.lastActive.toDate(), 'PP p') : 'Never';
                     
                     return (
                       <TableRow key={user.uid || user.id} className="hover:bg-muted/30 transition-colors group">
                         <TableCell className="pl-6">
-                          <Avatar className="h-10 w-10 border-2 border-primary/5 shadow-sm group-hover:scale-110 transition-transform">
-                            <AvatarImage src={user.photoURL} />
-                            <AvatarFallback className="bg-primary/5 text-primary font-black">
-                              {user.fullName?.charAt(0) || <User className="h-5 w-5" />}
-                            </AvatarFallback>
-                          </Avatar>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 border-2 border-primary/5 shadow-sm group-hover:scale-110 transition-transform">
+                              <AvatarImage src={user.photoURL} />
+                              <AvatarFallback className="bg-primary/5 text-primary font-black">
+                                {user.fullName?.charAt(0) || <User className="h-5 w-5" />}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-black text-sm uppercase text-primary leading-tight">{user.fullName}</div>
+                              <div className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5 flex items-center gap-1">
+                                <Mail className="h-2.5 w-2.5" /> 
+                                {user.email}
+                              </div>
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <div className="font-black text-sm uppercase text-primary leading-tight">{user.fullName}</div>
-                          <div className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5 flex items-center gap-1">
-                            <Mail className="h-2.5 w-2.5" /> 
-                            {user.email}
+                          <div className="space-y-1">
+                            <Badge className="bg-primary/10 text-primary border-none text-[9px] font-black uppercase tracking-widest px-2">
+                              <Globe className="h-2 w-2 mr-1 text-accent" />
+                              {user.islandGroup || 'Luzon'}
+                            </Badge>
+                            <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                              <MapPin className="h-2 w-2" />
+                              {user.city || 'National HQ'}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -338,15 +355,9 @@ export default function AdminSupporterDashboard() {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase">
-                              <Activity className="h-3 w-3 text-accent" />
-                              {lastActiveRelative}
-                            </div>
-                            <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
-                              <Clock className="h-2.5 w-2.5" />
-                              {lastActiveFull}
-                            </div>
+                          <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase">
+                            <Activity className="h-3 w-3 text-accent animate-pulse" />
+                            {lastActiveRelative}
                           </div>
                         </TableCell>
                         <TableCell>
