@@ -5,10 +5,53 @@
  */
 
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onUserCreated } = require("firebase-functions/v2/auth");
 const { getFirestore } = require("firebase-admin/firestore");
 const admin = require("firebase-admin");
 
+// Initialize Admin SDK
 admin.initializeApp();
+
+/**
+ * Trigger: Auto Assign Supporter Role for Google Users
+ * This script intercepts every new Google sign-in and blocks Admin access.
+ * It ensures that every social login is forced into the 'Supporter' role by default.
+ */
+exports.autoAssignSupporterRole = onUserCreated(async (event) => {
+    const user = event.data;
+    const db = getFirestore();
+    
+    // 1. Check if the user joined using Google
+    const isGoogleUser = user.providerData.some(
+      (provider) => provider.providerId === 'google.com'
+    );
+
+    // We only force roles for Google users to prevent unexpected Admin escalation via social login
+    if (!isGoogleUser) return;
+
+    // 2. Define the Supporter Profile (Hard-coded to prevent Admin rights)
+    // Aligned with the National Registry schema (Full Name, Approved Status, etc.)
+    const supporterProfile = {
+      uid: user.uid,
+      email: user.email,
+      fullName: (user.displayName || "New PDDS Supporter").toUpperCase(),
+      photoURL: user.photoURL || "",
+      role: "Supporter", // Forced role: cannot be Admin or President
+      isApproved: true,
+      kartilyaAgreed: true,
+      recruitCount: 0,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    try {
+      // 3. Save the record to your 'users' collection in Firestore
+      // Use merge: true to avoid overwriting existing data if the user somehow already existed
+      await db.collection('users').doc(user.uid).set(supporterProfile, { merge: true });
+      console.log(`[AUTH SECURITY] Successfully registered ${user.email} as a PDDS Supporter via Cloud Function.`);
+    } catch (error) {
+      console.error("[AUTH SECURITY ERROR] Critical Error during Supporter Registration:", error);
+    }
+});
 
 /**
  * Trigger: On Supporter Created
@@ -34,15 +77,6 @@ exports.onSupporterCreated = onDocumentCreated("users/{userId}", async (event) =
 
             console.log(`[WELCOME SMS DISPATCH] Target: ${phoneNumber} | Message: ${welcomeMessage}`);
 
-            /**
-             * PRODUCTION INTEGRATION (e.g., Twilio / Movider)
-             * 
-             * await fetch('https://api.sms-gateway.com/send', {
-             *   method: 'POST',
-             *   body: JSON.stringify({ to: phoneNumber, message: welcomeMessage })
-             * });
-             */
-
             // Audit log the SMS notification
             await db.collection("communication_audit").add({
                 type: "Welcome SMS",
@@ -53,7 +87,7 @@ exports.onSupporterCreated = onDocumentCreated("users/{userId}", async (event) =
             });
         } else {
             // 3. FAILOVER: QUEUE WELCOME EMAIL
-            console.log(`[WELCOME EMAIL QUEUED] User ${fullName} (${event.params.userId}) has no phone number. Queueing induction email.`);
+            console.log(`[WELCOME EMAIL QUEUED] User ${fullName} has no phone number. Queueing induction email.`);
             
             await db.collection("communication_audit").add({
                 type: "Welcome Email Queue",
