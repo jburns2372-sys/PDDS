@@ -1,23 +1,30 @@
 
 "use client";
 
-import { useCollection } from "@/firebase";
+import { useCollection, useFirestore } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Search, User, Mail, CalendarDays, Download } from "lucide-react";
+import { Loader2, Users, Search, User, Mail, CalendarDays, Download, Trash2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { doc, deleteDoc } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 /**
- * @fileOverview Supporter Recruitment Dashboard.
- * Displays real-time list of all supporters registered in the National Registry.
- * Includes Search and CSV Export capabilities for leadership.
+ * @fileOverview Supporter Recruitment Dashboard with Management Capabilities.
+ * Displays real-time list of all supporters.
+ * Includes Search, CSV Export, and Administrative Removal.
  */
 export default function AdminSupporterDashboard() {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  
   // 1. Fetch only 'Supporter' roles using real-time listener
   const { data: supporters, loading } = useCollection('users', {
     queries: [{ attribute: 'role', operator: '==', value: 'Supporter' }]
@@ -36,6 +43,31 @@ export default function AdminSupporterDashboard() {
       return dateB - dateA;
     });
   }, [supporters, searchTerm]);
+
+  // 🗑️ The Delete Function (With Confirmation)
+  const handleDelete = async (userId: string, userName: string) => {
+    const confirmDelete = window.confirm(`Are you sure you want to remove ${userName} from the PDDS National Registry? This action is irreversible.`);
+    
+    if (confirmDelete) {
+      const docRef = doc(firestore, "users", userId);
+      
+      // NO await here - Pattern 1 for mutations
+      deleteDoc(docRef)
+        .then(() => {
+          toast({
+            title: "Record Removed",
+            description: `${userName} has been successfully deleted from the registry.`
+          });
+        })
+        .catch(async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'delete',
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        });
+    }
+  };
 
   // 📂 The CSV Export Function
   const exportToCSV = () => {
@@ -128,13 +160,14 @@ export default function AdminSupporterDashboard() {
                 <TableHead className="text-[10px] font-black uppercase tracking-widest">Full Name</TableHead>
                 <TableHead className="text-[10px] font-black uppercase tracking-widest">Email Address</TableHead>
                 <TableHead className="text-[10px] font-black uppercase tracking-widest">Induction Date</TableHead>
-                <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Official Rank</TableHead>
+                <TableHead className="text-[10px] font-black uppercase tracking-widest">Official Rank</TableHead>
+                <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredSupporters.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-24 text-muted-foreground italic">
+                  <TableCell colSpan={6} className="text-center py-24 text-muted-foreground italic">
                     <div className="flex flex-col items-center gap-2 opacity-50">
                       <Search className="h-8 w-8" />
                       <p className="font-bold uppercase text-xs tracking-widest">No supporters found matching your search criteria.</p>
@@ -175,10 +208,20 @@ export default function AdminSupporterDashboard() {
                           {format(joinDate, 'MMM dd, yyyy')}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right pr-6">
+                      <TableCell>
                         <Badge className="bg-accent text-accent-foreground text-[9px] font-black uppercase tracking-widest px-3 py-1 shadow-sm border-none">
                           Supporter
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:bg-destructive hover:text-white transition-colors rounded-full"
+                          onClick={() => handleDelete(user.id, user.fullName)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
