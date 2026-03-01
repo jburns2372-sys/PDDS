@@ -1,10 +1,10 @@
 /**
- * @fileOverview Firebase Cloud Functions for PatriotLink Automation.
- * Handles server-side triggers for member registration and mobilization alerts.
+ * @fileOverview Firebase Cloud Functions for PatriotLink.
+ * Handles automated role assignment and security triggers for the National Registry.
  */
 
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onUserCreated } = require("firebase-functions/v2/auth");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { getFirestore } = require("firebase-admin/firestore");
 const admin = require("firebase-admin");
 
@@ -12,11 +12,11 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 /**
- * Trigger: Force Supporter Role for Google Users
- * This script captures Google user info and blocks unauthorized Admin access.
- * It ensures that every social login is forced into the 'Supporter' role by default.
+ * Trigger: captureGoogleUserInfo
+ * Intercepts new Google sign-ins to provision a restricted Supporter profile.
+ * Ensures social users do not have administrative access by default.
  */
-exports.autoAssignSupporterRole = onUserCreated(async (event) => {
+exports.captureGoogleUserInfo = onUserCreated(async (event) => {
     const user = event.data;
     const db = getFirestore();
     
@@ -28,15 +28,15 @@ exports.autoAssignSupporterRole = onUserCreated(async (event) => {
     // Only force roles for Google users as requested
     if (!isGoogleUser) return;
 
-    // 2. Define the Supporter Profile
-    // Aligned with the National Registry schema and user requirements.
+    // 2. Provision the restricted Supporter Profile
+    // Aligned with the National Registry schema and security requirements.
     const supporterProfile = {
       uid: user.uid,
       email: user.email,
       fullName: (user.displayName || "Anonymous Supporter").toUpperCase(),
       photoURL: user.photoURL || "",
       role: "Supporter", // Forced role: cannot be Admin or President
-      isAdmin: false,    // Strictly denied Admin status per security requirement
+      isAdmin: false,    // Strictly denied Admin status for security
       isApproved: true,
       kartilyaAgreed: true,
       jurisdictionLevel: "National",
@@ -45,12 +45,12 @@ exports.autoAssignSupporterRole = onUserCreated(async (event) => {
     };
 
     try {
-      // 3. Save the record to your 'users' collection in Firestore
-      // Use set with no merge to ensure the role is IRREVOCABLY overwritten to Supporter on creation
+      // 3. Save the record to the 'users' collection in Firestore
+      // Uses the UID as the document ID for direct retrieval
       await db.collection('users').doc(user.uid).set(supporterProfile);
-      console.log(`[AUTH SECURITY] Successfully registered Google user ${user.email} as a Supporter in the National Registry.`);
+      console.log(`[AUTH SECURITY] Successfully registered Google user ${user.email} as a Supporter.`);
     } catch (error) {
-      console.error("[AUTH SECURITY ERROR] Critical Error during Supporter Registration:", error);
+      console.error("[AUTH SECURITY ERROR] Critical Error during Supporter registration:", error);
     }
 });
 
@@ -74,7 +74,7 @@ exports.onSupporterCreated = onDocumentCreated("users/{userId}", async (event) =
         if (phoneNumber && phoneNumber.trim() !== "") {
             const welcomeMessage = `Mabuhay ${fullName}! Welcome to the PDDS movement. 🇵🇭 Your account is now active in the National Registry. Log in to download your Digital ID: [Portal-Link.ph]`;
 
-            console.log(`[WELCOME SMS DISPATCH] Target: ${phoneNumber} | Message: ${welcomeMessage}`);
+            console.log(`[WELCOME SMS DISPATCH] Target: ${phoneNumber}`);
 
             // Audit log the SMS notification
             await db.collection("communication_audit").add({
