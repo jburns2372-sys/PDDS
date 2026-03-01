@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef } from "react";
@@ -5,10 +6,9 @@ import { CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import PddsLogo from "./icons/pdds-logo";
-import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 import { toPng } from "html-to-image";
-import { Download, ShieldCheck, CheckCircle2, MapPin, UserCheck, AlertCircle } from "lucide-react";
+import { Download, CheckCircle2, MapPin, UserCheck, AlertCircle } from "lucide-react";
 
 /**
  * @fileOverview High-fidelity Digital Member ID Card.
@@ -47,7 +47,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
         <div 
             ref={cardRef} 
             id="pdds-id-card"
-            className="w-full max-w-[320px] aspect-[1/1.58] overflow-hidden rounded-3xl shadow-2xl bg-gradient-to-br from-[#1e3a8a] via-[#1e3a8a] to-[#3b82f6] text-white relative flex flex-col"
+            className="w-full max-w-[320px] aspect-[1/1.58] overflow-hidden rounded-[20px] shadow-2xl bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6] text-white relative flex flex-col"
         >
           {/* Internal Security Pattern Overlay */}
           <div className="absolute inset-0 opacity-5 pointer-events-none">
@@ -101,15 +101,15 @@ export function DigitalIdCard({ userData }: { userData: any }) {
                 
                 <div className="pt-1">
                   {isVerified ? (
-                    <Badge className="bg-[#10b981] hover:bg-[#10b981] text-white text-[9px] font-black px-2 py-0.5 border-none shadow-sm flex items-center gap-1 w-fit">
+                    <div className="bg-[#10b981] text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 w-fit">
                       <UserCheck className="h-2.5 w-2.5" />
                       VETTED: {vettingTier.toUpperCase()}
-                    </Badge>
+                    </div>
                   ) : (
-                    <Badge className="bg-[#f59e0b] hover:bg-[#f59e0b] text-white text-[9px] font-black px-2 py-0.5 border-none shadow-sm flex items-center gap-1 w-fit">
+                    <div className="bg-[#f59e0b] text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 w-fit">
                       <AlertCircle className="h-2.5 w-2.5" />
                       PENDING VERIFICATION
-                    </Badge>
+                    </div>
                   )}
                 </div>
               </div>
@@ -117,9 +117,9 @@ export function DigitalIdCard({ userData }: { userData: any }) {
 
             {/* Verification Key (QR Code) */}
             <div className="flex-1 flex items-center justify-center py-2">
-              <div className="bg-white p-3 rounded-2xl shadow-inner border border-black/5 relative group">
+              <div className="bg-white p-3 rounded-xl shadow-inner border border-black/5 relative group">
                 <QRCodeSVG value={userData.uid || 'null'} size={120} level="H" fgColor="#1e3a8a" />
-                <div className="absolute inset-0 bg-[#1e3a8a]/5 rounded-2xl pointer-events-none border border-white/20" />
+                <div className="absolute inset-0 bg-[#1e3a8a]/5 rounded-xl pointer-events-none border border-white/20" />
               </div>
             </div>
 
