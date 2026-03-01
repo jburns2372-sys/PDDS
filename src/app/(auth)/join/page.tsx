@@ -30,6 +30,7 @@ const NCR_CODE = "130000000";
 /**
  * @fileOverview Join Page for new members.
  * Handles both SMS-based registry and instant Google induction.
+ * Includes Referral & Merit reward logic.
  */
 export default function JoinPage() {
     const auth = useAuth();
@@ -135,6 +136,8 @@ export default function JoinPage() {
                 isVerified: false,
                 kartilyaAgreed: true,
                 recruitCount: 0,
+                referralCount: 0,
+                meritPoints: 10, // Initial Signup Merit
                 referredBy: referralUid || null,
                 createdAt: serverTimestamp(),
                 lastActive: serverTimestamp(),
@@ -142,12 +145,17 @@ export default function JoinPage() {
 
             await setDoc(doc(firestore, "users", user.uid), supporterData);
             
+            // Referral Rewards Logic
             if (referralUid) {
                 const referrerRef = doc(firestore, "users", referralUid);
-                updateDoc(referrerRef, { recruitCount: increment(1) }).catch(e => console.error(e));
+                updateDoc(referrerRef, { 
+                    recruitCount: increment(1),
+                    referralCount: increment(1),
+                    meritPoints: increment(50) // Recruiter reward
+                }).catch(e => console.error("Referral reward failed:", e));
             }
 
-            toast({ title: "Welcome!", description: "National Registry record created." });
+            toast({ title: "Welcome!", description: "Induction complete. You've earned 10 Merit Points." });
             setTimeout(() => {
                 window.location.href = "/home?registered=true";
             }, 500);
@@ -183,10 +191,24 @@ export default function JoinPage() {
                     isVerified: false,
                     kartilyaAgreed: true,
                     recruitCount: 0,
+                    referralCount: 0,
+                    meritPoints: 10,
+                    referredBy: referralUid || null,
                     createdAt: serverTimestamp(),
                     lastActive: serverTimestamp(),
                 });
-                toast({ title: "Welcome!", description: "You have been inducted as a Supporter." });
+
+                // Apply referral rewards for social induction
+                if (referralUid) {
+                    const referrerRef = doc(firestore, "users", referralUid);
+                    updateDoc(referrerRef, { 
+                        recruitCount: increment(1),
+                        referralCount: increment(1),
+                        meritPoints: increment(50) 
+                    }).catch(e => console.error("Referral reward failed:", e));
+                }
+
+                toast({ title: "Welcome!", description: "You have been inducted as a Supporter (+10 Merit)." });
             } else {
                 updateDoc(userRef, { lastActive: serverTimestamp() }).catch(e => console.error(e));
             }

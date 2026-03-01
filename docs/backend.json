@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "user": {
@@ -48,7 +49,8 @@
         "photoURL": { "type": "string" },
         "kartilyaAgreed": { "type": "boolean" },
         "isApproved": { "type": "boolean" },
-        "recruitCount": { "type": "number", "default": 0 },
+        "meritPoints": { "type": "number", "default": 0 },
+        "referralCount": { "type": "number", "default": 0 },
         "referredBy": { "type": "string" },
         "fcmToken": { "type": "string" },
         "adminNotes": { "type": "string", "description": "Internal administrative notes for leadership only." },

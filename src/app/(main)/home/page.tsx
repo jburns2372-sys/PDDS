@@ -14,10 +14,11 @@ import { DailyPulse } from "@/components/daily-pulse";
 import { CommunityFeedback } from "@/components/community-feedback";
 import { RecruitmentLeaderboard } from "@/components/recruitment-leaderboard";
 import { VipVerificationBanner } from "@/components/vip-verification-banner";
+import { MeritProgress } from "@/components/merit-progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck } from "lucide-react";
+import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMessaging, useFirestore, useCollection } from "@/firebase";
 import { getToken } from "firebase/messaging";
@@ -133,7 +134,6 @@ export default function HomePage() {
             title: "Induction Complete!",
             description: "Success! You are now officially registered in the National Registry.",
         });
-        // Clear param without refresh
         window.history.replaceState({}, '', window.location.pathname);
     }
   }, [searchParams, toast]);
@@ -192,7 +192,7 @@ export default function HomePage() {
   const referralLink = `${domain}/join?ref=${userData?.uid}`;
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);
-    toast({ title: "Link Copies", description: "Share this link to recruit new supporters!" });
+    toast({ title: "Link Copied!", description: "Share this to earn 50 Merit Points per recruit!" });
   };
 
   const hasNewAnnouncements = filteredAnnouncements.length > 0 && filteredAnnouncements[0].id !== lastSeenAnnouncement;
@@ -208,7 +208,35 @@ export default function HomePage() {
             <div className="lg:col-span-4 flex flex-col gap-8">
                 <DigitalIdCard userData={userData} />
                 
+                <MeritProgress meritPoints={userData?.meritPoints || 0} />
+
                 {(isSupporter || isMember) && <LocalChapterSection userData={userData} />}
+
+                <Card className="shadow-lg border-t-4 border-red-600 bg-red-50/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-red-700">
+                      <Share2 className="h-4 w-4" />
+                      Growth Command
+                    </CardTitle>
+                    <CardDescription className="text-[10px] font-bold uppercase">Earn 50 Merit Points per successful induction.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-2">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-3xl font-bold text-primary">{userData?.referralCount || 0}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Recruits Dispatched</p>
+                      </div>
+                      <Trophy className="h-8 w-8 text-accent opacity-20" />
+                    </div>
+                    <div className="pt-4 border-t space-y-3">
+                      <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Your Tactical Referral Link</Label>
+                      <div className="flex gap-2">
+                        <Input value={referralLink} readOnly className="text-xs bg-muted font-mono h-10" />
+                        <Button size="icon" variant="outline" onClick={copyLink} className="shrink-0 h-10 w-10 border-primary/20"><Copy className="h-4 w-4 text-primary" /></Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <Card className="shadow-lg border-t-4 border-primary">
                   <CardHeader className="pb-2">
@@ -237,32 +265,6 @@ export default function HomePage() {
                     )}
                   </CardContent>
                 </Card>
-
-                {isSupporter && (
-                  <Card className="shadow-lg border-t-4 border-accent">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                        <Trophy className="h-4 w-4 text-accent" />
-                        Recruitment Power
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <p className="text-3xl font-bold text-primary">{userData?.recruitCount || 0}</p>
-                          <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Supporters Recruited</p>
-                        </div>
-                      </div>
-                      <div className="pt-4 border-t space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Your Referral Link</Label>
-                        <div className="flex gap-2">
-                          <Input value={referralLink} readOnly className="text-xs bg-muted font-mono" />
-                          <Button size="icon" variant="outline" onClick={copyLink} className="shrink-0"><Copy className="h-4 w-4" /></Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
 
                 <DailyPulse />
             </div>
@@ -298,7 +300,7 @@ export default function HomePage() {
                     </div>
                 </section>
                 
-                {isSupporter && <RecruitmentLeaderboard />}
+                <RecruitmentLeaderboard />
                 <ActionCenter />
                 <CommunityFeedback />
             </div>
