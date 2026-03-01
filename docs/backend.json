@@ -33,6 +33,14 @@
         "isAdmin": { "type": "boolean", "default": false },
         "isSuperAdmin": { "type": "boolean" },
         "isVerified": { "type": "boolean", "default": false },
+        "vettingLevel": {
+          "type": "string",
+          "enum": ["Bronze", "Silver", "Gold"],
+          "description": "Official administrative vetting tier."
+        },
+        "idVerificationUrl": { "type": "string", "description": "Secure link to government ID scan." },
+        "verifiedAt": { "type": "string", "format": "date-time" },
+        "verifiedBy": { "type": "string" },
         "jurisdictionLevel": {
           "type": "string",
           "enum": ["National", "Regional", "Provincial", "City/Municipal", "Barangay"]

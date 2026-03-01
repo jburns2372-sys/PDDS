@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useCollection, useFirestore } from "@/firebase";
+import { useCollection, useFirestore, useStorage } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -23,13 +24,17 @@ import {
   Filter,
   FileEdit,
   Mail,
-  ChevronRight
+  ChevronRight,
+  Shield,
+  Upload,
+  UserCheck
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { format, formatDistanceToNow } from "date-fns";
-import { doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -44,16 +49,19 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useUserData } from "@/context/user-data-context";
 
 const PROMOTABLE_ROLES = ["Supporter", "Volunteer", "Coordinator", "Moderator", "Member", "Officer"];
 
 /**
  * @fileOverview Recruitment & Regional Command Dashboard.
  * Strictly filtered to show only "Supporter" roles for recruitment management.
- * Integrated with Direct Contact (Email) and Tactical Notes systems.
+ * Integrated with Direct Contact (Email), Vetting Flow, and Tactical Notes systems.
  */
 export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
+  const storage = useStorage();
+  const { userData: currentAdmin } = useUserData();
   const { toast } = useToast();
   
   const { data: allUsers, loading } = useCollection('users');
@@ -62,6 +70,12 @@ export default function AdminSupporterDashboard() {
   const [filterDistrict, setFilterDistrict] = useState("All");
   const [filterCity, setFilterCity] = useState("All");
   
+  // Vetting State
+  const [selectedUserForVetting, setSelectedUserForVetting] = useState<any>(null);
+  const [vettingLevel, setVettingLevel] = useState("Bronze");
+  const [idPhoto, setIdPhoto] = useState<File | null>(null);
+  const [isVetting, setIsVetting] = useState(false);
+
   // Internal Tactical Notes State
   const [selectedUserForNotes, setSelectedUserForNotes] = useState<any>(null);
   const [noteContent, setNoteContent] = useState("");
@@ -123,16 +137,41 @@ export default function AdminSupporterDashboard() {
       });
   };
 
-  const handleToggleVerification = async (userId: string, currentStatus: boolean) => {
-    const userRef = doc(firestore, "users", userId);
-    const newStatus = !currentStatus;
-    updateDoc(userRef, { isVerified: newStatus })
-      .then(() => toast({ title: newStatus ? "Member Verified" : "Verification Revoked" }))
-      .catch(async () => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: userRef.path, operation: 'update', requestResourceData: { isVerified: newStatus }
-        }));
+  const handleVetting = async () => {
+    if (!selectedUserForVetting) return;
+    setIsVetting(true);
+    let idUrl = selectedUserForVetting.idVerificationUrl || "";
+
+    try {
+      // 1. Upload ID Photo to a secure, private folder
+      if (idPhoto) {
+        const storageRef = ref(storage, `id_verifications/${selectedUserForVetting.id}`);
+        await uploadBytes(storageRef, idPhoto);
+        idUrl = await getDownloadURL(storageRef);
+      }
+
+      // 2. Update the User's document with the official Vetting Status
+      const userRef = doc(firestore, "users", selectedUserForVetting.id);
+      await updateDoc(userRef, {
+        isVerified: true,
+        vettingLevel: vettingLevel,
+        idVerificationUrl: idUrl,
+        verifiedAt: serverTimestamp(),
+        verifiedBy: currentAdmin?.fullName || currentAdmin?.role || "Secretary General"
       });
+
+      toast({ 
+        title: "Vetting Complete", 
+        description: `${selectedUserForVetting.fullName} has been successfully vetted at ${vettingLevel} level.` 
+      });
+      setSelectedUserForVetting(null);
+      setIdPhoto(null);
+    } catch (error: any) {
+      console.error("Vetting error:", error);
+      toast({ variant: "destructive", title: "Vetting Failed", description: error.message });
+    } finally {
+      setIsVetting(false);
+    }
   };
 
   const handleSendEmail = (email: string, name: string) => {
@@ -171,7 +210,7 @@ export default function AdminSupporterDashboard() {
   };
 
   const exportToCSV = () => {
-    const headers = ["Full Name", "Email", "Role", "District", "City", "Last Active", "Verified"];
+    const headers = ["Full Name", "Email", "Role", "District", "City", "Last Active", "Verified", "Vetting Level"];
     const rows = filteredSupporters.map(user => {
       const lastActive = user.lastActive?.toDate ? format(user.lastActive.toDate(), 'yyyy-MM-dd HH:mm') : 'Never';
       return [
@@ -181,7 +220,8 @@ export default function AdminSupporterDashboard() {
         `"${user.islandGroup || ''}"`,
         `"${user.city || ''}"`,
         `"${lastActive}"`,
-        `"${user.isVerified ? 'Yes' : 'No'}"`
+        `"${user.isVerified ? 'Yes' : 'No'}"`,
+        `"${user.vettingLevel || 'None'}"`
       ].join(",");
     });
     
@@ -319,8 +359,8 @@ export default function AdminSupporterDashboard() {
                 <TableRow className="bg-muted/50 border-b">
                   <TableHead className="pl-6 text-[10px] font-black uppercase tracking-widest">Profile</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">City / District</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Vetting Status</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Engagement</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Verification</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Promotion</TableHead>
                   <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Actions</TableHead>
                 </TableRow>
@@ -336,9 +376,6 @@ export default function AdminSupporterDashboard() {
                   filteredSupporters.map((user: any) => {
                     const lastActiveRelative = user.lastActive?.toDate 
                       ? formatDistanceToNow(user.lastActive.toDate(), { addSuffix: true }) 
-                      : 'Never';
-                    const lastActiveAbsolute = user.lastActive?.toDate 
-                      ? format(user.lastActive.toDate(), 'MMM d, yyyy h:mm a') 
                       : 'Never';
                     
                     return (
@@ -367,26 +404,30 @@ export default function AdminSupporterDashboard() {
                           </div>
                         </TableCell>
                         <TableCell>
+                          <div className="flex flex-col gap-1.5">
+                            {user.isVerified ? (
+                              <Badge className={`text-[8px] font-black uppercase w-fit ${
+                                user.vettingLevel === 'Gold' ? 'bg-amber-500' : 
+                                user.vettingLevel === 'Silver' ? 'bg-slate-400' : 'bg-emerald-600'
+                              }`}>
+                                <ShieldCheck className="h-2.5 w-2.5 mr-1" />
+                                {user.vettingLevel || 'Verified'}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[8px] font-black uppercase w-fit opacity-50">
+                                <ShieldAlert className="h-2.5 w-2.5 mr-1 text-orange-500" />
+                                PENDING AUDIT
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase">
                               <Activity className="h-3 w-3 text-accent" />
                               {lastActiveRelative}
                             </div>
-                            <div className="text-[8px] font-bold text-muted-foreground uppercase">
-                              {lastActiveAbsolute}
-                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <button 
-                            onClick={() => handleToggleVerification(user.id, !!user.isVerified)}
-                            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ${
-                              user.isVerified ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
-                            }`}
-                          >
-                            {user.isVerified ? <CheckCircle2 className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
-                            {user.isVerified ? 'Verified' : 'Pending'}
-                          </button>
                         </TableCell>
                         <TableCell>
                           <Select defaultValue={user.role} onValueChange={(v) => handleRoleChange(user.id, v)}>
@@ -410,6 +451,77 @@ export default function AdminSupporterDashboard() {
                           >
                             <Mail className="h-4 w-4" />
                           </Button>
+
+                          {/* 🛡️ Vetting Dialog */}
+                          <Dialog open={selectedUserForVetting?.id === user.id} onOpenChange={(open) => {
+                            if (open) setSelectedUserForVetting(user);
+                            else { setSelectedUserForVetting(null); setIdPhoto(null); }
+                          }}>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 rounded-full" title="Vetting Flow">
+                                <Shield className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                              <DialogHeader>
+                                <DialogTitle className="font-headline uppercase text-primary flex items-center gap-2">
+                                  <Shield className="h-5 w-5 text-accent" />
+                                  Executive Vetting: {user.fullName}
+                                </DialogTitle>
+                                <DialogDescription className="text-[10px] font-bold uppercase text-muted-foreground">
+                                  Secure identity verification and tier assessment.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-6 py-4">
+                                <div className="space-y-2">
+                                  <Label className="text-[10px] font-black uppercase text-primary">Vetting Tier</Label>
+                                  <Select onValueChange={setVettingLevel} defaultValue={user.vettingLevel || "Bronze"}>
+                                    <SelectTrigger className="h-12">
+                                      <SelectValue placeholder="Select Tier" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Bronze" className="text-xs font-bold uppercase">Bronze (Basic Identity)</SelectItem>
+                                      <SelectItem value="Silver" className="text-xs font-bold uppercase">Silver (Background Checked)</SelectItem>
+                                      <SelectItem value="Gold" className="text-xs font-bold uppercase">Gold (Executive Approved)</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label className="text-[10px] font-black uppercase text-primary">Upload Government ID</Label>
+                                  <div className="relative group">
+                                    <Input 
+                                      type="file" 
+                                      accept="image/*" 
+                                      className="h-12 pt-2 text-xs" 
+                                      onChange={(e) => setIdPhoto(e.target.files?.[0] || null)}
+                                    />
+                                    <Upload className="absolute right-3 top-3.5 h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                  </div>
+                                  <p className="text-[9px] text-muted-foreground italic font-medium">Archived scans are strictly encrypted and visible only to leadership.</p>
+                                </div>
+
+                                <div className="bg-primary/5 p-4 rounded-xl border border-dashed border-primary/20">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <UserCheck className="h-3.5 w-3.5 text-primary" />
+                                    <span className="text-[10px] font-black text-primary uppercase">Audit Log</span>
+                                  </div>
+                                  <p className="text-[9px] font-medium text-primary/70 leading-relaxed">
+                                    "This action will tag the member as VERIFIED and enable their VIP access keys across the PatriotLink network."
+                                  </p>
+                                </div>
+                              </div>
+                              <DialogFooter>
+                                <Button 
+                                  className="w-full font-black uppercase tracking-widest h-14 shadow-xl" 
+                                  onClick={handleVetting}
+                                  disabled={isVetting}
+                                >
+                                  {isVetting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Confirm Vetting Status"}
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
 
                           <Dialog open={selectedUserForNotes?.id === user.id} onOpenChange={(open) => {
                             if (open) {
