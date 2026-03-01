@@ -17,7 +17,8 @@ import {
   Users,
   Search,
   MessageSquare,
-  HeartHandshake
+  HeartHandshake,
+  Eye
 } from "lucide-react";
 import Link from "next/link";
 
@@ -31,7 +32,9 @@ export function CommandSwitchboard() {
   const isGold = userData?.vettingLevel === 'Gold';
 
   const getRoleActions = () => {
-    const baseActions = [];
+    const baseActions = [
+      { label: 'Bantay Bayan', icon: Eye, href: '/bantay-bayan', color: 'text-red-700' }
+    ];
     
     // Responders get Bayanihan Hub
     if (role === 'Coordinator' || isGold || role === 'President' || role === 'Admin') {
@@ -47,29 +50,30 @@ export function CommandSwitchboard() {
         ].slice(0, 3);
       case 'VP':
         return [
+          ...baseActions,
           { label: 'Calendar', icon: Calendar, href: '/calendar', color: 'text-primary' },
-          { label: 'Briefings', icon: BookText, href: '/agendas', color: 'text-primary' },
-          { label: 'Media Feed', icon: Newspaper, href: '/admin/bulletin', color: 'text-primary' }
-        ];
+          { label: 'Briefings', icon: BookText, href: '/agendas', color: 'text-primary' }
+        ].slice(0, 3);
       case 'Secretary General':
       case 'Sec Gen':
         return [
+          ...baseActions,
           { label: 'Registry', icon: Users, href: '/admin/dashboard', color: 'text-primary' },
-          { label: 'Vetting', icon: UserCheck, href: '/admin/supporters', color: 'text-emerald-600' },
-          { label: 'Audit Log', icon: Shield, href: '/admin/audit', color: 'text-primary' }
-        ];
+          { label: 'Vetting', icon: UserCheck, href: '/admin/supporters', color: 'text-emerald-600' }
+        ].slice(0, 3);
       case 'Public Relations Officer':
       case 'PRO':
         return [
+          ...baseActions,
           { label: 'Bulletin', icon: Newspaper, href: '/admin/bulletin', color: 'text-red-600' },
-          { label: 'Broadcast', icon: Megaphone, href: '/admin/broadcast', color: 'text-red-600' },
-          { label: 'Poll Manager', icon: LayoutGrid, href: '/admin/bulletin?tab=polls', color: 'text-primary' }
-        ];
+          { label: 'Broadcast', icon: Megaphone, href: '/admin/broadcast', color: 'text-red-600' }
+        ].slice(0, 3);
       case 'Treasurer':
         return [
+          ...baseActions,
           { label: 'Logistics', icon: LayoutGrid, href: '/admin/logistics', color: 'text-emerald-600' },
           { label: 'Resources', icon: Shield, href: '/admin/analytics', color: 'text-primary' }
-        ];
+        ].slice(0, 3);
       case 'Coordinator':
         return [
           ...baseActions,
@@ -77,17 +81,15 @@ export function CommandSwitchboard() {
           { label: 'Supporter List', icon: Search, href: '/admin/supporters', color: 'text-primary' }
         ].slice(0, 3);
       default:
-        return isGold ? [
+        return [
           ...baseActions,
           { label: 'Directory', icon: Users, href: '/directory', color: 'text-primary' },
           { label: 'Vault', icon: BookText, href: '/vault', color: 'text-primary' }
-        ].slice(0, 3) : null;
+        ].slice(0, 3);
     }
   };
 
   const actions = getRoleActions();
-
-  if (!actions) return null;
 
   return (
     <Card className="shadow-2xl border-t-4 border-primary bg-white overflow-hidden mb-8">

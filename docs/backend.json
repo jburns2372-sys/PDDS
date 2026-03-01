@@ -120,6 +120,27 @@
         "resolvedBy": { "type": "string" }
       },
       "required": ["uid", "name", "location", "status", "timestamp"]
+    },
+    "civic_report": {
+      "title": "Civic Report",
+      "description": "A report of a local community issue like potholes, trash, or corruption.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "authorName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["Infrastructure", "Environment", "Corruption", "Public Safety", "Others"] },
+        "photoUrl": { "type": "string" },
+        "location": { "type": "object" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "province": { "type": "string" },
+        "upvotes": { "type": "array" },
+        "status": { "type": "string", "enum": ["Pending", "Verified", "Escalated", "Resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "title", "category", "location", "status", "createdAt"]
     }
   },
   "auth": {
@@ -145,6 +166,10 @@
     "/sos_alerts/{alertId}": {
       "schema": { "$ref": "#/backend/entities/sos_alert" },
       "description": "Stores active distress signals from the Bayanihan Network."
+    },
+    "/civic_reports/{reportId}": {
+      "schema": { "$ref": "#/backend/entities/civic_report" },
+      "description": "Stores community issues reported by members (Bantay Bayan)."
     }
   }
 }
