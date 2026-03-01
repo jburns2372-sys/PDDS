@@ -154,12 +154,11 @@ export function DirectoryClient() {
   const [supporterSearch, setSupporterSearch] = useState("");
 
   // Check if current user has officer/admin privileges
+  // Access is now purely based on the database 'role'. Email backdoors removed.
   const isPrivileged = useMemo(() => {
     if (!userData) return false;
     const userRole = userData.role || '';
-    const userEmail = (userData.email || '').toLowerCase();
-    const privilegedEmails = ['iamgrecobelgica@gmail.com', 'j.burns372@gmail.com', 'j.burns2372@gmail.com'];
-    return pddsLeadershipRoles.includes(userRole) || userRole === 'Officer' || userRole === 'Admin' || userRole === 'System Admin' || privilegedEmails.includes(userEmail);
+    return pddsLeadershipRoles.includes(userRole) || userRole === 'Officer' || userRole === 'Admin' || userRole === 'System Admin';
   }, [userData]);
 
   // Set default tab based on user role once data is available

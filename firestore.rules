@@ -23,17 +23,6 @@ service cloud.firestore {
     }
 
     /**
-     * Fail-safe for platform developers and core leadership emails.
-     */
-    function isPrivilegedEmail() {
-      let email = request.auth.token.email.lower();
-      return email == 'iamgrecobelgica@gmail.com' || 
-             email == 'j.burns372@gmail.com' || 
-             email == 'j.burns2372@gmail.com' || 
-             email == 'j.burns.2372@gmail.com';
-    }
-
-    /**
      * Fetches the current user's profile data from Firestore.
      */
     function getUserData() {
@@ -49,12 +38,12 @@ service cloud.firestore {
 
     /**
      * Comprehensive check for Executive (President or Admin) access.
+     * Strictly relies on the database role. No email backdoors.
      */
     function isExecutive() {
       if (!isSignedIn()) return false;
-      if (isPrivilegedEmail()) return true;
       let userRole = getUserData().role;
-      return userRole == 'President' || userRole == 'Admin';
+      return userRole == 'President' || userRole == 'Admin' || userRole == 'System Admin';
     }
 
     // ==========================================
@@ -91,12 +80,11 @@ service cloud.firestore {
       
       // Create: Restricted to Secretary General, Admin, and President.
       allow create: if isSignedIn() && (
-        getUserData().role in ['Secretary General', 'Admin', 'President'] || 
-        isPrivilegedEmail()
+        getUserData().role in ['Secretary General', 'Admin', 'President']
       );
       
       // Update: Strictly restrict authorization (flipping isAuthorized) to the President ONLY.
-      allow update: if hasRole('President') || isPrivilegedEmail();
+      allow update: if hasRole('President');
       
       // Delete: Executives only.
       allow delete: if isExecutive();
