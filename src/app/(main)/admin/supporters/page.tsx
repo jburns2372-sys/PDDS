@@ -25,7 +25,8 @@ import {
   FileEdit,
   TrendingUp,
   UserCheck,
-  UserX
+  UserX,
+  Mail
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
@@ -52,7 +53,7 @@ const PROMOTABLE_ROLES = ["Supporter", "Volunteer", "Coordinator", "Moderator", 
 /**
  * @fileOverview Recruitment & Regional Command Dashboard.
  * Strictly filtered to show only "Supporter" roles for recruitment management.
- * Synchronized with the National Directory to ensure all social inductions are tracked.
+ * Integrated with Direct Contact (Email) and Tactical Notes systems.
  */
 export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
@@ -71,7 +72,6 @@ export default function AdminSupporterDashboard() {
   const [isSavingNote, setIsSavingNote] = useState(false);
 
   // STRICT FILTER: Only show users with the 'Supporter' role
-  // This excludes Admins, Officers, and verified Members from the recruitment list
   const users = useMemo(() => {
     return allUsers.filter(u => u.role === 'Supporter');
   }, [allUsers]);
@@ -103,7 +103,7 @@ export default function AdminSupporterDashboard() {
     });
   }, [users, searchTerm, filterDistrict, filterCity]);
 
-  // Live Metrics Command Center (Specifically for the Supporter Base)
+  // Live Metrics Command Center
   const stats = useMemo(() => {
     const total = filteredUsers.length;
     const verified = filteredUsers.filter(s => s.isVerified === true).length;
@@ -137,6 +137,12 @@ export default function AdminSupporterDashboard() {
           path: userRef.path, operation: 'update', requestResourceData: { isVerified: newStatus }
         }));
       });
+  };
+
+  const handleSendEmail = (email: string, name: string) => {
+    const subject = encodeURIComponent("Update from PDDS - PatriotLink Movement");
+    const body = encodeURIComponent(`Hello ${name},\n\nThank you for joining the Federalismo Portal. We are glad to have you in the movement.\n\nRespectfully,\nPDDS National Leadership`);
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
   };
 
   const handleUpdateNotes = async () => {
@@ -393,6 +399,16 @@ export default function AdminSupporterDashboard() {
                           </button>
                         </TableCell>
                         <TableCell className="text-right pr-6 space-x-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full" 
+                            title="Direct Message"
+                            onClick={() => handleSendEmail(user.email, user.fullName)}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+
                           <Dialog open={selectedUserForNotes?.id === user.id} onOpenChange={(open) => {
                             if (open) {
                               setSelectedUserForNotes(user);
