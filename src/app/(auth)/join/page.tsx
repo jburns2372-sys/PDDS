@@ -27,6 +27,10 @@ import { getIslandGroup } from "@/lib/data";
 
 const NCR_CODE = "130000000";
 
+/**
+ * @fileOverview Join Page for new members.
+ * Handles both SMS-based registry and instant Google induction.
+ */
 export default function JoinPage() {
     const auth = useAuth();
     const firestore = useFirestore();
@@ -36,13 +40,13 @@ export default function JoinPage() {
     
     const referralUid = searchParams.get('ref');
 
-    // Form fields
+    // Registry fields
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("+63");
     
-    // Location State
+    // Location Data
     const [provinces, setProvinces] = useState<any[]>([]);
     const [cities, setCities] = useState<any[]>([]);
     const [selectedProvince, setSelectedProvince] = useState<string>("");
@@ -126,6 +130,7 @@ export default function JoinPage() {
                 photoURL: null,
                 role: "Supporter",
                 jurisdictionLevel: "National",
+                isAdmin: false,
                 isApproved: true,
                 isVerified: false,
                 kartilyaAgreed: true,
@@ -142,7 +147,7 @@ export default function JoinPage() {
                 updateDoc(referrerRef, { recruitCount: increment(1) }).catch(e => console.error(e));
             }
 
-            toast({ title: "Welcome!", description: "Registry record created." });
+            toast({ title: "Welcome!", description: "National Registry record created." });
             setTimeout(() => {
                 window.location.href = "/home?registered=true";
             }, 500);
@@ -165,6 +170,7 @@ export default function JoinPage() {
             const userSnap = await getDoc(userRef);
 
             if (!userSnap.exists()) {
+                // Instant Supporter Induction for Google users
                 await setDoc(userRef, {
                     uid: user.uid,
                     email: userEmail,
@@ -172,6 +178,7 @@ export default function JoinPage() {
                     photoURL: user.photoURL || null,
                     role: "Supporter",
                     jurisdictionLevel: "National",
+                    isAdmin: false,
                     isApproved: true,
                     isVerified: false,
                     kartilyaAgreed: true,
@@ -179,7 +186,7 @@ export default function JoinPage() {
                     createdAt: serverTimestamp(),
                     lastActive: serverTimestamp(),
                 });
-                toast({ title: "Welcome!", description: "You have been registered as a Supporter." });
+                toast({ title: "Welcome!", description: "You have been inducted as a Supporter." });
             } else {
                 updateDoc(userRef, { lastActive: serverTimestamp() }).catch(e => console.error(e));
             }
@@ -189,13 +196,7 @@ export default function JoinPage() {
             }, 500);
         } catch (error: any) {
             console.error("Social Auth Error:", error);
-            
-            let msg = error.message;
-            if (error.code === 'auth/popup-blocked') {
-                msg = "Login popup was blocked by your browser. Please check the address bar and allow popups for this site.";
-            }
-            
-            toast({ variant: "destructive", title: "Connection Failed", description: msg });
+            toast({ variant: "destructive", title: "Connection Failed", description: error.message });
             setLoading(false);
         } finally {
             setTimeout(() => setLoading(false), 1000);
@@ -218,7 +219,7 @@ export default function JoinPage() {
                         className="mt-8 font-bold uppercase text-[10px] tracking-widest"
                         onClick={() => setLoading(false)}
                     >
-                        <XCircle className="mr-2 h-3 w-3" /> Cancel Connection
+                        <XCircle className="mr-2 h-3 w-3" /> Cancel Induction
                     </Button>
                 </div>
             )}
@@ -235,7 +236,7 @@ export default function JoinPage() {
                     <form onSubmit={handleInitialSubmit}>
                         <CardHeader>
                             <CardTitle className="text-2xl text-center font-headline uppercase tracking-tight">Join the Movement</CardTitle>
-                            <CardDescription className="text-center font-medium text-muted-foreground">Secure your place in the national registry.</CardDescription>
+                            <CardDescription className="text-center font-medium text-muted-foreground">Secure your official party induction.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-1 gap-3">
@@ -252,7 +253,7 @@ export default function JoinPage() {
                                         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
                                         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                                     </svg>
-                                    Join with Google
+                                    Induct with Google
                                 </Button>
                             </div>
 
@@ -306,7 +307,7 @@ export default function JoinPage() {
                         </CardContent>
                         <CardFooter className="flex flex-col gap-4">
                             <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !agreed || !isPhoneValid || !selectedCity}>
-                                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Verify & Join"}
+                                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Verify & Induct"}
                             </Button>
                             <p className="text-sm text-center text-muted-foreground font-medium">Already a member? <Link href="/login" className="text-primary font-black hover:underline uppercase text-xs tracking-widest">Sign In</Link></p>
                         </CardFooter>
@@ -314,13 +315,13 @@ export default function JoinPage() {
                 ) : (
                     <div className="p-6 space-y-6">
                         <CardHeader className="px-0 text-center">
-                            <CardTitle className="text-2xl font-headline uppercase">Verify SMS</CardTitle>
+                            <CardTitle className="text-2xl font-headline uppercase">Verify Induction</CardTitle>
                             <CardDescription className="font-medium text-muted-foreground">Enter the 6-digit code sent to {phoneNumber}</CardDescription>
                         </CardHeader>
                         <div className="space-y-4">
                             <Input id="otp" placeholder="000000" maxLength={6} className="text-center text-3xl font-black tracking-[0.5em] h-16" value={otp} onChange={e => setOtp(e.target.value)} />
                             <Button className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" onClick={handleVerifyAndComplete} disabled={loading || otp.length !== 6}>
-                                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Registration"}
+                                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Registry"}
                             </Button>
                         </div>
                     </div>
