@@ -52,7 +52,7 @@ import { cn } from "@/lib/utils";
 /**
  * @fileOverview Calendar of Activities page.
  * Global Visibility: Accessible to all members.
- * RBAC: Only President, Admin, Sec Gen can manage.
+ * RBAC: Only President, Admin, Sec Gen, or PRO can manage.
  * AUTHORIZATION: All events require Presidential sign-off before becoming public.
  */
 
@@ -90,7 +90,7 @@ export default function CalendarActivitiesPage() {
 
   const isPresident = userData?.role === 'President';
   const canManage = useMemo(() => {
-    const roles = ['President', 'Admin', 'Secretary General'];
+    const roles = ['President', 'Admin', 'Secretary General', 'Public Relations Officer'];
     return userData && roles.includes(userData.role);
   }, [userData]);
 
