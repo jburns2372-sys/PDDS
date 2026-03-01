@@ -3,7 +3,7 @@
 
 import { useCollection, useFirestore } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -32,7 +32,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 /**
- * @fileOverview Supporter Recruitment Dashboard with Live Metrics.
+ * @fileOverview Supporter Recruitment Dashboard with Live Metrics & Activity Monitor.
  * Displays real-time induction stats and engagement tracking (Last Active).
  */
 export default function AdminSupporterDashboard() {
@@ -243,7 +243,7 @@ export default function AdminSupporterDashboard() {
                 <TableRow className="bg-muted/50 border-b">
                   <TableHead className="pl-6 text-[10px] font-black uppercase tracking-widest">Profile</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Full Name</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Engagement</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Activity Monitor</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Verification</TableHead>
                   <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Action</TableHead>
                 </TableRow>
@@ -260,7 +260,8 @@ export default function AdminSupporterDashboard() {
                   </TableRow>
                 ) : (
                   filteredSupporters.map((user: any) => {
-                    const lastActive = user.lastActive?.toDate ? formatDistanceToNow(user.lastActive.toDate(), { addSuffix: true }) : 'Inducting...';
+                    const lastActiveRelative = user.lastActive?.toDate ? formatDistanceToNow(user.lastActive.toDate(), { addSuffix: true }) : 'Inducting...';
+                    const lastActiveFull = user.lastActive?.toDate ? format(user.lastActive.toDate(), 'PP p') : 'Never';
                     
                     return (
                       <TableRow key={user.uid || user.id} className="hover:bg-muted/30 transition-colors group">
@@ -283,11 +284,11 @@ export default function AdminSupporterDashboard() {
                           <div className="space-y-1">
                             <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase">
                               <Activity className="h-3 w-3 text-accent" />
-                              Active: {lastActive}
+                              Active: {lastActiveRelative}
                             </div>
-                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase">
-                              <CalendarDays className="h-2.5 w-2.5" />
-                              Joined: {user.joinedAt?.toDate ? format(user.joinedAt.toDate(), 'MMM dd, yyyy') : 'Recently'}
+                            <div className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                              <Clock className="h-2.5 w-2.5" />
+                              {lastActiveFull}
                             </div>
                           </div>
                         </TableCell>
@@ -303,7 +304,7 @@ export default function AdminSupporterDashboard() {
                             {user.isVerified ? (
                               <><CheckCircle2 className="h-3 w-3" /> Verified</>
                             ) : (
-                              <><ShieldAlert className="h-3 w-3" /> Unverified</>
+                              <><ShieldAlert className="h-3 w-3" /> Pending</>
                             )}
                           </button>
                         </TableCell>
