@@ -106,6 +106,18 @@ export default function AdminAuditPage() {
     }).sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   }, [meetingRequests, isCoordinator, userData?.city]);
 
+  // Define logic for the Promotion Queue
+  const promotionQueue = useMemo(() => {
+    return allUsers
+      .filter(u => u.role === 'Supporter')
+      .sort((a, b) => (b.recruitCount || 0) - (a.recruitCount || 0));
+  }, [allUsers]);
+
+  // Define assignable leadership roles
+  const vacantRoles = useMemo(() => {
+    return pddsLeadershipRoles;
+  }, []);
+
   const handleApproveMeeting = async (id: string) => {
     setSaving(id);
     try {
