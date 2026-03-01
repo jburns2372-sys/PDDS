@@ -13,21 +13,21 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 /**
- * Trigger: Force Supporter Role for Google Users
- * This script intercepts every new Google sign-in and blocks Admin access.
+ * Trigger: Force Supporter Role for Social Users (Google & Facebook)
+ * This script intercepts every new social sign-in and blocks Admin access.
  * It ensures that every social login is forced into the 'Supporter' role by default.
  */
 exports.autoAssignSupporterRole = onUserCreated(async (event) => {
     const user = event.data;
     const db = getFirestore();
     
-    // 1. Check if the user joined using Google
-    const isGoogleUser = user.providerData.some(
-      (provider) => provider.providerId === 'google.com'
+    // 1. Check if the user joined using a social provider
+    const isSocialUser = user.providerData.some(
+      (provider) => provider.providerId === 'google.com' || provider.providerId === 'facebook.com'
     );
 
-    // We only force roles for Google users to prevent unexpected Admin escalation via social login
-    if (!isGoogleUser) return;
+    // We only force roles for social users to prevent unexpected Admin escalation via social login
+    if (!isSocialUser) return;
 
     // 2. Define the Supporter Profile (Hard-coded to prevent Admin rights)
     // Aligned with the National Registry schema
