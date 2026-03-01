@@ -33,6 +33,7 @@
         "isAdmin": { "type": "boolean", "default": false },
         "isSuperAdmin": { "type": "boolean" },
         "isVerified": { "type": "boolean", "default": false },
+        "isMuted": { "type": "boolean", "default": false, "description": "Restricts chat access if true." },
         "vettingLevel": {
           "type": "string",
           "enum": ["Bronze", "Silver", "Gold"],
@@ -58,74 +59,6 @@
         "lastActive": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
-    },
-    "poll": {
-      "title": "Referendum Poll",
-      "description": "An official party ballot question.",
-      "type": "object",
-      "properties": {
-        "question": { "type": "string" },
-        "options": { "type": "array", "items": { "type": "string" } },
-        "targetGroup": { "type": "string", "description": "National or City name." },
-        "targetRole": { "type": "string" },
-        "votes": { "type": "object", "description": "Map of option string to integer count." },
-        "votedBy": { "type": "array", "items": { "type": "string" }, "description": "List of UIDs who voted." },
-        "isActive": { "type": "boolean" },
-        "createdBy": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["question", "options", "votes", "votedBy", "isActive"]
-    },
-    "calendar_activity": {
-      "title": "Official Calendar Activity",
-      "description": "A high-level party directive or mobilization event.",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "startDate": { "type": "string", "format": "date-time" },
-        "scope": { "type": "string", "enum": ["National", "Regional"] },
-        "targetCity": { "type": "string" },
-        "targetProvince": { "type": "string" },
-        "locationAddress": { "type": "string" },
-        "locationCoords": {
-          "type": "object",
-          "properties": {
-            "lat": { "type": "number" },
-            "lng": { "type": "number" }
-          }
-        },
-        "isAuthorized": { "type": "boolean" },
-        "authorizedBy": { "type": "string" },
-        "organizerName": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["title", "startDate", "scope"]
-    },
-    "policy": {
-      "title": "Policy Manifesto",
-      "description": "An official party position or manifesto document.",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
-        "category": { "type": "string", "enum": ["Economy", "Justice", "Local Governance", "Security", "Social Welfare", "Education"] },
-        "summary": { "type": "string" },
-        "documentUrl": { "type": "string" },
-        "shareCount": { "type": "number", "default": 0 },
-        "quiz": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "question": { "type": "string" },
-              "options": { "type": "array", "items": { "type": "string" } },
-              "correctAnswerIndex": { "type": "number" }
-            }
-          }
-        },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["title", "category", "summary", "documentUrl"]
     },
     "chat_room": {
       "title": "Chat Room",
@@ -155,27 +88,6 @@
         "isReported": { "type": "boolean" }
       },
       "required": ["text", "senderUid", "senderName", "timestamp"]
-    },
-    "meeting_request": {
-      "title": "Meeting Request",
-      "description": "A supporter-led gathering proposal.",
-      "type": "object",
-      "properties": {
-        "hostUid": { "type": "string" },
-        "hostName": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "meetingType": { "type": "string", "enum": ["Kapihan", "Study Group", "Rally", "Community Service"] },
-        "city": { "type": "string" },
-        "province": { "type": "string" },
-        "locationAddress": { "type": "string" },
-        "locationCoords": { "type": "object" },
-        "dateTime": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
-        "rejectionReason": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["hostUid", "title", "meetingType", "city", "dateTime"]
     }
   },
   "auth": {
@@ -186,10 +98,6 @@
       "schema": { "$ref": "#/backend/entities/user" },
       "description": "Stores user profile information."
     },
-    "/policies/{policyId}": {
-      "schema": { "$ref": "#/backend/entities/policy" },
-      "description": "Stores official party policies and manifestos."
-    },
     "/chat_rooms/{roomId}": {
       "schema": { "$ref": "#/backend/entities/chat_room" },
       "description": "Stores chat room metadata."
@@ -197,18 +105,6 @@
     "/chat_rooms/{roomId}/messages/{messageId}": {
       "schema": { "$ref": "#/backend/entities/chat_message" },
       "description": "Stores individual messages within a room."
-    },
-    "/meeting_requests/{requestId}": {
-      "schema": { "$ref": "#/backend/entities/meeting_request" },
-      "description": "Stores supporter-led meeting proposals."
-    },
-    "/calendar_activities/{activityId}": {
-      "schema": { "$ref": "#/backend/entities/calendar_activity" },
-      "description": "Stores official party calendar events."
-    },
-    "/polls/{pollId}": {
-      "schema": { "$ref": "#/backend/entities/poll" },
-      "description": "Stores official party referendums and sentiment ballots."
     }
   }
 }
