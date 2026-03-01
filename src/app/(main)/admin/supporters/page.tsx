@@ -51,14 +51,14 @@ const PROMOTABLE_ROLES = ["Supporter", "Volunteer", "Coordinator", "Moderator", 
 
 /**
  * @fileOverview Recruitment & Regional Command Dashboard.
- * Synchronized with the National Directory to ensure all inductions (Google/Mobile) are tracked.
+ * Strictly filtered to show only "Supporter" roles for recruitment management.
+ * Synchronized with the National Directory to ensure all social inductions are tracked.
  */
 export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
   // Fetch all users to ensure consistency with the directory
-  // Filtering for non-admins is handled client-side to capture all inductions instantly
   const { data: allUsers, loading } = useCollection('users');
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,13 +70,10 @@ export default function AdminSupporterDashboard() {
   const [noteContent, setNoteContent] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
 
-  // Filter out Administrators and System Admins from this specific view
+  // STRICT FILTER: Only show users with the 'Supporter' role
+  // This excludes Admins, Officers, and verified Members from the recruitment list
   const users = useMemo(() => {
-    return allUsers.filter(u => 
-        u.role !== 'Admin' && 
-        u.role !== 'System Admin' && 
-        u.isAdmin !== true
-    );
+    return allUsers.filter(u => u.role === 'Supporter');
   }, [allUsers]);
 
   const uniqueDistricts = useMemo(() => {
@@ -106,19 +103,23 @@ export default function AdminSupporterDashboard() {
     });
   }, [users, searchTerm, filterDistrict, filterCity]);
 
-  // Live Metrics Command Center
+  // Live Metrics Command Center (Specifically for the Supporter Base)
   const stats = useMemo(() => {
     const total = filteredUsers.length;
     const verified = filteredUsers.filter(s => s.isVerified === true).length;
     const pending = total - verified;
-    const supporters = filteredUsers.filter(u => u.role === 'Supporter').length;
-    return { total, verified, pending, supporters };
+    return { total, verified, pending };
   }, [filteredUsers]);
 
   const handleRoleChange = (userId: string, newRole: string) => {
     const userRef = doc(firestore, "users", userId);
     updateDoc(userRef, { role: newRole })
-      .then(() => toast({ title: "Rank Updated", description: `Member promoted to ${newRole}.` }))
+      .then(() => {
+        toast({ 
+          title: "Rank Updated", 
+          description: `Supporter promoted to ${newRole}. They will now appear in the Member Registry.` 
+        });
+      })
       .catch(async () => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
           path: userRef.path, operation: 'update', requestResourceData: { role: newRole }
@@ -160,7 +161,7 @@ export default function AdminSupporterDashboard() {
     if (window.confirm(`Are you sure you want to remove ${userName}? This action is irreversible.`)) {
       const docRef = doc(firestore, "users", userId);
       deleteDoc(docRef)
-        .then(() => toast({ title: "Record Removed", description: "Member removed from registry." }))
+        .then(() => toast({ title: "Record Removed", description: "Supporter removed from registry." }))
         .catch(async () => {
           errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'delete' }));
         });
@@ -187,7 +188,7 @@ export default function AdminSupporterDashboard() {
     const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute("download", `PDDS_Recruitment_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.setAttribute("download", `PDDS_Supporter_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -198,7 +199,7 @@ export default function AdminSupporterDashboard() {
       <div className="flex h-[80vh] w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Syncing National Registry...</p>
+          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Filtering Supporter Base...</p>
         </div>
       </div>
     );
@@ -214,12 +215,12 @@ export default function AdminSupporterDashboard() {
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-primary font-headline flex items-center gap-3 uppercase tracking-tight">
                 <Globe className="h-6 w-6 md:h-8 md:w-8" />
-                Recruitment Command Center
+                Supporter Command Center
               </h1>
-              <p className="text-muted-foreground text-sm mt-1 font-medium italic">Monitoring social inductions and verification status nationwide.</p>
+              <p className="text-muted-foreground text-sm mt-1 font-medium italic">Managing social inductions and recruitment verification.</p>
             </div>
             <Button onClick={exportToCSV} className="h-12 font-black uppercase text-[10px] tracking-widest bg-green-600 hover:bg-green-700 shadow-lg px-6">
-              <Download className="mr-2 h-4 w-4" /> Export Registry CSV
+              <Download className="mr-2 h-4 w-4" /> Export Supporter CSV
             </Button>
           </div>
 
@@ -262,18 +263,18 @@ export default function AdminSupporterDashboard() {
             </Select>
 
             <div className="flex items-center justify-center bg-primary/5 rounded-lg border border-primary/5 px-4 h-12">
-              <span className="text-[10px] font-black uppercase text-primary/60 mr-2">Filtered Hits:</span>
+              <span className="text-[10px] font-black uppercase text-primary/60 mr-2">Inducted:</span>
               <span className="text-lg font-black text-primary">{filteredUsers.length}</span>
             </div>
           </div>
         </div>
 
         {/* Live Metrics Row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="shadow-lg border-l-4 border-l-primary bg-white">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Total Inducted</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Total Supporters</p>
                 <p className="text-3xl font-black text-primary">{stats.total.toLocaleString()}</p>
               </div>
               <Users className="h-6 w-6 text-primary/20" />
@@ -293,20 +294,10 @@ export default function AdminSupporterDashboard() {
           <Card className="shadow-lg border-l-4 border-l-orange-600 bg-white">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/60 mb-1">Pending Audit</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/60 mb-1">Pending Verification</p>
                 <p className="text-3xl font-black text-orange-600">{stats.pending.toLocaleString()}</p>
               </div>
               <Clock className="h-6 w-6 text-orange-600/20" />
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg border-l-4 border-l-accent bg-white">
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-accent/60 mb-1">Engagement Pulse</p>
-                <p className="text-3xl font-black text-accent">{filteredUsers.filter(u => u.lastActive).length.toLocaleString()}</p>
-              </div>
-              <TrendingUp className="h-6 w-6 text-accent/20" />
             </CardContent>
           </Card>
         </div>
@@ -316,10 +307,10 @@ export default function AdminSupporterDashboard() {
           <CardHeader className="bg-primary text-primary-foreground py-4 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
-              Organizational Registry
+              Supporter Induction Log
             </CardTitle>
             <Badge variant="outline" className="border-white/20 text-white text-[9px] font-black uppercase tracking-widest px-3">
-              Real-Time Dashboard
+              Role: Supporter Only
             </Badge>
           </CardHeader>
           <div className="overflow-x-auto">
@@ -328,8 +319,8 @@ export default function AdminSupporterDashboard() {
                 <TableRow className="bg-muted/50 border-b">
                   <TableHead className="pl-6 text-[10px] font-black uppercase tracking-widest">Profile</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">City / District</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Promote Role</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Last Active</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Promote Rank</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Engagement</TableHead>
                   <TableHead className="text-[10px] font-black uppercase tracking-widest">Verification</TableHead>
                   <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Actions</TableHead>
                 </TableRow>
@@ -338,7 +329,7 @@ export default function AdminSupporterDashboard() {
                 {filteredUsers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-24 text-muted-foreground italic">
-                      No matching records found in the national registry.
+                      No active supporters found in the induction log.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -386,7 +377,7 @@ export default function AdminSupporterDashboard() {
                               {lastActiveRelative}
                             </div>
                             <div className="text-[8px] font-bold text-muted-foreground uppercase">
-                              Engagement Logged
+                              Active in Portal
                             </div>
                           </div>
                         </TableCell>
@@ -426,7 +417,7 @@ export default function AdminSupporterDashboard() {
                                 <div className="space-y-2">
                                   <Label className="text-[10px] font-black uppercase text-primary">Tactical Overview</Label>
                                   <Textarea 
-                                    placeholder="Add internal notes about recruitment performance, reliability, or regional context..." 
+                                    placeholder="Add internal notes about recruitment performance..." 
                                     className="min-h-[150px] text-sm"
                                     value={noteContent}
                                     onChange={(e) => setNoteContent(e.target.value)}
@@ -434,7 +425,7 @@ export default function AdminSupporterDashboard() {
                                 </div>
                                 <div className="bg-primary/5 p-3 rounded-lg border border-dashed border-primary/20">
                                   <p className="text-[9px] font-bold text-primary/70 leading-relaxed italic">
-                                    "Note: These entries are for leadership review only. They are not visible to the member."
+                                    "Note: These entries are for leadership review only."
                                   </p>
                                 </div>
                               </div>
