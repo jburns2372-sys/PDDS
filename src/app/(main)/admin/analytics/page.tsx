@@ -15,8 +15,9 @@ import {
   Tooltip
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Map, TrendingUp, Users, Loader2, Sparkles, Trophy, Globe, CalendarDays, ShieldCheck, Package, Flag } from "lucide-react";
+import { Map, TrendingUp, Users, Loader2, Sparkles, Trophy, Globe, CalendarDays, ShieldCheck, Package, Flag, Medal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { subDays, isAfter } from "date-fns";
 import dynamic from 'next/dynamic';
 
@@ -42,10 +43,10 @@ export default function AdminAnalyticsPage() {
 
   // Logic to process Membership Density, Growth, and Executive Metrics
   const stats = useMemo(() => {
-    if (!users.length) return { hotspots: [], total: 0, growth: 0, cityStats: [], supporters: [], vettedCount: 0, shirts: 0, flags: 0 };
+    if (!users.length) return { hotspots: [], total: 0, growth: 0, cityRankings: [], supporters: [], vettedCount: 0, shirts: 0, flags: 0 };
 
     const provinceMap: Record<string, number> = {};
-    const cityMap: Record<string, number> = {};
+    const cityRankingMap: Record<string, { total: number, verified: number }> = {};
     
     const sevenDaysAgo = subDays(new Date(), 7);
     let newRegistrations = 0;
@@ -57,9 +58,11 @@ export default function AdminAnalyticsPage() {
       const prov = user.province || "Unknown Region";
       provinceMap[prov] = (provinceMap[prov] || 0) + 1;
 
-      // 2. Group by City
+      // 2. Group by City for Rankings
       const city = user.city || "Unknown City";
-      cityMap[city] = (cityMap[city] || 0) + 1;
+      if (!cityRankingMap[city]) cityRankingMap[city] = { total: 0, verified: 0 };
+      cityRankingMap[city].total++;
+      if (user.isVerified) cityRankingMap[city].verified++;
 
       // 3. Calculate Growth (New this week)
       if (user.createdAt) {
@@ -88,16 +91,15 @@ export default function AdminAnalyticsPage() {
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
 
-    // Sort Top Cities
-    const sortedCities = Object.entries(cityMap)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+    // Sort Rankings by Verified count (Quality over Quantity)
+    const sortedRankings = Object.entries(cityRankingMap)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.verified - a.verified || b.total - a.total);
 
     return {
       hotspots: sortedHotspots,
       topStrongholds: sortedHotspots.slice(0, 5),
-      cityStats: sortedCities,
+      cityRankings: sortedRankings,
       supporters,
       total: users.length,
       growth: newRegistrations,
@@ -229,16 +231,56 @@ export default function AdminAnalyticsPage() {
             <NationalFootprintMap supporters={stats.supporters} />
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
+          {/* REGIONAL PERFORMANCE LEADERBOARD */}
+          <Card className="lg:col-span-7 shadow-xl border-t-4 border-accent overflow-hidden">
+            <CardHeader className="bg-accent/5 border-b">
+              <CardTitle className="text-lg font-headline uppercase font-bold flex items-center gap-2 text-primary">
+                <Trophy className="h-5 w-5 text-accent" />
+                Regional Performance Leaderboard
+              </CardTitle>
+              <CardDescription className="text-[10px] font-black uppercase tracking-widest">Ranked by Secretary General's verification logs (Verified Base Priority)</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead className="w-16 pl-6 text-[10px] font-black uppercase">Rank</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase">Region / City</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase">Total Members</TableHead>
+                    <TableHead className="text-right pr-6 text-[10px] font-black uppercase text-green-600">Verified Base</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stats.cityRankings.slice(0, 10).map((region, index) => (
+                    <TableRow key={region.name} className={index < 3 ? "bg-accent/5" : ""}>
+                      <TableCell className="pl-6 font-black text-xs">
+                        {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
+                      </TableCell>
+                      <TableCell className="font-bold text-xs uppercase tracking-tighter">{region.name}</TableCell>
+                      <TableCell className="text-xs font-medium">{region.total.toLocaleString()}</TableCell>
+                      <TableCell className="text-right pr-6 font-black text-sm text-green-600">
+                        {region.verified.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {stats.cityRankings.length === 0 && (
+                <div className="py-12 text-center text-muted-foreground italic text-xs">No city data available.</div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* TOP STRONGHOLDS CHART */}
-          <Card className="lg:col-span-2 shadow-xl border-t-4 border-primary">
+          <Card className="lg:col-span-5 shadow-xl border-t-4 border-primary">
             <CardHeader className="bg-primary/5 border-b">
               <CardTitle className="text-lg font-headline uppercase font-bold flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-accent" />
-                Regional Strongholds
+                <Medal className="h-5 w-5 text-accent" />
+                Stronghold Concentration
               </CardTitle>
-              <CardDescription className="text-[10px] font-black uppercase tracking-widest">Identifying key recruitment hubs nationwide</CardDescription>
+              <CardDescription className="text-[10px] font-black uppercase tracking-widest">Province-level recruitment volume hubs</CardDescription>
             </CardHeader>
             <CardContent className="h-[400px] pt-6">
               <ChartContainer config={chartConfig} className="h-full w-full">
@@ -266,43 +308,6 @@ export default function AdminAnalyticsPage() {
               </ChartContainer>
             </CardContent>
           </Card>
-
-          {/* HUB CITIES & CAMPAIGN NOTES */}
-          <div className="space-y-6">
-            <Card className="shadow-lg border-l-4 border-l-accent overflow-hidden">
-                <CardHeader className="bg-accent/5 pb-2">
-                    <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-accent" />
-                        Campaign Insight
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4 italic text-sm text-muted-foreground leading-relaxed">
-                    "High uniform density in strongholds indicates mobilization readiness. Focus banner dispatches to areas with emerging growth but low physical visibility."
-                </CardContent>
-            </Card>
-
-            <Card className="shadow-lg border-t-4 border-accent">
-                <CardHeader>
-                    <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                        <CalendarDays className="h-4 w-4 text-accent" />
-                        Top Hub Cities
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {stats.cityStats.map((city, idx) => (
-                        <div key={city.name} className="flex justify-between items-center py-2 border-b border-dashed last:border-0">
-                            <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-black text-primary/30">0{idx+1}</span>
-                                <span className="text-xs font-bold uppercase">{city.name}</span>
-                            </div>
-                            <Badge variant="secondary" className="bg-primary/5 text-primary text-[10px] font-bold">
-                                {city.count}
-                            </Badge>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
-          </div>
         </div>
 
         {/* FULL REGIONAL HEAT GRID */}
