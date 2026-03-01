@@ -6,15 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Search, User, Mail, CalendarDays } from "lucide-react";
+import { Loader2, Users, Search, User, Mail, CalendarDays, Download } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 
 /**
  * @fileOverview Supporter Recruitment Dashboard.
  * Displays real-time list of all supporters registered in the National Registry.
- * Synchronized with the 'captureGoogleUserInfo' Cloud Function.
+ * Includes Search and CSV Export capabilities for leadership.
  */
 export default function AdminSupporterDashboard() {
   // 1. Fetch only 'Supporter' roles using real-time listener
@@ -35,6 +36,32 @@ export default function AdminSupporterDashboard() {
       return dateB - dateA;
     });
   }, [supporters, searchTerm]);
+
+  // 📂 The CSV Export Function
+  const exportToCSV = () => {
+    const headers = ["Full Name", "Email", "Joined Date", "Role"];
+    const rows = filteredSupporters.map(user => {
+      const joinDate = user.joinedAt?.toDate ? user.joinedAt.toDate() : 
+                       user.createdAt?.toDate ? user.createdAt.toDate() : 
+                       user.createdAt ? new Date(user.createdAt) : new Date();
+      
+      return [
+        `"${user.fullName || 'Anonymous'}"`,
+        `"${user.email || ''}"`,
+        `"${format(joinDate, 'yyyy-MM-dd')}"`,
+        `"${user.role || 'Supporter'}"`
+      ].join(",");
+    });
+    
+    const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `PDDS_Supporters_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (loading) {
     return (
@@ -63,14 +90,23 @@ export default function AdminSupporterDashboard() {
             <p className="text-muted-foreground text-sm mt-1 font-medium italic">Command Center: Monitoring real-time induction of new advocates.</p>
           </div>
           
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              className="pl-10 h-12 uppercase font-bold text-xs border-primary/20 shadow-sm focus:ring-accent" 
-              placeholder="Search by Name or Email..." 
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                className="pl-10 h-12 uppercase font-bold text-xs border-primary/20 shadow-sm focus:ring-accent" 
+                placeholder="Search by Name or Email..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Button 
+              onClick={exportToCSV}
+              className="h-12 w-full sm:w-auto font-black uppercase text-[10px] tracking-widest bg-green-600 hover:bg-green-700 shadow-lg px-6"
+              disabled={filteredSupporters.length === 0}
+            >
+              <Download className="mr-2 h-4 w-4" /> Export CSV
+            </Button>
           </div>
         </div>
 
