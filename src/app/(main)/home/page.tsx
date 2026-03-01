@@ -15,6 +15,7 @@ import { CommunityFeedback } from "@/components/community-feedback";
 import { RecruitmentLeaderboard } from "@/components/recruitment-leaderboard";
 import { VipVerificationBanner } from "@/components/vip-verification-banner";
 import { MeritProgress } from "@/components/merit-progress";
+import { CommandSwitchboard } from "@/components/command-switchboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -207,6 +208,7 @@ export default function HomePage() {
         <div className="grid gap-8 lg:grid-cols-12 items-start">
             {/* Sidebar Assets */}
             <div className="lg:col-span-4 flex flex-col gap-8 order-last lg:order-first">
+                <CommandSwitchboard />
                 <DigitalIdCard userData={userData} />
                 <MeritProgress meritPoints={userData?.meritPoints || 0} />
                 <LocalChapterSection userData={userData} />

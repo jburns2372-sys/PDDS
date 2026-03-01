@@ -20,7 +20,8 @@ export const pddsLeadershipRoles = [
   "VP Soc Med Comms",
   "VP Events and Programs",
   "VP Membership",
-  "VP legal affairs"
+  "VP legal affairs",
+  "Coordinator"
 ];
 
 // Jurisdictional hierarchy levels
