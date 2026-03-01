@@ -18,11 +18,13 @@ import { MeritProgress } from "@/components/merit-progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck, Share2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChatInterface } from "@/components/chat-interface";
+import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck, Share2, MessageCircle, BarChart3, Newspaper } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMessaging, useFirestore, useCollection } from "@/firebase";
 import { getToken } from "firebase/messaging";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 
 function UserHeader({userData}: {userData: any}) {
   return (
@@ -103,9 +105,12 @@ export default function HomePage() {
   const { toast } = useToast();
   const messaging = useMessaging();
   const firestore = useFirestore();
+  
   const [domain, setDomain] = useState("");
   const [notifLoading, setNotifLoading] = useState(false);
-  const [lastSeenAnnouncement, setLastSeenAnnouncement] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("newsfeed");
+  const [hasUnreadChat, setHasUnreadChat] = useState(false);
+  const [lastSeenChatTime, setLastSeenChatTime] = useState<number>(Date.now());
 
   // Fetch real announcements
   const { data: allAnnouncements, loading: announcementsLoading } = useCollection('announcements');
@@ -113,8 +118,8 @@ export default function HomePage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       setDomain(window.location.origin);
-      const saved = localStorage.getItem('last_seen_announcement');
-      setLastSeenAnnouncement(saved);
+      const savedTime = localStorage.getItem('last_chat_view_time');
+      if (savedTime) setLastSeenChatTime(parseInt(savedTime));
     }
   }, []);
 
@@ -127,12 +132,43 @@ export default function HomePage() {
     }).sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
   }, [allAnnouncements, userData]);
 
-  // Show Success Toast on Induction Completion
+  // Unread Chat Listener
+  useEffect(() => {
+    if (!userData?.city || !firestore) return;
+
+    const roomName = userData.city;
+    const messagesRef = collection(firestore, "chat_rooms", roomName, "messages");
+    const q = query(messagesRef, orderBy("timestamp", "desc"), limit(1));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) return;
+      const latestMsg = snapshot.docs[0].data();
+      const msgTime = latestMsg.timestamp?.toMillis() || Date.now();
+
+      if (activeTab !== 'chat' && msgTime > lastSeenChatTime) {
+        setHasUnreadChat(true);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [userData?.city, firestore, activeTab, lastSeenChatTime]);
+
+  // Handle tab switch to chat
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'chat') {
+      setHasUnreadChat(false);
+      const now = Date.now();
+      setLastSeenChatTime(now);
+      localStorage.setItem('last_chat_view_time', now.toString());
+    }
+  };
+
   useEffect(() => {
     if (searchParams.get('registered') === 'true') {
         toast({
             title: "Induction Complete!",
-            description: "Success! You are now officially registered in the National Registry.",
+            description: "Success! You are now registered in the National Registry.",
         });
         window.history.replaceState({}, '', window.location.pathname);
     }
@@ -150,27 +186,16 @@ export default function HomePage() {
     try {
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
-        const token = await getToken(messaging, { vapidKey: "BInW6L_yM-m4x6N3L-O-I-U-S-E-R-K-E-Y" }); 
+        const token = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY }); 
         if (token) {
           await updateDoc(doc(firestore, "users", userData.uid), { fcmToken: token });
-          toast({ title: "Notifications Active", description: "You will now receive real-time party alerts." });
+          toast({ title: "Notifications Active", description: "You will now receive party alerts." });
         }
-      } else {
-        toast({ variant: "destructive", title: "Permission Denied", description: "Please enable notifications in your browser settings." });
       }
     } catch (error: any) {
-      console.error("FCM error:", error);
       toast({ variant: "destructive", title: "Setup Failed", description: "Could not enable push notifications." });
     } finally {
       setNotifLoading(false);
-    }
-  };
-
-  const markAnnouncementsSeen = () => {
-    if (filteredAnnouncements.length > 0) {
-      const newestId = filteredAnnouncements[0].id;
-      localStorage.setItem('last_seen_announcement', newestId);
-      setLastSeenAnnouncement(newestId);
     }
   };
 
@@ -187,30 +212,25 @@ export default function HomePage() {
     )
   }
 
-  const isSupporter = userData?.role === 'Supporter';
-  const isMember = userData?.role === 'Member';
   const referralLink = `${domain}/join?ref=${userData?.uid}`;
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);
-    toast({ title: "Link Copied!", description: "Share this to earn 50 Merit Points per recruit!" });
+    toast({ title: "Link Copied!", description: "Earn 50 Merit Points per recruit!" });
   };
 
-  const hasNewAnnouncements = filteredAnnouncements.length > 0 && filteredAnnouncements[0].id !== lastSeenAnnouncement;
-
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen pb-20 md:pb-0">
       <UserHeader userData={userData} />
-      <div className="p-4 md:p-8 space-y-12 max-w-7xl mx-auto w-full">
+      <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
         
         <VipVerificationBanner />
 
         <div className="grid gap-8 lg:grid-cols-12 items-start">
-            <div className="lg:col-span-4 flex flex-col gap-8">
+            {/* Sidebar Assets */}
+            <div className="lg:col-span-4 flex flex-col gap-8 order-last lg:order-first">
                 <DigitalIdCard userData={userData} />
-                
                 <MeritProgress meritPoints={userData?.meritPoints || 0} />
-
-                {(isSupporter || isMember) && <LocalChapterSection userData={userData} />}
+                <LocalChapterSection userData={userData} />
 
                 <Card className="shadow-lg border-t-4 border-red-600 bg-red-50/5">
                   <CardHeader className="pb-2">
@@ -218,18 +238,17 @@ export default function HomePage() {
                       <Share2 className="h-4 w-4" />
                       Growth Command
                     </CardTitle>
-                    <CardDescription className="text-[10px] font-bold uppercase">Earn 50 Merit Points per successful induction.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-2">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
                         <p className="text-3xl font-bold text-primary">{userData?.referralCount || 0}</p>
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Recruits Dispatched</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total Recruits</p>
                       </div>
                       <Trophy className="h-8 w-8 text-accent opacity-20" />
                     </div>
                     <div className="pt-4 border-t space-y-3">
-                      <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Your Tactical Referral Link</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest opacity-70">Referral Link</Label>
                       <div className="flex gap-2">
                         <Input value={referralLink} readOnly className="text-xs bg-muted font-mono h-10" />
                         <Button size="icon" variant="outline" onClick={copyLink} className="shrink-0 h-10 w-10 border-primary/20"><Copy className="h-4 w-4 text-primary" /></Button>
@@ -237,72 +256,81 @@ export default function HomePage() {
                     </div>
                   </CardContent>
                 </Card>
-
-                <Card className="shadow-lg border-t-4 border-primary">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                      <Bell className="h-3 w-3 text-primary" />
-                      Alert Preferences
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {userData?.fcmToken ? (
-                      <div className="flex items-center gap-2 text-green-600">
-                        <UserCheck className="h-4 w-4" />
-                        <span className="text-xs font-bold uppercase">Push Alerts Enabled</span>
-                      </div>
-                    ) : (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full text-[10px] font-black uppercase tracking-widest border-primary/20"
-                        onClick={handleEnableNotifications}
-                        disabled={notifLoading}
-                      >
-                        {notifLoading ? <Loader2 className="animate-spin h-3 w-3 mr-2" /> : <Bell className="h-3 w-3 mr-2 text-primary" />}
-                        Enable Party Alerts
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <DailyPulse />
             </div>
-            <div className="lg:col-span-8 space-y-12">
-                <section id="announcements" onMouseEnter={markAnnouncementsSeen}>
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-3">
-                            <Megaphone className="h-6 w-6" />
-                            National Bulletin
-                            {hasNewAnnouncements && (
-                                <Badge variant="destructive" className="animate-pulse font-black text-[9px] uppercase tracking-widest px-2">New</Badge>
+
+            {/* Dynamic Content Tabs */}
+            <div className="lg:col-span-8 space-y-6">
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+                  <TabsList className="bg-primary/5 p-1 border border-primary/10 h-14 w-full justify-start overflow-x-auto gap-2">
+                    <TabsTrigger value="newsfeed" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+                      <Newspaper className="h-3.5 w-3.5 mr-2" /> Newsfeed
+                    </TabsTrigger>
+                    <TabsTrigger value="polls" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+                      <BarChart3 className="h-3.5 w-3.5 mr-2" /> Referendums
+                    </TabsTrigger>
+                    <TabsTrigger value="chat" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white relative">
+                      <MessageCircle className="h-3.5 w-3.5 mr-2" /> Town Square
+                      {hasUnreadChat && (
+                        <span className="absolute top-2 right-2 h-2 w-2 bg-red-600 rounded-full animate-pulse border border-white" />
+                      )}
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="newsfeed" className="space-y-10 animate-in fade-in duration-500 pt-6">
+                    <section id="announcements">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-3">
+                                <Megaphone className="h-6 w-6" />
+                                National Bulletin
+                            </h2>
+                        </div>
+                        <div className="space-y-6">
+                            {announcementsLoading ? (
+                                <div className="space-y-4">
+                                  <Skeleton className="h-48 w-full" />
+                                  <Skeleton className="h-48 w-full" />
+                                </div>
+                            ) : filteredAnnouncements.length === 0 ? (
+                                <Card className="p-12 text-center border-dashed bg-muted/20">
+                                    <p className="text-muted-foreground font-medium">No official updates available.</p>
+                                </Card>
+                            ) : (
+                                filteredAnnouncements.map((item: any) => (
+                                    <AnnouncementCard 
+                                        key={item.id}
+                                        title={item.title}
+                                        date={item.timestamp ? new Date(item.timestamp.toDate()).toLocaleDateString() : 'Just now'}
+                                        fullText={item.message}
+                                        link={item.documentLink}
+                                    />
+                                ))
                             )}
-                        </h2>
+                        </div>
+                    </section>
+                    <ActionCenter />
+                    <CommunityFeedback />
+                  </TabsContent>
+
+                  <TabsContent value="polls" className="space-y-10 animate-in fade-in duration-500 pt-6">
+                    <DailyPulse />
+                    <RecruitmentLeaderboard />
+                  </TabsContent>
+
+                  <TabsContent value="chat" className="h-[600px] animate-in fade-in duration-500 pt-6 border rounded-2xl overflow-hidden shadow-2xl bg-white">
+                    <div className="h-full flex flex-col">
+                      <div className="bg-primary/5 p-4 border-b flex justify-between items-center">
+                        <div>
+                          <h3 className="text-sm font-black uppercase text-primary tracking-tight">{userData?.city || 'National'} Mobilization Room</h3>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase">End-to-End Encrypted</p>
+                        </div>
+                        <Badge className="bg-green-600 font-black text-[8px] uppercase">Live Signal</Badge>
+                      </div>
+                      <div className="flex-1 min-h-0">
+                        <ChatInterface roomName={userData?.city || 'National'} />
+                      </div>
                     </div>
-                    <div className="space-y-6">
-                        {announcementsLoading ? (
-                            <Skeleton className="h-48 w-full" />
-                        ) : filteredAnnouncements.length === 0 ? (
-                            <Card className="p-12 text-center border-dashed bg-muted/20">
-                                <p className="text-muted-foreground font-medium">No official updates at this moment.</p>
-                            </Card>
-                        ) : (
-                            filteredAnnouncements.map((item: any) => (
-                                <AnnouncementCard 
-                                    key={item.id}
-                                    title={item.title}
-                                    date={item.timestamp ? new Date(item.timestamp.toDate()).toLocaleDateString() : 'Just now'}
-                                    fullText={item.message}
-                                    link={item.documentLink}
-                                />
-                            ))
-                        )}
-                    </div>
-                </section>
-                
-                <RecruitmentLeaderboard />
-                <ActionCenter />
-                <CommunityFeedback />
+                  </TabsContent>
+                </Tabs>
             </div>
         </div>
       </div>

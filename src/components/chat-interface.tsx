@@ -47,6 +47,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
   useEffect(() => {
     if (!firestore || !roomName) return;
 
+    setLoading(true);
     const messagesRef = collection(firestore, "chat_rooms", roomName, "messages");
     const q = query(messagesRef, orderBy("timestamp", "asc"), limit(100));
 
@@ -64,6 +65,9 @@ export function ChatInterface({ roomName }: { roomName: string }) {
           scrollRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
       }, 100);
+    }, (error) => {
+      console.error("Chat sync error:", error);
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -101,7 +105,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
     try {
       const msgRef = doc(firestore, "chat_rooms", roomName, "messages", msgId);
       await deleteDoc(msgRef);
-      toast({ title: "Message Pruned", description: "Inappropriate content removed by leadership." });
+      toast({ title: "Message Pruned" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Pruning Failed", description: error.message });
     }
@@ -111,7 +115,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
     try {
       const msgRef = doc(firestore, "chat_rooms", roomName, "messages", msgId);
       await updateDoc(msgRef, { isReported: true });
-      toast({ title: "Report Submitted", description: "Audit team will review this message." });
+      toast({ title: "Report Submitted" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Action Failed", description: error.message });
     }
@@ -119,25 +123,27 @@ export function ChatInterface({ roomName }: { roomName: string }) {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex flex-col h-full items-center justify-center space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+        <p className="text-[10px] font-black uppercase text-primary/40 tracking-widest">Establishing Tactical Link...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full max-w-5xl mx-auto bg-white shadow-inner md:border-x border-primary/5">
+    <div className="flex flex-col h-full bg-white">
       <ScrollArea className="flex-1 p-4 md:p-6">
         <div className="space-y-6 pb-4">
-          <div className="py-8 text-center space-y-2">
-            <div className="bg-primary/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto border border-primary/10">
-              <Shield className="h-8 w-8 text-primary/40" />
+          {messages.length === 0 && (
+            <div className="py-8 text-center space-y-2">
+              <div className="bg-primary/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto border border-primary/10">
+                <Shield className="h-8 w-8 text-primary/40" />
+              </div>
+              <p className="text-xs font-black uppercase text-primary/40 tracking-[0.2em]">
+                Secure Mobilization Channel
+              </p>
             </div>
-            <p className="text-xs font-black uppercase text-primary/40 tracking-[0.2em]">
-              Beginning of {roomName} Strategy Chat
-            </p>
-            <p className="text-[10px] text-muted-foreground italic">"One nation, one voice, under God."</p>
-          </div>
+          )}
 
           {messages.map((msg) => {
             const isMe = msg.senderUid === user?.uid;
@@ -181,13 +187,13 @@ export function ChatInterface({ roomName }: { roomName: string }) {
                     
                     {!isMe && (
                       <button onClick={() => handleReportMessage(msg.id)} className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[8px] font-black uppercase text-muted-foreground hover:text-red-500">
-                        <Flag className="h-2 w-2" /> Report
+                        <Flag className="h-2 w-2" />
                       </button>
                     )}
 
                     {canPrune && (
-                      <button onClick={() => handlePruneMessage(msg.id)} className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[8px] font-black uppercase text-red-600 hover:scale-110">
-                        <Trash2 className="h-2.5 w-2.5" /> Prune
+                      <button onClick={() => handlePruneMessage(msg.id)} className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[8px] font-black uppercase text-red-600">
+                        <Trash2 className="h-2.5 w-2.5" />
                       </button>
                     )}
                   </div>
@@ -199,32 +205,23 @@ export function ChatInterface({ roomName }: { roomName: string }) {
         </div>
       </ScrollArea>
 
-      <div className="p-4 md:p-6 bg-white border-t shrink-0">
-        <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-3">
-          <div className="relative flex-1 group">
-            <Input 
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={`Message ${roomName} hub...`}
-              className="h-14 pl-12 pr-4 rounded-2xl bg-[#f8fafc] border-primary/10 font-medium focus:bg-white transition-all shadow-inner"
-              disabled={sending}
-            />
-            <div className="absolute left-4 top-4 text-primary/30 group-focus-within:text-primary group-focus-within:animate-pulse transition-colors">
-              <UserCheck className="h-6 w-6" />
-            </div>
-          </div>
+      <div className="p-4 bg-white border-t shrink-0">
+        <form onSubmit={handleSendMessage} className="flex gap-3">
+          <Input 
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="Message chapter..."
+            className="h-12 rounded-xl bg-[#f8fafc] border-primary/10"
+            disabled={sending}
+          />
           <Button 
             type="submit" 
-            className="h-14 w-14 md:w-auto md:px-8 rounded-2xl bg-primary hover:bg-[#162e6d] shadow-xl shrink-0"
+            className="h-12 w-12 rounded-xl bg-primary shadow-lg shrink-0"
             disabled={!inputText.trim() || sending}
           >
-            {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Send className="md:mr-2 h-5 w-5" /><span className="hidden md:inline font-black uppercase text-xs tracking-widest">Execute</span></>}
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>
-        <div className="mt-3 flex items-center justify-center gap-2 opacity-40 text-[8px] font-black uppercase tracking-[0.2em] text-primary">
-          <Shield className="h-3 w-3" />
-          End-to-End Encrypted Strategy Hub
-        </div>
       </div>
     </div>
   );
