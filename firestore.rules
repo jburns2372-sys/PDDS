@@ -64,9 +64,10 @@ service cloud.firestore {
       
       // Update: Users can update their bio/photo but CANNOT change their role or status.
       // Executives have full update authority.
+      // Specifically protects isVerified, role, and administrative flags.
       allow update: if isExecutive() || (
         isOwner(userId) && 
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin', 'isAdmin'])
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isAuthorized', 'isSuperAdmin', 'isAdmin', 'isVerified'])
       );
       
       // Delete: Strictly restricted to President/Admin.
