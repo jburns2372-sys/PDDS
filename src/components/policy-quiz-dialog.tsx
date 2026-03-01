@@ -96,7 +96,29 @@ export function PolicyQuizDialog({ policyId, policyTitle, quiz, isOpen, onOpenCh
     setShowResult(false);
   };
 
-  const currentQuestion = quiz[currentStep];
+  const currentQuestion = quiz && quiz.length > 0 ? quiz[currentStep] : null;
+
+  // Guard for empty quiz to prevent crash
+  if (isOpen && (!quiz || quiz.length === 0)) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-headline uppercase text-primary">No Quiz Available</DialogTitle>
+            <DialogDescription className="text-xs font-bold uppercase">
+              This policy manifesto does not currently have an associated proficiency quiz.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-8 text-center italic text-muted-foreground text-sm">
+            "Knowledge is power, but this briefing is currently in development."
+          </div>
+          <DialogFooter>
+            <Button onClick={() => onOpenChange(false)} className="w-full font-black uppercase tracking-widest">Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => { if(!o) resetQuiz(); onOpenChange(o); }}>
@@ -120,7 +142,7 @@ export function PolicyQuizDialog({ policyId, policyTitle, quiz, isOpen, onOpenCh
                   <div className="h-full bg-primary transition-all" style={{ width: `${((currentStep + 1) / quiz.length) * 100}%` }} />
                 </div>
               </div>
-              <p className="font-bold text-lg leading-snug">{currentQuestion.question}</p>
+              <p className="font-bold text-lg leading-snug">{currentQuestion?.question}</p>
             </div>
 
             <RadioGroup 
@@ -132,7 +154,7 @@ export function PolicyQuizDialog({ policyId, policyTitle, quiz, isOpen, onOpenCh
               }}
               className="space-y-3"
             >
-              {currentQuestion.options.map((opt, idx) => (
+              {currentQuestion?.options.map((opt, idx) => (
                 <div key={idx} className="flex items-center space-x-3 p-4 border-2 rounded-xl hover:bg-primary/5 transition-colors cursor-pointer border-muted">
                   <RadioGroupItem value={idx.toString()} id={`opt-${idx}`} />
                   <Label htmlFor={`opt-${idx}`} className="flex-1 font-medium cursor-pointer">{opt}</Label>
