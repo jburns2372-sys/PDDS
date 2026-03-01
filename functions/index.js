@@ -13,7 +13,7 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 /**
- * Trigger: Auto Assign Supporter Role for Google Users
+ * Trigger: Force Supporter Role for Google Users
  * This script intercepts every new Google sign-in and blocks Admin access.
  * It ensures that every social login is forced into the 'Supporter' role by default.
  */
@@ -30,7 +30,7 @@ exports.autoAssignSupporterRole = onUserCreated(async (event) => {
     if (!isGoogleUser) return;
 
     // 2. Define the Supporter Profile (Hard-coded to prevent Admin rights)
-    // Aligned with the National Registry schema (Full Name, Approved Status, etc.)
+    // Aligned with the National Registry schema
     const supporterProfile = {
       uid: user.uid,
       email: user.email,
@@ -45,9 +45,9 @@ exports.autoAssignSupporterRole = onUserCreated(async (event) => {
 
     try {
       // 3. Save the record to your 'users' collection in Firestore
-      // Use merge: true to avoid overwriting existing data if the user somehow already existed
-      await db.collection('users').doc(user.uid).set(supporterProfile, { merge: true });
-      console.log(`[AUTH SECURITY] Successfully registered ${user.email} as a PDDS Supporter via Cloud Function.`);
+      // Use set with no merge to ensure the role is IRREVOCABLY overwritten to Supporter on creation
+      await db.collection('users').doc(user.uid).set(supporterProfile);
+      console.log(`[AUTH SECURITY] Successfully forced ${user.email} to Supporter role via Cloud Function.`);
     } catch (error) {
       console.error("[AUTH SECURITY ERROR] Critical Error during Supporter Registration:", error);
     }
@@ -56,7 +56,6 @@ exports.autoAssignSupporterRole = onUserCreated(async (event) => {
 /**
  * Trigger: On Supporter Created
  * Logic: Sends an automated Welcome SMS if a phone number is available.
- *        Otherwise, logs a task for a Welcome Email.
  */
 exports.onSupporterCreated = onDocumentCreated("users/{userId}", async (event) => {
     const snapshot = event.data;
