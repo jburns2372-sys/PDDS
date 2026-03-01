@@ -114,7 +114,11 @@ export default function LoginPage() {
             
             setLoading(false);
         } finally {
-            setLoading(false);
+            // Safety: Ensure loading state is cleared even if logic fails
+            // But we keep it slightly delayed to allow for potential redirect
+            setTimeout(() => {
+                setLoading(false);
+            }, 1000);
         }
     };
 
@@ -146,7 +150,7 @@ export default function LoginPage() {
                 PDDS Portal
             </h1>
       </div>
-      <Card className="w-full max-w-md shadow-2xl border-t-4 border-primary bg-white">
+      <Card className="w-full max-md shadow-2xl border-t-4 border-primary bg-white">
         <CardHeader>
             <CardTitle className="text-2xl text-center font-headline uppercase">Member Login</CardTitle>
             <CardDescription className="text-center font-medium text-muted-foreground">Access your PDDS War Room account.</CardDescription>
