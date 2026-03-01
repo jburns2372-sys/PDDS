@@ -53,7 +53,7 @@ export default function LoginPage() {
         }
     };
 
-    const handleGoogleJoin = async () => {
+    const handleGoogleAuth = async () => {
         setLoading(true);
         const provider = new GoogleAuthProvider();
         try {
@@ -61,7 +61,7 @@ export default function LoginPage() {
             const user = result.user;
             const userEmail = (user.email || '').toLowerCase();
 
-            // Privilege Check: Ensure we don't overwrite existing leadership roles
+            // Privilege Check: Only specific emails get leadership roles
             const isPresidentEmail = userEmail === 'iamgrecobelgica@gmail.com';
             const isAdminEmail = 
                 userEmail === 'j.burns2372@gmail.com' || 
@@ -78,7 +78,7 @@ export default function LoginPage() {
                 if (isPresidentEmail) initialRole = "President";
                 else if (isAdminEmail) initialRole = "Admin";
 
-                // Auto-provision as Supporter if they are joining via this method
+                // Auto-provision as Supporter (or Leadership if email matches)
                 await setDoc(userRef, {
                     uid: user.uid,
                     email: userEmail,
@@ -148,14 +148,14 @@ export default function LoginPage() {
                     <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-2 text-muted-foreground font-bold">Or Join the Movement</span>
+                    <span className="bg-white px-2 text-muted-foreground font-bold">Or use social access</span>
                 </div>
             </div>
 
             <Button 
                 variant="outline" 
                 className="w-full h-14 border-2 border-primary/20 font-black uppercase tracking-widest text-primary hover:bg-primary/5 shadow-md"
-                onClick={handleGoogleJoin}
+                onClick={handleGoogleAuth}
                 disabled={loading}
             >
                 <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
@@ -176,13 +176,13 @@ export default function LoginPage() {
                         fill="#EA4335"
                     />
                 </svg>
-                Join with Google
+                Sign in with Google
             </Button>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
             <div className="text-center w-full">
                 <p className="text-sm text-muted-foreground font-medium">
-                    Manual Registration: <Link href="/join" className="text-primary font-black hover:underline uppercase text-xs tracking-widest ml-1">Legacy Induction</Link>
+                    New to PDDS? <Link href="/join" className="text-primary font-black hover:underline uppercase text-xs tracking-widest ml-1">Join the Movement</Link>
                 </p>
             </div>
         </CardFooter>
