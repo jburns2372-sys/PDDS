@@ -18,19 +18,33 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Map, TrendingUp, Users, Loader2, Sparkles, Trophy, Globe, CalendarDays } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { subDays, isAfter } from "date-fns";
+import dynamic from 'next/dynamic';
+
+const NationalFootprintMap = dynamic(
+  () => import('@/components/national-footprint-map'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-[500px] w-full bg-muted/20 rounded-2xl animate-pulse flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary/20" />
+      </div>
+    )
+  }
+);
 
 export default function AdminAnalyticsPage() {
   const { data: users, loading } = useCollection('users');
 
   // Logic to process Membership Density and Growth
   const stats = useMemo(() => {
-    if (!users.length) return { hotspots: [], total: 0, growth: 0, cityStats: [] };
+    if (!users.length) return { hotspots: [], total: 0, growth: 0, cityStats: [], supporters: [] };
 
     const provinceMap: Record<string, number> = {};
     const cityMap: Record<string, number> = {};
     
     const sevenDaysAgo = subDays(new Date(), 7);
     let newRegistrations = 0;
+    const supporters = users.filter(u => u.role === 'Supporter');
 
     users.forEach(user => {
       // 1. Group by Province
@@ -65,6 +79,7 @@ export default function AdminAnalyticsPage() {
       hotspots: sortedHotspots,
       topStrongholds: sortedHotspots.slice(0, 5),
       cityStats: sortedCities,
+      supporters,
       total: users.length,
       growth: newRegistrations
     };
@@ -126,6 +141,15 @@ export default function AdminAnalyticsPage() {
             </Card>
           </div>
         </div>
+
+        {/* 🗺️ National Footprint Map */}
+        <section className="space-y-4">
+            <div className="flex items-center gap-2">
+                <Map className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight">Geographic Supporter Pulse</h2>
+            </div>
+            <NationalFootprintMap supporters={stats.supporters} />
+        </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
