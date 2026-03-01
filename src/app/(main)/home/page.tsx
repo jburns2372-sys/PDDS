@@ -16,6 +16,7 @@ import { RecruitmentLeaderboard } from "@/components/recruitment-leaderboard";
 import { CoordinatorLeaderboard } from "@/components/coordinator-leaderboard";
 import { VipVerificationBanner } from "@/components/vip-verification-banner";
 import { MeritProgress } from "@/components/merit-progress";
+import { SkillsProgress } from "@/components/skills-progress";
 import { CommandSwitchboard } from "@/components/command-switchboard";
 import { SOSButton } from "@/components/sos-button";
 import { Button } from "@/components/ui/button";
@@ -23,13 +24,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatInterface } from "@/components/chat-interface";
-import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck, Share2, MessageCircle, BarChart3, Newspaper, Users } from "lucide-react";
+import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck, Share2, MessageCircle, BarChart3, Newspaper, Users, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMessaging, useFirestore, useCollection } from "@/firebase";
-import { getToken } from "firebase/messaging";
 import { doc, updateDoc, collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { HostMeetingDialog } from "@/components/host-meeting-dialog";
 import { LocalMeetupMap } from "@/components/local-meetup-map";
+import Link from "next/link";
 
 function UserHeader({userData}: {userData: any}) {
   return (
@@ -108,11 +109,9 @@ export default function HomePage() {
   const searchParams = useSearchParams();
   const { userData, loading: userLoading } = useUserData();
   const { toast } = useToast();
-  const messaging = useMessaging();
   const firestore = useFirestore();
   
   const [domain, setDomain] = useState("");
-  const [notifLoading, setNotifLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("newsfeed");
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
   const [lastSeenChatTime, setLastSeenChatTime] = useState<number>(Date.now());
@@ -213,6 +212,7 @@ export default function HomePage() {
                 <SOSButton />
                 <CommandSwitchboard />
                 <DigitalIdCard userData={userData} />
+                <SkillsProgress />
                 <MeritProgress meritPoints={userData?.meritPoints || 0} />
                 <LocalChapterSection userData={userData} />
 
@@ -249,11 +249,14 @@ export default function HomePage() {
                     <TabsTrigger value="newsfeed" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
                       <Newspaper className="h-3.5 w-3.5 mr-2" /> Newsfeed
                     </TabsTrigger>
+                    <TabsTrigger value="academy" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+                      <GraduationCap className="h-3.5 w-3.5 mr-2" /> Academy
+                    </TabsTrigger>
                     <TabsTrigger value="mobilize" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
                       <Users className="h-3.5 w-3.5 mr-2" /> Mobilize
                     </TabsTrigger>
                     <TabsTrigger value="polls" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-                      <BarChart3 className="h-3.5 w-3.5 mr-2" /> Leaderboard
+                      <BarChart3 className="h-3.5 w-3.5 mr-2" /> Stats
                     </TabsTrigger>
                     <TabsTrigger value="chat" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white relative">
                       <MessageCircle className="h-3.5 w-3.5 mr-2" /> Town Square
@@ -296,6 +299,33 @@ export default function HomePage() {
                     </section>
                     <ActionCenter />
                     <CommunityFeedback />
+                  </TabsContent>
+
+                  <TabsContent value="academy" className="space-y-8 animate-in fade-in duration-500 pt-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="text-2xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-3">
+                          <GraduationCap className="h-6 w-6 text-emerald-600" />
+                          Federalismo Academy
+                        </h2>
+                        <p className="text-muted-foreground text-sm font-medium">Master the platform and advance your vetting tier.</p>
+                      </div>
+                      <Button asChild className="h-12 px-8 font-black uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 shadow-xl">
+                        <Link href="/academy">Enter Academy Hub</Link>
+                      </Button>
+                    </div>
+                    
+                    <Card className="bg-emerald-50/50 border-2 border-dashed border-emerald-200">
+                      <CardContent className="p-8 flex items-start gap-4">
+                        <Sparkles className="h-6 w-6 text-emerald-600 shrink-0" />
+                        <div>
+                          <h3 className="font-bold text-emerald-800 uppercase text-sm">Automated Advancement Active</h3>
+                          <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
+                            Graduating from the core curriculum will automatically elevate your profile to **Silver Mobilizer** tier, granting you authority to host local community gatherings.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </TabsContent>
 
                   <TabsContent value="mobilize" className="space-y-8 animate-in fade-in duration-500 pt-6">

@@ -14,6 +14,7 @@ import { pddsLeadershipRoles } from "@/lib/data";
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
   { href: '/chat', label: 'Town Square', icon: MessageCircle },
+  { href: '/academy', label: 'Academy', icon: GraduationCap },
   { href: '/bantay-bayan', label: 'Bantay Bayan', icon: Eye },
   { href: '/policies', label: 'Manifestos', icon: GraduationCap },
   { href: '/directory', label: 'Directory', icon: Users },

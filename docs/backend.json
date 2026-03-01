@@ -55,10 +55,35 @@
         "referredBy": { "type": "string" },
         "fcmToken": { "type": "string" },
         "adminNotes": { "type": "string", "description": "Internal administrative notes for leadership only." },
+        "achievements": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastActive": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
+    },
+    "course": {
+      "title": "Academy Course",
+      "description": "A training module in the Federalismo Academy.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "category": { "type": "string", "enum": ["Leadership", "Federalism"] },
+        "duration": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["title", "videoUrl", "category"]
+    },
+    "course_progress": {
+      "title": "Course Progress",
+      "description": "User completion tracking for courses.",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["In Progress", "Completed"] },
+        "completedAt": { "type": "string", "format": "date-time" }
+      }
     },
     "chat_room": {
       "title": "Chat Room",
@@ -150,6 +175,14 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/user" },
       "description": "Stores user profile information."
+    },
+    "/users/{userId}/course_progress/{courseId}": {
+      "schema": { "$ref": "#/backend/entities/course_progress" },
+      "description": "User completion status for specific academy modules."
+    },
+    "/courses/{courseId}": {
+      "schema": { "$ref": "#/backend/entities/course" },
+      "description": "Educational modules for the Federalismo Academy."
     },
     "/chat_rooms/{roomId}": {
       "schema": { "$ref": "#/backend/entities/chat_room" },
