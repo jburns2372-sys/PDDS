@@ -39,9 +39,10 @@ import {
   CheckCircle2,
   Users,
   GraduationCap,
-  PlusCircle
+  PlusCircle,
+  FileBadge
 } from "lucide-react";
-import { policyCategories } from "@/lib/data";
+import { policyCategories, NATIONAL_LAUNCH_TEMPLATE } from "@/lib/data";
 
 /**
  * @fileOverview PRO Official Broadcast & Media Center.
@@ -125,6 +126,13 @@ export default function ProBulletinPage() {
     } finally {
       setIsPublishing(false);
     }
+  };
+
+  const loadLaunchTemplate = () => {
+    setTitle(NATIONAL_LAUNCH_TEMPLATE.title);
+    setMessage(NATIONAL_LAUNCH_TEMPLATE.message);
+    setTargetGroup("National");
+    toast({ title: "Template Loaded", description: "The National Launch Broadcast is ready for publication." });
   };
 
   const handleAssetUpload = async () => {
@@ -281,6 +289,15 @@ export default function ProBulletinPage() {
     }
   };
 
+  const updatePollOption = (idx: number, val: string) => {
+    const next = [...pollOptions];
+    next[idx] = val;
+    setPollOptions(next);
+  };
+
+  const addPollOption = () => setPollOptions([...pollOptions, ""]);
+  const removePollOption = (idx: number) => setPollOptions(pollOptions.filter((_, i) => i !== idx));
+
   const handleClosePoll = async (pollId: string) => {
     if (!confirm("Are you sure you want to close this referendum? Voting will cease immediately.")) return;
     try {
@@ -416,14 +433,25 @@ export default function ProBulletinPage() {
               <div className="lg:col-span-8">
                 <Card className="shadow-xl border-t-4 border-red-700 overflow-hidden">
                   <form onSubmit={handlePublish}>
-                    <CardHeader className="bg-red-50/50 border-b">
-                      <CardTitle className="text-lg font-headline flex items-center gap-2 text-red-800">
-                        <ShieldCheck className="h-5 w-5" />
-                        Official Directive
-                      </CardTitle>
-                      <CardDescription className="text-[10px] font-black uppercase tracking-widest">
-                        Pushes a news alert to the National Bulletin feed.
-                      </CardDescription>
+                    <CardHeader className="bg-red-50/50 border-b flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg font-headline flex items-center gap-2 text-red-800">
+                          <ShieldCheck className="h-5 w-5" />
+                          Official Directive
+                        </CardTitle>
+                        <CardDescription className="text-[10px] font-black uppercase tracking-widest">
+                          Pushes a news alert to the National Bulletin feed.
+                        </CardDescription>
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={loadLaunchTemplate}
+                        className="h-8 text-[9px] font-black uppercase tracking-widest border-red-200 text-red-700"
+                      >
+                        <FileBadge className="mr-1.5 h-3 w-3" /> Load Launch Template
+                      </Button>
                     </CardHeader>
                     <CardContent className="space-y-6 pt-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -448,7 +476,7 @@ export default function ProBulletinPage() {
                         <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Body Content</Label>
                         <Textarea 
                           placeholder="Detailed party update..." 
-                          className="min-h-[200px] text-sm font-medium leading-relaxed border-2"
+                          className="min-h-[250px] text-sm font-medium leading-relaxed border-2"
                           value={message}
                           onChange={e => setMessage(e.target.value)}
                         />
@@ -472,6 +500,7 @@ export default function ProBulletinPage() {
                   </CardHeader>
                   <CardContent className="pt-2 italic text-xs text-muted-foreground leading-relaxed space-y-4">
                     <p>"Announcements targeted to specific cities will only appear on the feed of members registered in that city, alongside national alerts."</p>
+                    <p className="font-bold text-primary">Tip: Use the National Launch Template for the initial platform rollout to maximize member onboarding.</p>
                   </CardContent>
                 </Card>
               </div>

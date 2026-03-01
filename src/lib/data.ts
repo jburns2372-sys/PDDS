@@ -42,6 +42,36 @@ export const policyCategories = [
 ];
 
 /**
+ * Official National Launch Broadcast Template
+ */
+export const NATIONAL_LAUNCH_TEMPLATE = {
+  title: "🇵🇭 MABUHAY! THE PATRIOTLINK ERA HAS BEGUN",
+  message: `Kasama namin kayo sa paggawa ng kasaysayan!
+
+Today, we transition from our glorious history into a modern digital movement. The **Federalismo ng Dugong Dakilang Samahan (PDDS)** is now officially live on **PatriotLink**—the engine of our national mobilization!
+
+Here is how we will win together using our Top 4 Digital Assets:
+
+🚀 **1. Patriot Merit System**: Every action counts. Recruit new supporters to earn **Merit Points** and rise from **Bronze** to **Gold**. Your service is now recorded and rewarded.
+
+💬 **2. Digital Town Square**: No more anonymous noise. Join your specific **City Strategy Room** to coordinate with your local chapter. These are verified channels for patriots only.
+
+🗳️ **3. Interactive Polling**: Your voice is our command. Participate in **Daily Pulse** referendums. Your votes directly shape our official party policy and tactical priorities.
+
+🪪 **4. Secure Digital ID**: Your official credentials are here. Find your **QR-coded Digital ID** in your profile. Use it for secure check-ins at local rallies and assemblies.
+
+📢 **THE CALL TO ACTION**:
+We grow through unity. I am charging every member to **invite at least 3 fellow citizens today** using your unique referral link. Let us double our strength in 24 hours!
+
+⚠️ **SECURITY NOTE**: 
+This portal is a private, vetted community. **DO NOT** share screenshots of internal chats. Only share official materials found in the **Asset Library (Vault)** on public social media.
+
+Isang bansa, isang diwa, sa ilalim ng Panginoong Hesus!
+
+**PADAYON, PDDS!** 🇵🇭`
+};
+
+/**
  * Intelligent helper to categorize provinces into island groups.
  */
 export const getIslandGroup = (province: string) => {
