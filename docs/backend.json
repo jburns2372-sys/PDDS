@@ -59,6 +59,32 @@
       },
       "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
     },
+    "calendar_activity": {
+      "title": "Official Calendar Activity",
+      "description": "A high-level party directive or mobilization event.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "scope": { "type": "string", "enum": ["National", "Regional"] },
+        "targetCity": { "type": "string" },
+        "targetProvince": { "type": "string" },
+        "locationAddress": { "type": "string" },
+        "locationCoords": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "isAuthorized": { "type": "boolean" },
+        "authorizedBy": { "type": "string" },
+        "organizerName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "startDate", "scope"]
+    },
     "policy": {
       "title": "Policy Manifesto",
       "description": "An official party position or manifesto document.",
@@ -158,6 +184,10 @@
     "/meeting_requests/{requestId}": {
       "schema": { "$ref": "#/backend/entities/meeting_request" },
       "description": "Stores supporter-led meeting proposals."
+    },
+    "/calendar_activities/{activityId}": {
+      "schema": { "$ref": "#/backend/entities/calendar_activity" },
+      "description": "Stores official party calendar events."
     }
   }
 }

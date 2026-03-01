@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -6,7 +7,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 import { Button } from './ui/button';
-import { Mail, Navigation, Megaphone, Loader2, Send, Smartphone, MapPin } from 'lucide-react';
+import { Mail, Navigation, Megaphone, Loader2, Send, Smartphone, MapPin, ShieldAlert } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 /**
  * @fileOverview Tactical Command Map Component.
  * Optimized for workstation stability and SSR compatibility.
+ * Features a high-intensity member heatmap and radius dispatch control.
  */
 
 const cityCoords: Record<string, [number, number]> = {
@@ -41,13 +43,21 @@ function HeatLayer({ points }: { points: any[] }) {
 
   useEffect(() => {
     if (!map || !points.length) return;
-    const heatPoints = points.map(p => [p.lat, p.lng, 1]);
+    const heatPoints = points.map(p => [p.lat, p.lng, 1.5]); // Increased intensity factor
     
     // @ts-ignore
     const heatLayer = L.heatLayer(heatPoints, {
-      radius: 30,
+      radius: 35,
+      blur: 20,
       max: 1,
-      minOpacity: 0.2
+      minOpacity: 0.3,
+      gradient: {
+        0.4: 'blue',
+        0.6: 'cyan',
+        0.7: 'lime',
+        0.8: 'yellow',
+        1.0: 'red'
+      }
     }).addTo(map);
 
     return () => { map.removeLayer(heatLayer); };
@@ -127,13 +137,17 @@ export default function NationalFootprintMap({ supporters }: NationalFootprintMa
     <div className="space-y-6">
       <div className="relative w-full h-[600px] rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-muted/20">
         <div className="absolute top-4 left-4 z-[1000] space-y-2">
-          <div className="bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-xl border border-primary/10 min-w-[200px]">
-            <p className="text-[10px] font-black uppercase text-primary mb-1 flex items-center gap-2"><Navigation className="h-3 w-3 text-accent" />Tactical Command</p>
-            <p className="text-xl font-black text-primary leading-tight">{localSupporters.length} <span className="text-xs font-bold text-muted-foreground uppercase">Nearby</span></p>
+          <div className="bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-xl border border-primary/10 min-w-[220px]">
+            <p className="text-[10px] font-black uppercase text-primary mb-1 flex items-center gap-2"><Navigation className="h-3 w-3 text-accent" />Tactical Density Map</p>
+            <p className="text-xl font-black text-primary leading-tight">{localSupporters.length} <span className="text-xs font-bold text-muted-foreground uppercase">Active Potential</span></p>
             <div className="flex items-center justify-between mt-2 pt-2 border-t border-dashed">
-              <span className="text-[8px] font-bold text-muted-foreground uppercase">Radius: {radiusKm}KM</span>
-              <div className="flex gap-1">{[2, 5, 10].map(r => (<button key={r} onClick={() => setRadiusKm(r)} className={`text-[8px] px-2 py-0.5 rounded font-black transition-colors ${radiusKm === r ? 'bg-primary text-white' : 'bg-muted hover:bg-muted-foreground/20'}`}>{r}K</button>))}</div>
+              <span className="text-[8px] font-bold text-muted-foreground uppercase">Mobilization Zone: {radiusKm}KM</span>
+              <div className="flex gap-1">{[2, 5, 10, 20].map(r => (<button key={r} onClick={() => setRadiusKm(r)} className={`text-[8px] px-2 py-0.5 rounded font-black transition-colors ${radiusKm === r ? 'bg-primary text-white' : 'bg-muted hover:bg-muted-foreground/20'}`}>{r}K</button>))}</div>
             </div>
+          </div>
+          <div className="bg-primary p-3 rounded-xl shadow-xl text-white flex items-center gap-3">
+            <ShieldAlert className="h-4 w-4 text-accent animate-pulse" />
+            <p className="text-[9px] font-black uppercase tracking-widest leading-tight">Executive Heat Intensity: Active</p>
           </div>
         </div>
 
@@ -141,6 +155,8 @@ export default function NationalFootprintMap({ supporters }: NationalFootprintMa
           <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <HeatLayer points={processedSupporters} />
           <Circle center={rallyCenter} pathOptions={{ color: 'hsl(var(--primary))', fillColor: 'hsl(var(--primary))', fillOpacity: 0.1, weight: 2, dashArray: '5, 10' }} radius={radiusKm * 1000} />
+          
+          {/* Individual Markers for precision lookup */}
           {localSupporters.map((user) => (
             <Marker key={user.id || user.uid} position={[user.lat, user.lng]}>
               <Popup className="font-sans">
@@ -170,7 +186,7 @@ export default function NationalFootprintMap({ supporters }: NationalFootprintMa
           <div className="flex flex-col md:flex-row items-center gap-4 pt-2">
             <div className="flex-1 flex items-center gap-3 p-3 bg-accent/10 rounded-xl border border-accent/20">
               <div className="bg-accent p-2 rounded-lg"><MapPin className="h-4 w-4 text-white" /></div>
-              <p className="text-[10px] font-bold text-accent-foreground leading-tight uppercase">Targeting <span className="font-black underline">{radiusKm}km</span> zone.</p>
+              <p className="text-[10px] font-bold text-accent-foreground leading-tight uppercase">Targeting <span className="font-black underline">{radiusKm}km</span> zone around tactical center.</p>
             </div>
             <Button onClick={handleRadiusBroadcast} disabled={isSending || localSupporters.length === 0} className="w-full md:w-auto h-14 px-10 font-black uppercase tracking-[0.15em] text-sm shadow-2xl bg-primary hover:bg-primary/90">
               {isSending ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> DISPATCHING...</> : <><Send className="mr-2 h-5 w-5" /> Execute Radius Broadcast</>}

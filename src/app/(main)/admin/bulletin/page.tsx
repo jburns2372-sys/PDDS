@@ -40,7 +40,8 @@ import {
   Users,
   GraduationCap,
   PlusCircle,
-  FileBadge
+  FileBadge,
+  Navigation
 } from "lucide-react";
 import { policyCategories, NATIONAL_LAUNCH_TEMPLATE } from "@/lib/data";
 
@@ -55,6 +56,8 @@ export default function ProBulletinPage() {
   const { toast } = useToast();
 
   const isPresident = userData?.role === 'President';
+  const isVP = userData?.role === 'VP';
+  const hasEventAuthority = isPresident || isVP;
 
   // Announcement State
   const [title, setTitle] = useState("");
@@ -84,6 +87,8 @@ export default function ProBulletinPage() {
   const [eventDescription, setEventDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventLocation, setEventLocation] = useState("National");
+  const [eventLat, setEventLat] = useState("");
+  const [eventLng, setEventLng] = useState("");
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
 
   // Poll Management State
@@ -200,19 +205,6 @@ export default function ProBulletinPage() {
     }
   };
 
-  const updateQuiz = (idx: number, field: string, val: any) => {
-    const next = [...policyQuiz];
-    if (field === 'question') next[idx].question = val;
-    if (field === 'correct') next[idx].correctAnswerIndex = val;
-    if (field.startsWith('opt-')) {
-      const oIdx = parseInt(field.split('-')[1]);
-      next[idx].options[oIdx] = val;
-    }
-    setPolicyQuiz(next);
-  };
-
-  const addQuizQuestion = () => setPolicyQuiz([...policyQuiz, { question: "", options: ["", "", ""], correctAnswerIndex: 0 }]);
-
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventTitle || !eventDate) {
@@ -223,12 +215,13 @@ export default function ProBulletinPage() {
     setIsCreatingEvent(true);
     try {
       const eventData = {
-        title: eventTitle.trim(),
+        title: eventTitle.trim().toUpperCase(),
         description: eventDescription.trim(),
         startDate: eventDate, 
         scope: eventLocation === 'National' ? 'National' : 'Regional',
         targetCity: eventLocation === 'National' ? null : eventLocation,
         targetProvince: eventLocation === 'National' ? null : "REGIONAL HUB",
+        locationCoords: (eventLat && eventLng) ? { lat: Number(eventLat), lng: Number(eventLng) } : null,
         isAuthorized: isPresident, 
         authorizedBy: isPresident ? userData?.fullName : null,
         organizerName: userData?.fullName || 'Executive Command',
@@ -244,6 +237,7 @@ export default function ProBulletinPage() {
       });
       
       setEventTitle(""); setEventDescription(""); setEventDate(""); setEventLocation("National");
+      setEventLat(""); setEventLng("");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Event Deployment Failed", description: error.message });
     } finally {
@@ -288,6 +282,19 @@ export default function ProBulletinPage() {
       setIsCreatingPoll(false);
     }
   };
+
+  const updateQuiz = (idx: number, field: string, val: any) => {
+    const next = [...policyQuiz];
+    if (field === 'question') next[idx].question = val;
+    if (field === 'correct') next[idx].correctAnswerIndex = val;
+    if (field.startsWith('opt-')) {
+      const oIdx = parseInt(field.split('-')[1]);
+      next[idx].options[oIdx] = val;
+    }
+    setPolicyQuiz(next);
+  };
+
+  const addQuizQuestion = () => setPolicyQuiz([...policyQuiz, { question: "", options: ["", "", ""], correctAnswerIndex: 0 }]);
 
   const updatePollOption = (idx: number, val: string) => {
     const next = [...pollOptions];
@@ -353,78 +360,123 @@ export default function ProBulletinPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* POLICY HUB TAB */}
-          <TabsContent value="policy">
-            <Card className="shadow-xl border-t-4 border-primary">
-              <CardHeader className="bg-primary/5 border-b">
-                <CardTitle className="text-lg font-headline flex items-center gap-2 text-primary uppercase">
-                  <GraduationCap className="h-5 w-5" />
-                  Party Manifesto Hub
-                </CardTitle>
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest">Deploy manifestos and proficiency quizzes to the National Library.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-8 pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-primary">Manifesto Title</Label>
-                      <Input placeholder="e.g. 10% Flat Tax Framework" value={policyTitle} onChange={e => setPolicyTitle(e.target.value)} className="h-12 border-2" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-primary">Pillar Category</Label>
-                      <Select value={policyCat} onValueChange={setPolicyCat}>
-                        <SelectTrigger className="h-12 border-2"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {policyCategories.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-primary">Document (PDF)</Label>
-                      <Input type="file" accept="application/pdf" onChange={e => setPolicyFile(e.target.files?.[0] || null)} className="h-12 border-2" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-primary">Member Summary</Label>
-                      <Textarea placeholder="Quick read summary for members..." value={policySummary} onChange={e => setPolicySummary(e.target.value)} className="h-24 border-2" />
-                    </div>
-                  </div>
+          {/* EVENTS TAB */}
+          <TabsContent value="events">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-8">
+                <Card className="shadow-xl border-t-4 border-primary">
+                  <form onSubmit={handleCreateEvent}>
+                    <CardHeader className="bg-primary/5 border-b">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg font-headline flex items-center gap-2 text-primary uppercase">
+                            <CalendarDays className="h-5 w-5" />
+                            Official Event Command
+                          </CardTitle>
+                          <CardDescription className="text-[10px] font-black uppercase tracking-widest">
+                            Publish high-level mobilization activities with GPS precision.
+                          </CardDescription>
+                        </div>
+                        {hasEventAuthority && (
+                          <Badge className="bg-accent text-accent-foreground font-black text-[10px]">EXECUTIVE CLEARANCE</Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6 pt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Event Title</Label>
+                          <Input 
+                            placeholder="e.g. GRAND FEDERALISMO RALLY" 
+                            className="h-12 font-bold uppercase border-2"
+                            value={eventTitle}
+                            onChange={e => setEventTitle(e.target.value.toUpperCase())}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Target Deployment Zone</Label>
+                          <Select value={eventLocation} onValueChange={setEventLocation}>
+                            <SelectTrigger className="h-12 border-2"><SelectValue placeholder="Select Scope" /></SelectTrigger>
+                            {targetOptions}
+                          </Select>
+                        </div>
+                      </div>
 
-                  <div className="space-y-4 border-l pl-6">
-                    <Label className="text-[10px] font-black uppercase text-primary flex items-center justify-between">
-                      Briefing Proficiency Quiz
-                      <Button variant="ghost" size="sm" onClick={addQuizQuestion} className="h-6 text-[8px] font-black"><PlusCircle className="h-3 w-3 mr-1" /> Add Question</Button>
-                    </Label>
-                    <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
-                      {policyQuiz.map((q, qIdx) => (
-                        <Card key={qIdx} className="p-4 bg-muted/30 border-dashed">
-                          <Input placeholder={`Question ${qIdx + 1}`} value={q.question} onChange={e => updateQuiz(qIdx, 'question', e.target.value)} className="mb-3 font-bold" />
-                          <div className="space-y-2">
-                            {q.options.map((o: any, oIdx: any) => (
-                              <div key={oIdx} className="flex gap-2">
-                                <Input placeholder={`Option ${oIdx + 1}`} value={o} onChange={e => updateQuiz(qIdx, `opt-${oIdx}`, e.target.value)} className="h-8 text-xs" />
-                                <Button 
-                                  variant={q.correctAnswerIndex === oIdx ? 'default' : 'outline'} 
-                                  size="sm" 
-                                  onClick={() => updateQuiz(qIdx, 'correct', oIdx)}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <CheckCircle2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Date & Time</Label>
+                          <div className="relative">
+                            <Clock className="absolute left-3 top-3.5 h-4 w-4 text-primary/40" />
+                            <Input 
+                              type="datetime-local" 
+                              className="h-12 pl-10 border-2 font-bold"
+                              value={eventDate}
+                              onChange={e => setEventDate(e.target.value)}
+                            />
                           </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="bg-muted/30 border-t pt-6">
-                <Button onClick={handlePolicyDeploy} disabled={isDeployingPolicy} className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-2xl">
-                  {isDeployingPolicy ? <><Loader2 className="animate-spin mr-2 h-6 w-6" /> Deploying Manifesto...</> : <><GraduationCap className="mr-2 h-6 w-6" /> Publish to National Library</>}
-                </Button>
-              </CardFooter>
-            </Card>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Latitude (GPS)</Label>
+                          <Input 
+                            placeholder="14.5995" 
+                            className="h-12 border-2 font-mono"
+                            value={eventLat}
+                            onChange={e => setEventLat(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Longitude (GPS)</Label>
+                          <Input 
+                            placeholder="120.9842" 
+                            className="h-12 border-2 font-mono"
+                            value={eventLng}
+                            onChange={e => setEventLng(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Tactical Description & Agenda</Label>
+                        <Textarea 
+                          placeholder="Operational objectives, dress code, and venue specifics..." 
+                          className="min-h-[150px] border-2 text-sm leading-relaxed"
+                          value={eventDescription}
+                          onChange={e => setEventDescription(e.target.value)}
+                        />
+                      </div>
+                    </CardContent>
+                    <CardFooter className="bg-muted/30 border-t pt-6">
+                      <Button 
+                        type="submit" 
+                        className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-2xl bg-primary hover:bg-primary/90"
+                        disabled={isCreatingEvent}
+                      >
+                        {isCreatingEvent ? <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Deploying Activity...</> : <><Navigation className="mr-2 h-6 w-6" /> Publish Event to Region</>}
+                      </Button>
+                    </CardFooter>
+                  </form>
+                </Card>
+              </div>
+              <div className="lg:col-span-4 space-y-6">
+                <Card className="shadow-lg border-l-4 border-l-emerald-600 bg-emerald-50/10 h-fit">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-emerald-800"><MapPin className="h-4 w-4" />Deployment Policy</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-2 italic text-xs text-muted-foreground leading-relaxed">
+                    <p>"Events deployed with GPS coordinates will appear as high-priority pins on the Regional Chapter Maps."</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-lg border-l-4 border-l-accent bg-accent/5 h-fit">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-primary"><ShieldCheck className="h-4 w-4" />Executive Veto</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-2 italic text-xs text-muted-foreground leading-relaxed">
+                    <p>"Official rallies require President or VP authorization. All other officers must submit via the Audit Queue."</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* ANNOUNCEMENTS TAB */}
@@ -507,95 +559,84 @@ export default function ProBulletinPage() {
             </div>
           </TabsContent>
 
-          {/* EVENTS TAB */}
-          <TabsContent value="events">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-8">
-                <Card className="shadow-xl border-t-4 border-primary">
-                  <form onSubmit={handleCreateEvent}>
-                    <CardHeader className="bg-primary/5 border-b">
-                      <CardTitle className="text-lg font-headline flex items-center gap-2 text-primary uppercase">
-                        <CalendarDays className="h-5 w-5" />
-                        Official Event Command
-                      </CardTitle>
-                      <CardDescription className="text-[10px] font-black uppercase tracking-widest">
-                        Publish mobilization activities to the National Registry.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Event Title</Label>
-                          <Input 
-                            placeholder="e.g. GRAND FEDERALISMO RALLY" 
-                            className="h-12 font-bold uppercase border-2"
-                            value={eventTitle}
-                            onChange={e => setEventTitle(e.target.value.toUpperCase())}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Target City / Region</Label>
-                          <Select value={eventLocation} onValueChange={setEventLocation}>
-                            <SelectTrigger className="h-12 border-2"><SelectValue placeholder="Select Deployment Zone" /></SelectTrigger>
-                            {targetOptions}
-                          </Select>
-                        </div>
-                      </div>
+          {/* POLICY HUB TAB */}
+          <TabsContent value="policy">
+            <Card className="shadow-xl border-t-4 border-primary">
+              <CardHeader className="bg-primary/5 border-b">
+                <CardTitle className="text-lg font-headline flex items-center gap-2 text-primary uppercase">
+                  <GraduationCap className="h-5 w-5" />
+                  Party Manifesto Hub
+                </CardTitle>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest">Deploy manifestos and proficiency quizzes to the National Library.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8 pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-primary">Manifesto Title</Label>
+                      <Input placeholder="e.g. 10% Flat Tax Framework" value={policyTitle} onChange={e => setPolicyTitle(e.target.value)} className="h-12 border-2" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-primary">Pillar Category</Label>
+                      <Select value={policyCat} onValueChange={setPolicyCat}>
+                        <SelectTrigger className="h-12 border-2"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {policyCategories.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-primary">Document (PDF)</Label>
+                      <Input type="file" accept="application/pdf" onChange={e => setPolicyFile(e.target.files?.[0] || null)} className="h-12 border-2" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-primary">Member Summary</Label>
+                      <Textarea placeholder="Quick read summary for members..." value={policySummary} onChange={e => setPolicySummary(e.target.value)} className="h-24 border-2" />
+                    </div>
+                  </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Date & Time</Label>
-                          <div className="relative">
-                            <Clock className="absolute left-3 top-3.5 h-4 w-4 text-primary/40" />
-                            <Input 
-                              type="datetime-local" 
-                              className="h-12 pl-10 border-2 font-bold"
-                              value={eventDate}
-                              onChange={e => setEventDate(e.target.value)}
-                            />
+                  <div className="space-y-4 border-l pl-6">
+                    <Label className="text-[10px] font-black uppercase text-primary flex items-center justify-between">
+                      Briefing Proficiency Quiz
+                      <Button variant="ghost" size="sm" onClick={addQuizQuestion} className="h-6 text-[8px] font-black"><PlusCircle className="h-3 w-3 mr-1" /> Add Question</Button>
+                    </Label>
+                    <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
+                      {policyQuiz.map((q, qIdx) => (
+                        <Card key={qIdx} className="p-4 bg-muted/30 border-dashed">
+                          <Input placeholder={`Question ${qIdx + 1}`} value={q.question} onChange={e => updateQuiz(qIdx, 'question', e.target.value)} className="mb-3 font-bold" />
+                          <div className="space-y-2">
+                            {q.options.map((o: any, oIdx: any) => (
+                              <div key={oIdx} className="flex gap-2">
+                                <Input placeholder={`Option ${oIdx + 1}`} value={o} onChange={e => updateQuiz(qIdx, `opt-${oIdx}`, e.target.value)} className="h-8 text-xs" />
+                                <Button 
+                                  variant={q.correctAnswerIndex === oIdx ? 'default' : 'outline'} 
+                                  size="sm" 
+                                  onClick={() => updateQuiz(qIdx, 'correct', oIdx)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Detailed Agenda</Label>
-                          <Input 
-                            placeholder="Objectives and operational notes..." 
-                            className="h-12 border-2"
-                            value={eventDescription}
-                            onChange={e => setEventDescription(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="bg-muted/30 border-t pt-6">
-                      <Button 
-                        type="submit" 
-                        className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-2xl bg-primary hover:bg-primary/90"
-                        disabled={isCreatingEvent}
-                      >
-                        {isCreatingEvent ? <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Deploying Activity...</> : <><Send className="mr-2 h-6 w-6" /> Publish Event to Members</>}
-                      </Button>
-                    </CardFooter>
-                  </form>
-                </Card>
-              </div>
-              <div className="lg:col-span-4">
-                <Card className="shadow-lg border-l-4 border-l-emerald-600 bg-emerald-50/10 h-full">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-emerald-800"><MapPin className="h-4 w-4" />Deployment Policy</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-2 italic text-xs text-muted-foreground leading-relaxed">
-                    <p>"Events created here are added to the National Calendar upon Presidential authorization."</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="bg-muted/30 border-t pt-6">
+                <Button onClick={handlePolicyDeploy} disabled={isDeployingPolicy} className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-2xl">
+                  {isDeployingPolicy ? <><Loader2 className="animate-spin mr-2 h-6 w-6" /> Deploying Manifesto...</> : <><GraduationCap className="mr-2 h-6 w-6" /> Publish to National Library</>}
+                </Button>
+              </CardFooter>
+            </Card>
           </TabsContent>
 
           {/* POLLS TAB */}
           <TabsContent value="polls">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               <div className="lg:col-span-8 space-y-6">
-                
                 <div className="flex bg-primary/5 p-1 rounded-lg border border-primary/10 mb-4">
                   <Button 
                     variant={pollView === 'create' ? 'default' : 'ghost'} 
