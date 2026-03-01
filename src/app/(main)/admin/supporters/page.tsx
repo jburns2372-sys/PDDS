@@ -51,16 +51,15 @@ const PROMOTABLE_ROLES = ["Supporter", "Volunteer", "Coordinator", "Moderator", 
 
 /**
  * @fileOverview Recruitment & Regional Command Dashboard.
- * Manages the national registry with advanced filtering, activity tracking, and verification.
+ * Synchronized with the National Directory to ensure all inductions (Google/Mobile) are tracked.
  */
 export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Fetch all non-admins to manage the organizational hierarchy
-  const { data: users, loading } = useCollection('users', {
-    queries: [{ attribute: 'isAdmin', operator: '==', value: false }]
-  });
+  // Fetch all users to ensure consistency with the directory
+  // Filtering for non-admins is handled client-side to capture all inductions instantly
+  const { data: allUsers, loading } = useCollection('users');
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDistrict, setFilterDistrict] = useState("All");
@@ -70,6 +69,15 @@ export default function AdminSupporterDashboard() {
   const [selectedUserForNotes, setSelectedUserForNotes] = useState<any>(null);
   const [noteContent, setNoteContent] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
+
+  // Filter out Administrators and System Admins from this specific view
+  const users = useMemo(() => {
+    return allUsers.filter(u => 
+        u.role !== 'Admin' && 
+        u.role !== 'System Admin' && 
+        u.isAdmin !== true
+    );
+  }, [allUsers]);
 
   const uniqueDistricts = useMemo(() => {
     const districts = new Set(users.map(u => u.islandGroup).filter(Boolean));
