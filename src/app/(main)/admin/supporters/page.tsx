@@ -2,11 +2,25 @@
 "use client";
 
 import { useCollection, useFirestore } from "@/firebase";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Search, User, Mail, CalendarDays, Download, Trash2, CheckCircle2, ShieldAlert } from "lucide-react";
+import { 
+  Loader2, 
+  Users, 
+  Search, 
+  User, 
+  Mail, 
+  CalendarDays, 
+  Download, 
+  Trash2, 
+  CheckCircle2, 
+  ShieldAlert,
+  TrendingUp,
+  ShieldCheck,
+  Clock
+} from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,9 +31,8 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 /**
- * @fileOverview Supporter Recruitment Dashboard with Management Capabilities.
- * Displays real-time list of all supporters.
- * Includes Search, CSV Export, Verification Toggle, and Administrative Removal.
+ * @fileOverview Supporter Recruitment Dashboard with Live Metrics.
+ * Displays real-time induction stats and a searchable list of all supporters.
  */
 export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
@@ -32,7 +45,15 @@ export default function AdminSupporterDashboard() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 2. Search logic: Filter by Full Name or Email
+  // 2. Metrics Calculation
+  const stats = useMemo(() => {
+    const total = supporters.length;
+    const verified = supporters.filter(s => s.isVerified === true).length;
+    const pending = total - verified;
+    return { total, verified, pending };
+  }, [supporters]);
+
+  // 3. Search logic: Filter by Full Name or Email
   const filteredSupporters = useMemo(() => {
     return supporters.filter(s => 
       (s.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -49,7 +70,6 @@ export default function AdminSupporterDashboard() {
     const userRef = doc(firestore, "users", userId);
     const newStatus = !currentStatus;
     
-    // Pattern 1 for mutations: No await, chain catch for permission errors
     updateDoc(userRef, { isVerified: newStatus })
       .then(() => {
         toast({
@@ -135,14 +155,14 @@ export default function AdminSupporterDashboard() {
     <div className="p-4 md:p-6 bg-background min-h-screen pb-32">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Header & Search Control */}
+        {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-2 border-primary pb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-primary font-headline flex items-center gap-3 uppercase tracking-tight">
               <Users className="h-6 w-6 md:h-8 md:w-8" />
-              PDDS Recruitment Dashboard
+              Recruitment Command
             </h1>
-            <p className="text-muted-foreground text-sm mt-1 font-medium italic">Command Center: Monitoring real-time induction of new advocates.</p>
+            <p className="text-muted-foreground text-sm mt-1 font-medium italic">Monitoring real-time induction of new advocates.</p>
           </div>
           
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
@@ -165,45 +185,79 @@ export default function AdminSupporterDashboard() {
           </div>
         </div>
 
+        {/* 📊 Metrics Summary Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="shadow-lg border-l-4 border-l-primary bg-blue-50/30">
+            <CardContent className="p-6 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Total Supporters</p>
+                <p className="text-3xl font-black text-primary">{stats.total.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-primary/10 rounded-full text-primary">
+                <Users className="h-6 w-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg border-l-4 border-l-emerald-600 bg-emerald-50/30">
+            <CardContent className="p-6 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/60 mb-1">Verified Citizens</p>
+                <p className="text-3xl font-black text-emerald-600">{stats.verified.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-emerald-100 rounded-full text-emerald-600">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg border-l-4 border-l-orange-600 bg-orange-50/30">
+            <CardContent className="p-6 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/60 mb-1">Pending Verification</p>
+                <p className="text-3xl font-black text-orange-600">{stats.pending.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-orange-100 rounded-full text-orange-600">
+                <Clock className="h-6 w-6" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Supporters Table */}
         <Card className="shadow-2xl overflow-hidden border-none bg-white">
           <CardHeader className="bg-primary text-primary-foreground py-4 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Verified Registrations ({filteredSupporters.length})
+              <TrendingUp className="h-4 w-4" />
+              Induction Log ({filteredSupporters.length})
             </CardTitle>
             <Badge variant="outline" className="border-white/20 text-white text-[9px] font-black uppercase tracking-widest px-3">
-              National Base
+              Real-Time Stream
             </Badge>
           </CardHeader>
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 border-b">
-                <TableHead className="pl-6 text-[10px] font-black uppercase tracking-widest">Photo</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-widest">Full Name</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-widest">Email Address</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-widest">Induction Date</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-widest">Verified Status</TableHead>
-                <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSupporters.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-24 text-muted-foreground italic">
-                    <div className="flex flex-col items-center gap-2 opacity-50">
-                      <Search className="h-8 w-8" />
-                      <p className="font-bold uppercase text-xs tracking-widest">No supporters found matching your search criteria.</p>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50 border-b">
+                  <TableHead className="pl-6 text-[10px] font-black uppercase tracking-widest">Profile</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Full Name</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Email Address</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Verification</TableHead>
+                  <TableHead className="text-right pr-6 text-[10px] font-black uppercase tracking-widest">Action</TableHead>
                 </TableRow>
-              ) : (
-                filteredSupporters.map((user: any) => {
-                  const joinDate = user.joinedAt?.toDate ? user.joinedAt.toDate() : 
-                                 user.createdAt?.toDate ? user.createdAt.toDate() : 
-                                 user.createdAt ? new Date(user.createdAt) : new Date();
-                  
-                  return (
+              </TableHeader>
+              <TableBody>
+                {filteredSupporters.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-24 text-muted-foreground italic">
+                      <div className="flex flex-col items-center gap-2 opacity-50">
+                        <Search className="h-8 w-8" />
+                        <p className="font-bold uppercase text-xs tracking-widest">No matching induction records.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredSupporters.map((user: any) => (
                     <TableRow key={user.uid || user.id} className="hover:bg-muted/30 transition-colors group">
                       <TableCell className="pl-6">
                         <Avatar className="h-10 w-10 border-2 border-primary/5 shadow-sm group-hover:scale-110 transition-transform">
@@ -216,7 +270,8 @@ export default function AdminSupporterDashboard() {
                       <TableCell>
                         <div className="font-black text-sm uppercase text-primary leading-tight">{user.fullName}</div>
                         <div className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5 flex items-center gap-1">
-                          <Users className="h-2.5 w-2.5" /> ID: {user.uid?.substring(0, 8).toUpperCase()}
+                          <Clock className="h-2.5 w-2.5" /> 
+                          {user.joinedAt?.toDate ? format(user.joinedAt.toDate(), 'MMM dd, p') : 'Pending Induction'}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -226,18 +281,12 @@ export default function AdminSupporterDashboard() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
-                          <CalendarDays className="h-3.5 w-3.5 text-primary/40" />
-                          {format(joinDate, 'MMM dd, yyyy')}
-                        </div>
-                      </TableCell>
-                      <TableCell>
                         <button 
                           onClick={() => handleToggleVerification(user.id, !!user.isVerified)}
                           className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ${
                             user.isVerified 
-                              ? 'bg-green-600 text-white hover:bg-green-700' 
-                              : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary border'
+                              ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
                           }`}
                         >
                           {user.isVerified ? (
@@ -258,11 +307,11 @@ export default function AdminSupporterDashboard() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </Card>
       </div>
     </div>
