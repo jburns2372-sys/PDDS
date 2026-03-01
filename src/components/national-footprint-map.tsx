@@ -115,7 +115,7 @@ export default function NationalFootprintMap({ supporters }: NationalFootprintMa
   const handleDispatch = (email: string, name: string) => {
     const subject = encodeURIComponent("TACTICAL ALERT: Regional Mobilization");
     const body = encodeURIComponent(`Greetings ${name},\n\nThis is an urgent mobilization alert for your local sector. Please report to the designated coordinate for further instruction.\n\nRespectfully,\nPDDS Tactical Command`);
-    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
   };
 
   const handleRadiusBroadcast = async () => {

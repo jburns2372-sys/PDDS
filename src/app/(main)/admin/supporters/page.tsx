@@ -138,7 +138,7 @@ export default function AdminSupporterDashboard() {
   const handleSendEmail = (email: string, name: string) => {
     const subject = encodeURIComponent("Update from PDDS - PatriotLink Movement");
     const body = encodeURIComponent(`Hello ${name},\n\nThank you for joining the Federalismo Portal. We are glad to have you in the movement.\n\nRespectfully,\nPDDS National Leadership`);
-    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
   };
 
   const handleUpdateNotes = async () => {
