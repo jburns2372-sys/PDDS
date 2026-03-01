@@ -30,7 +30,6 @@ const NCR_CODE = "130000000";
 /**
  * @fileOverview Join Page for new members.
  * Handles both SMS-based registry and instant Google induction.
- * Includes Referral metadata for Cloud Function processing.
  * SMS-verified users are automatically promoted to 'Member' status.
  */
 export default function JoinPage() {
@@ -131,16 +130,15 @@ export default function JoinPage() {
                 province: selectedProvince,
                 islandGroup: getIslandGroup(selectedProvince),
                 photoURL: null,
-                role: "Member", // Elevated from Supporter
+                role: "Member", // Elevated from Supporter immediately
                 jurisdictionLevel: "City/Municipal",
                 isAdmin: false,
                 isApproved: true,
                 isVerified: true, // Instant verification via SMS
                 vettingLevel: "Bronze",
                 kartilyaAgreed: true,
-                recruitCount: 0,
-                referralCount: 0,
                 meritPoints: 10,
+                referralCount: 0,
                 referredBy: referralUid || null,
                 createdAt: serverTimestamp(),
                 lastActive: serverTimestamp(),
@@ -182,9 +180,8 @@ export default function JoinPage() {
                     isApproved: true,
                     isVerified: false,
                     kartilyaAgreed: true,
-                    recruitCount: 0,
-                    referralCount: 0,
                     meritPoints: 10,
+                    referralCount: 0,
                     referredBy: referralUid || null,
                     createdAt: serverTimestamp(),
                     lastActive: serverTimestamp(),

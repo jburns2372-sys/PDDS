@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, MapPin, Loader2, Send, ShieldAlert, Image as ImageIcon, CheckCircle2, Navigation } from "lucide-react";
+import { Camera, MapPin, Loader2, Send, ShieldAlert, Navigation } from "lucide-react";
 import { cityCoords } from "@/lib/data";
 
 /**
@@ -47,7 +47,7 @@ export function BantayBayanForm({ onSuccess }: { onSuccess: () => void }) {
 
   /**
    * Resilient Location Acquisition
-   * Attempts GPS but falls back to user city if denied.
+   * Attempts GPS but falls back to user city if denied or timed out.
    */
   const getLocation = (): Promise<{ lat: number, lng: number }> => {
     return new Promise((resolve) => {
@@ -60,21 +60,17 @@ export function BantayBayanForm({ onSuccess }: { onSuccess: () => void }) {
         (position) => {
           resolve({ lat: position.coords.latitude, lng: position.coords.longitude });
         },
-        () => {
-          toast({ 
-            title: "GPS Restricted", 
-            description: "Falling back to city-based tagging.",
-            variant: "default"
-          });
+        (error) => {
+          console.warn("GPS Access Denied/Unavailable, using city fallback:", error.message);
           resolve(getFallbackCoords());
         },
-        { timeout: 5000 }
+        { timeout: 4000, enableHighAccuracy: false }
       );
     });
   };
 
   const getFallbackCoords = () => {
-    const city = (userData?.city || "").toUpperCase();
+    const city = (userData?.city || "").toUpperCase().trim();
     const coords = cityCoords[city];
     if (coords) return { lat: coords[0], lng: coords[1] };
     return { lat: 14.5995, lng: 120.9842 }; // Manila default
@@ -90,7 +86,7 @@ export function BantayBayanForm({ onSuccess }: { onSuccess: () => void }) {
     setLoading(true);
 
     try {
-      // 1. Get Coordinates (Resilient)
+      // 1. Get Coordinates (Resilient Fallback)
       const location = await getLocation();
 
       // 2. Upload Evidence to Storage
@@ -107,8 +103,8 @@ export function BantayBayanForm({ onSuccess }: { onSuccess: () => void }) {
         description: description.trim(),
         photoUrl,
         location,
-        city: userData.city,
-        province: userData.province,
+        city: userData.city || "Unknown",
+        province: userData.province || "Unknown",
         status: "Pending",
         upvotes: [],
         createdAt: serverTimestamp()
