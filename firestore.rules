@@ -33,11 +33,15 @@ service cloud.firestore {
     }
 
     function isSecGen() {
-      return hasRole('Secretary General') || hasRole('Admin');
+      return hasRole('Secretary General') || hasRole('Admin') || hasRole('System Admin');
     }
 
     function isPRO() {
       return hasRole('Public Relations Officer') || isExecutive();
+    }
+
+    function isTreasurer() {
+      return hasRole('Treasurer') || isExecutive();
     }
 
     // ==========================================
@@ -72,8 +76,13 @@ service cloud.firestore {
       allow create: if isSignedIn() && (
         getUserData().role in ['Secretary General', 'Admin', 'President', 'Coordinator']
       );
-      allow update: if hasRole('President');
+      allow update: if hasRole('President') || isExecutive();
       allow delete: if isExecutive();
+    }
+
+    match /meeting_agendas/{agendaId} {
+      allow read: if isSignedIn();
+      allow write: if isExecutive();
     }
 
     match /vault/{docId} {
@@ -82,11 +91,16 @@ service cloud.firestore {
         resource.data.targetAudience.contains('All Members') || 
         resource.data.targetAudience.contains(getUserData().role)
       );
-      allow write: if isExecutive() || isSecGen();
+      allow write: if isExecutive() || isSecGen() || isPRO();
     }
 
     match /attendance/{attendanceId} {
       allow read, write: if isExecutive() || isSecGen();
+    }
+
+    match /logistics_logs/{logId} {
+      allow read: if isSignedIn() && (isTreasurer() || isExecutive());
+      allow write: if isTreasurer() || isExecutive();
     }
 
     match /community_feedback/{feedbackId} {
@@ -99,6 +113,22 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow update: if isSignedIn();
       allow write: if isExecutive() || isPRO();
+    }
+
+    match /campaign_actions/{actionId} {
+      allow read: if isSignedIn();
+      allow update: if isSignedIn(); // For signing petitions
+      allow write: if isExecutive();
+    }
+
+    match /communication_audit/{auditId} {
+      allow read: if isExecutive();
+      allow create: if isSignedIn(); // Cloud functions and PRO can write
+    }
+
+    match /communication_logs/{logId} {
+      allow read: if isExecutive() || isSecGen();
+      allow create: if isSignedIn() && (isExecutive() || isSecGen() || isPRO() || hasRole('Officer'));
     }
   }
 }
