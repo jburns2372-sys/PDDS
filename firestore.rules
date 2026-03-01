@@ -74,20 +74,17 @@ service cloud.firestore {
       allow write: if isExecutive();
 
       match /messages/{msgId} {
-        // Only allow members to read messages if it's their city or they are National Executives
         allow read: if isSignedIn() && (
           roomId == 'National' || 
           getUserData().city == roomId || 
           isExecutive()
         );
 
-        // Only verified members can send messages
         allow create: if isSignedIn() && 
           getUserData().isVerified == true && 
           (roomId == 'National' || getUserData().city == roomId) &&
           request.resource.data.senderUid == request.auth.uid;
 
-        // Coordinators can delete messages in their assigned city room
         allow delete: if isSignedIn() && (
           isExecutive() || 
           (hasRole('Coordinator') && getUserData().city == roomId)
@@ -109,6 +106,21 @@ service cloud.firestore {
     match /logistics_logs/{logId} {
       allow read: if isSignedIn() && (isTreasurer() || isExecutive());
       allow write: if isTreasurer() || isExecutive();
+    }
+
+    match /meeting_requests/{id} {
+      allow read: if isSignedIn() && (
+        resource.data.hostUid == request.auth.uid || 
+        isExecutive() || 
+        (hasRole('Coordinator') && getUserData().city == resource.data.city) ||
+        resource.data.status == 'Approved'
+      );
+      allow create: if isSignedIn() && getUserData().vettingLevel in ['Silver', 'Gold'];
+      allow update: if isSignedIn() && (
+        (hasRole('Coordinator') && getUserData().city == resource.data.city) || 
+        isExecutive()
+      );
+      allow delete: if isExecutive() || (hasRole('Coordinator') && getUserData().city == resource.data.city);
     }
 
     match /polls/{id} {

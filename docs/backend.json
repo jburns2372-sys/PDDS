@@ -87,6 +87,27 @@
         "isReported": { "type": "boolean" }
       },
       "required": ["text", "senderUid", "senderName", "timestamp"]
+    },
+    "meeting_request": {
+      "title": "Meeting Request",
+      "description": "A supporter-led gathering proposal.",
+      "type": "object",
+      "properties": {
+        "hostUid": { "type": "string" },
+        "hostName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "meetingType": { "type": "string", "enum": ["Kapihan", "Study Group", "Rally", "Community Service"] },
+        "city": { "type": "string" },
+        "province": { "type": "string" },
+        "locationAddress": { "type": "string" },
+        "locationCoords": { "type": "object" },
+        "dateTime": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
+        "rejectionReason": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["hostUid", "title", "meetingType", "city", "dateTime"]
     }
   },
   "auth": {
@@ -104,6 +125,10 @@
     "/chat_rooms/{roomId}/messages/{messageId}": {
       "schema": { "$ref": "#/backend/entities/chat_message" },
       "description": "Stores individual messages within a room."
+    },
+    "/meeting_requests/{requestId}": {
+      "schema": { "$ref": "#/backend/entities/meeting_request" },
+      "description": "Stores supporter-led meeting proposals."
     }
   }
 }

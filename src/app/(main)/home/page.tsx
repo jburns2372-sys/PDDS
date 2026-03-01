@@ -20,11 +20,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatInterface } from "@/components/chat-interface";
-import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck, Share2, MessageCircle, BarChart3, Newspaper } from "lucide-react";
+import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck, Share2, MessageCircle, BarChart3, Newspaper, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMessaging, useFirestore, useCollection } from "@/firebase";
 import { getToken } from "firebase/messaging";
 import { doc, updateDoc, collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { HostMeetingDialog } from "@/components/host-meeting-dialog";
+import { LocalMeetupMap } from "@/components/local-meetup-map";
 
 function UserHeader({userData}: {userData: any}) {
   return (
@@ -112,7 +114,6 @@ export default function HomePage() {
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
   const [lastSeenChatTime, setLastSeenChatTime] = useState<number>(Date.now());
 
-  // Fetch real announcements
   const { data: allAnnouncements, loading: announcementsLoading } = useCollection('announcements');
 
   useEffect(() => {
@@ -123,7 +124,6 @@ export default function HomePage() {
     }
   }, []);
 
-  // Filter announcements by targetGroup
   const filteredAnnouncements = useMemo(() => {
     if (!userData) return [];
     return allAnnouncements.filter(item => {
@@ -132,7 +132,6 @@ export default function HomePage() {
     }).sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
   }, [allAnnouncements, userData]);
 
-  // Unread Chat Listener
   useEffect(() => {
     if (!userData?.city || !firestore) return;
 
@@ -153,7 +152,6 @@ export default function HomePage() {
     return () => unsubscribe();
   }, [userData?.city, firestore, activeTab, lastSeenChatTime]);
 
-  // Handle tab switch to chat
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (value === 'chat') {
@@ -179,25 +177,6 @@ export default function HomePage() {
       router.push('/change-password');
     }
   }, [userData, userLoading, router]);
-
-  const handleEnableNotifications = async () => {
-    if (!messaging || !userData) return;
-    setNotifLoading(true);
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission === "granted") {
-        const token = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY }); 
-        if (token) {
-          await updateDoc(doc(firestore, "users", userData.uid), { fcmToken: token });
-          toast({ title: "Notifications Active", description: "You will now receive party alerts." });
-        }
-      }
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Setup Failed", description: "Could not enable push notifications." });
-    } finally {
-      setNotifLoading(false);
-    }
-  };
 
   if (userLoading || userData?.passwordIsTemporary) {
     return (
@@ -259,11 +238,14 @@ export default function HomePage() {
             </div>
 
             {/* Dynamic Content Tabs */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-8 space-y-10">
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                   <TabsList className="bg-primary/5 p-1 border border-primary/10 h-14 w-full justify-start overflow-x-auto gap-2">
                     <TabsTrigger value="newsfeed" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
                       <Newspaper className="h-3.5 w-3.5 mr-2" /> Newsfeed
+                    </TabsTrigger>
+                    <TabsTrigger value="mobilize" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+                      <Users className="h-3.5 w-3.5 mr-2" /> Mobilize
                     </TabsTrigger>
                     <TabsTrigger value="polls" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
                       <BarChart3 className="h-3.5 w-3.5 mr-2" /> Referendums
@@ -309,6 +291,21 @@ export default function HomePage() {
                     </section>
                     <ActionCenter />
                     <CommunityFeedback />
+                  </TabsContent>
+
+                  <TabsContent value="mobilize" className="space-y-8 animate-in fade-in duration-500 pt-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="text-2xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-3">
+                          <Users className="h-6 w-6" />
+                          Supporter-Led Mobilization
+                        </h2>
+                        <p className="text-muted-foreground text-sm font-medium">Host a local gathering or join an approved community meetup.</p>
+                      </div>
+                      <HostMeetingDialog />
+                    </div>
+                    
+                    <LocalMeetupMap />
                   </TabsContent>
 
                   <TabsContent value="polls" className="space-y-10 animate-in fade-in duration-500 pt-6">

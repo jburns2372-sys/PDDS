@@ -33,7 +33,9 @@ import {
   Trash2,
   Clock,
   Video,
-  Globe
+  Globe,
+  Users,
+  AlertCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -54,6 +56,11 @@ export default function AdminAuditPage() {
   const { data: pendingActivities, loading: activitiesLoading } = useCollection('calendar_activities', {
     queries: [{ attribute: 'isAuthorized', operator: '==', value: false }]
   });
+
+  // Data stream for supporter meeting requests
+  const { data: meetingRequests, loading: meetRequestsLoading } = useCollection('meeting_requests', {
+    queries: [{ attribute: 'status', operator: '==', value: 'Pending' }]
+  });
   
   const [searchTerm, setSearchTerm] = useState("");
   const [provinceFilter, setProvinceFilter] = useState("all");
@@ -65,6 +72,7 @@ export default function AdminAuditPage() {
 
   const hasExecutiveAccess = userData?.role === 'President' || userData?.role === 'Admin' || userData?.isSuperAdmin;
   const isPresident = userData?.role === 'President' || userData?.isSuperAdmin;
+  const isCoordinator = userData?.role === 'Coordinator';
 
   const provinces = useMemo(() => {
     const p = new Set<string>();
@@ -90,20 +98,42 @@ export default function AdminAuditPage() {
     }).sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
   }, [feedback, searchTerm, provinceFilter]);
 
-  const takenRoles = useMemo(() => {
-    return allUsers
-      .filter(u => !UNLIMITED_ROLES.includes(u.role) && u.role !== 'Supporter')
-      .map(u => u.role);
-  }, [allUsers]);
+  // Coordinators only see requests from their assigned city
+  const filteredMeetRequests = useMemo(() => {
+    return meetingRequests.filter(r => {
+      if (isCoordinator) return r.city === userData.city;
+      return true;
+    }).sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  }, [meetingRequests, isCoordinator, userData?.city]);
 
-  const vacantRoles = useMemo(() => {
-    return pddsLeadershipRoles.filter(role => !takenRoles.includes(role));
-  }, [takenRoles]);
+  const handleApproveMeeting = async (id: string) => {
+    setSaving(id);
+    try {
+      const docRef = doc(firestore, 'meeting_requests', id);
+      await updateDoc(docRef, { status: "Approved" });
+      toast({ title: "Gathering Authorized", description: "This mobilization is now live on the Supporter Map." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Action Failed", description: error.message });
+    } finally {
+      setSaving(null);
+    }
+  };
 
-  const promotionQueue = useMemo(() => {
-    return allUsers.filter(u => u.role === 'Supporter' && u.isApproved !== false)
-      .sort((a: any, b: any) => (b.recruitCount || 0) - (a.recruitCount || 0));
-  }, [allUsers]);
+  const handleRejectMeeting = async (id: string) => {
+    const reason = prompt("Enter reason for rejection:");
+    if (reason === null) return;
+    
+    setSaving(id);
+    try {
+      const docRef = doc(firestore, 'meeting_requests', id);
+      await updateDoc(docRef, { status: "Rejected", rejectionReason: reason });
+      toast({ title: "Proposal Rejected", description: "Host has been notified." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Action Failed", description: error.message });
+    } finally {
+      setSaving(null);
+    }
+  };
 
   const handleReply = async (id: string) => {
     const text = replyText[id]?.trim();
@@ -189,6 +219,9 @@ export default function AdminAuditPage() {
             <TabsTrigger value="feedback" className="px-6 font-black uppercase text-[10px] tracking-widest flex-1 md:flex-none">
               <MessageSquare className="h-3 w-3 mr-2" /> Feedback
             </TabsTrigger>
+            <TabsTrigger value="mobilization" className="px-6 font-black uppercase text-[10px] tracking-widest flex-1 md:flex-none">
+              <Users className="h-3 w-3 mr-2" /> Mobilization ({meetingRequests.length})
+            </TabsTrigger>
             <TabsTrigger value="promotion" className="px-6 font-black uppercase text-[10px] tracking-widest flex-1 md:flex-none">
               <TrendingUp className="h-3 w-3 mr-2" /> Promotion
             </TabsTrigger>
@@ -246,6 +279,78 @@ export default function AdminAuditPage() {
                 ))}
              </div>
             }
+          </TabsContent>
+
+          <TabsContent value="mobilization" className="space-y-6">
+            <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-primary uppercase">Field Commander Audit</p>
+                <p className="text-xs text-muted-foreground font-medium">Review supporter-led gathering proposals. Approved meetups will appear on the National Mobilizer Map.</p>
+              </div>
+            </div>
+
+            {meetRequestsLoading ? (
+              <div className="flex justify-center py-24"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
+            ) : filteredMeetRequests.length === 0 ? (
+              <div className="py-24 text-center border-2 border-dashed rounded-2xl bg-muted/20">
+                <Users className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
+                <p className="text-muted-foreground font-medium uppercase text-xs tracking-widest">No pending local gathering requests.</p>
+              </div>
+            ) : (
+              <div className="grid gap-6">
+                {filteredMeetRequests.map((req: any) => (
+                  <Card key={req.id} className="shadow-lg border-l-4 border-l-accent overflow-hidden">
+                    <CardHeader className="bg-muted/30">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg font-headline font-black text-primary uppercase">{req.title}</CardTitle>
+                            <Badge className="bg-accent text-accent-foreground font-black text-[8px] uppercase">{req.meetingType}</Badge>
+                          </div>
+                          <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase">
+                            <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {req.locationAddress}</span>
+                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {format(new Date(req.dateTime), 'PPP p')}</span>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="border-accent text-accent font-black text-[8px] uppercase">PENDING AUDIT</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <p className="text-sm italic text-foreground/80 leading-relaxed border-l-2 pl-4 border-accent/20">
+                        "{req.description || "Gathering objectives not detailed."}"
+                      </p>
+                      <div className="mt-4 pt-4 border-t flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="text-[10px] font-black">{req.hostName?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-primary leading-none">Host: {req.hostName}</p>
+                          <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1">Clearence: Silver/Gold Mobilizer</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="bg-muted/30 p-4 border-t flex gap-3">
+                      <Button 
+                        variant="destructive" 
+                        className="flex-1 h-12 font-black uppercase text-[10px] tracking-widest"
+                        onClick={() => handleRejectMeeting(req.id)}
+                        disabled={saving === req.id}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Reject Gathering
+                      </Button>
+                      <Button 
+                        className="flex-1 h-12 font-black uppercase text-[10px] tracking-widest bg-green-600 hover:bg-green-700 shadow-xl"
+                        onClick={() => handleApproveMeeting(req.id)}
+                        disabled={saving === req.id}
+                      >
+                        {saving === req.id ? <Loader2 className="animate-spin h-4 w-4" /> : <><Check className="mr-2 h-4 w-4" /> Authorize & Publish</>}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="promotion" className="space-y-6">
@@ -379,7 +484,7 @@ export default function AdminAuditPage() {
                             onClick={() => handleAuthorizeActivity(activity.id)}
                             disabled={authorizing === activity.id}
                           >
-                            {authorizing === activity.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4 mr-2" /> Authorize & Deploy</>}
+                            {authorizing === activity.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="mr-2 h-4 w-4" /> Authorize & Deploy</>}
                           </Button>
                         </div>
                       </CardFooter>
