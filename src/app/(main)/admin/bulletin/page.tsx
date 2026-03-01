@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useRef } from "react";
-import { useFirestore, useUser, useStorage } from "@/firebase";
+import { useState, useRef, useMemo } from "react";
+import { useFirestore, useUser, useStorage, useCollection } from "@/firebase";
 import { useUserData } from "@/context/user-data-context";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Megaphone, 
@@ -32,17 +33,20 @@ import {
   BarChart3,
   Plus,
   X,
-  Newspaper
+  Newspaper,
+  LayoutList,
+  History,
+  CheckCircle2,
+  Users
 } from "lucide-react";
 
 /**
  * @fileOverview PRO Official Broadcast & Media Center.
- * Handles Press Releases, Asset Library, Tactical Event Deployment, and Polls.
+ * Handles Press Releases, Asset Library, Tactical Event Deployment, and Poll Management.
  */
 export default function ProBulletinPage() {
   const firestore = useFirestore();
   const storage = useStorage();
-  const { user } = useUser();
   const { userData } = useUserData();
   const { toast } = useToast();
 
@@ -67,11 +71,18 @@ export default function ProBulletinPage() {
   const [eventLocation, setEventLocation] = useState("National");
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
 
-  // Poll State
+  // Poll Management State
+  const [pollView, setPollView] = useState<'create' | 'manage'>('create');
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
-  const [pollTarget, setPollTarget] = useState("National");
+  const [pollTargetLocation, setPollTargetLocation] = useState("National");
+  const [pollTargetRole, setPollTargetRole] = useState("All Members");
   const [isCreatingPoll, setIsCreatingPoll] = useState(false);
+
+  // Live Poll Monitor
+  const { data: allPolls, loading: pollsLoading } = useCollection('polls');
+  const activePolls = useMemo(() => allPolls.filter(p => p.isActive).sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)), [allPolls]);
+  const archivedPolls = useMemo(() => allPolls.filter(p => !p.isActive).sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)), [allPolls]);
 
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,7 +209,8 @@ export default function ProBulletinPage() {
       await addDoc(collection(firestore, "polls"), {
         question: pollQuestion.trim(),
         options: validOptions,
-        targetGroup: pollTarget,
+        targetGroup: pollTargetLocation,
+        targetRole: pollTargetRole,
         votes: initialVotes,
         votedBy: [],
         isActive: true,
@@ -206,14 +218,27 @@ export default function ProBulletinPage() {
         createdAt: serverTimestamp()
       });
 
-      toast({ title: "Ballot Deployed!", description: "Members can now cast their votes in the Daily Pulse." });
+      toast({ title: "Referendum Deployed!", description: "Targeted members can now cast their ballots." });
       setPollQuestion("");
       setPollOptions(["", ""]);
-      setPollTarget("National");
+      setPollTargetLocation("National");
+      setPollTargetRole("All Members");
+      setPollView('manage');
     } catch (error: any) {
       toast({ variant: "destructive", title: "Poll Failed", description: error.message });
     } finally {
       setIsCreatingPoll(false);
+    }
+  };
+
+  const handleClosePoll = async (pollId: string) => {
+    if (!confirm("Are you sure you want to close this referendum? Voting will cease immediately.")) return;
+    try {
+      const pollRef = doc(firestore, "polls", pollId);
+      await updateDoc(pollRef, { isActive: false });
+      toast({ title: "Poll Closed", description: "Results have been archived for executive review." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Failed to close poll", description: error.message });
     }
   };
 
@@ -413,75 +438,179 @@ export default function ProBulletinPage() {
           {/* POLLS TAB */}
           <TabsContent value="polls">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-8">
-                <Card className="shadow-xl border-t-4 border-accent overflow-hidden">
-                  <form onSubmit={handleCreatePoll}>
-                    <CardHeader className="bg-accent/5 border-b">
-                      <CardTitle className="text-lg font-headline flex items-center gap-2 text-primary uppercase">
-                        <BarChart3 className="h-5 w-5 text-accent" />
-                        Create Official Referendum
-                      </CardTitle>
-                      <CardDescription className="text-[10px] font-black uppercase tracking-widest">
-                        Gauge member sentiment on party policies and local issues.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Target Audience</Label>
-                          <Select value={pollTarget} onValueChange={setPollTarget}>
-                            <SelectTrigger className="h-12 border-2"><SelectValue placeholder="Select Scope" /></SelectTrigger>
-                            {targetOptions}
-                          </Select>
+              <div className="lg:col-span-8 space-y-6">
+                
+                <div className="flex bg-primary/5 p-1 rounded-lg border border-primary/10 mb-4">
+                  <Button 
+                    variant={pollView === 'create' ? 'default' : 'ghost'} 
+                    onClick={() => setPollView('create')} 
+                    className="flex-1 h-10 font-black uppercase text-[10px] tracking-widest"
+                  >
+                    <Plus className="h-3 w-3 mr-2" /> Create Ballot
+                  </Button>
+                  <Button 
+                    variant={pollView === 'manage' ? 'default' : 'ghost'} 
+                    onClick={() => setPollView('manage')} 
+                    className="flex-1 h-10 font-black uppercase text-[10px] tracking-widest"
+                  >
+                    <LayoutList className="h-3 w-3 mr-2" /> Live Monitor ({activePolls.length})
+                  </Button>
+                </div>
+
+                {pollView === 'create' ? (
+                  <Card className="shadow-xl border-t-4 border-accent overflow-hidden">
+                    <form onSubmit={handleCreatePoll}>
+                      <CardHeader className="bg-accent/5 border-b">
+                        <CardTitle className="text-lg font-headline flex items-center gap-2 text-primary uppercase">
+                          <BarChart3 className="h-5 w-5 text-accent" />
+                          Official Referendum Tool
+                        </CardTitle>
+                        <CardDescription className="text-[10px] font-black uppercase tracking-widest">
+                          Gauge sentiment on specific policies or localized directives.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6 pt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Target Jurisdiction</Label>
+                            <Select value={pollTargetLocation} onValueChange={setPollTargetLocation}>
+                              <SelectTrigger className="h-12 border-2"><SelectValue placeholder="Select Scope" /></SelectTrigger>
+                              {targetOptions}
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Target Member Tier</Label>
+                            <Select value={pollTargetRole} onValueChange={setPollTargetRole}>
+                              <SelectTrigger className="h-12 border-2"><SelectValue placeholder="Select Tier" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="All Members" className="font-bold uppercase text-[10px]">All Members</SelectItem>
+                                <SelectItem value="Only Vetted Officers" className="font-bold uppercase text-[10px]">Only Vetted Officers</SelectItem>
+                                <SelectItem value="Leadership Core" className="font-bold uppercase text-[10px]">National Leadership Core</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
+
                         <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Poll Question</Label>
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Referendum Question</Label>
                           <Input 
-                            placeholder="e.g. Do you support the 10% Flat Tax policy?" 
+                            placeholder="e.g. Do you support the 10% Flat Tax proposal?" 
                             className="h-12 font-bold border-2"
                             value={pollQuestion}
                             onChange={e => setPollQuestion(e.target.value)}
                           />
                         </div>
-                      </div>
 
-                      <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Ballot Options</Label>
-                        <div className="grid gap-3">
-                          {pollOptions.map((opt, i) => (
-                            <div key={i} className="flex gap-2 animate-in fade-in slide-in-from-left-2">
-                              <Input 
-                                placeholder={`Option ${i + 1}`} 
-                                className="h-11 border-2 font-medium"
-                                value={opt}
-                                onChange={e => updatePollOption(i, e.target.value)}
-                              />
-                              {pollOptions.length > 2 && (
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removePollOption(i)} className="text-destructive shrink-0 h-11 w-11"><X className="h-4 w-4" /></Button>
-                              )}
-                            </div>
-                          ))}
+                        <div className="space-y-3">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Ballot Options</Label>
+                          <div className="grid gap-3">
+                            {pollOptions.map((opt, i) => (
+                              <div key={i} className="flex gap-2 animate-in fade-in slide-in-from-left-2">
+                                <Input 
+                                  placeholder={`Option ${i + 1}`} 
+                                  className="h-11 border-2 font-medium"
+                                  value={opt}
+                                  onChange={e => updatePollOption(i, e.target.value)}
+                                />
+                                {pollOptions.length > 2 && (
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => removePollOption(i)} className="text-destructive shrink-0 h-11 w-11"><X className="h-4 w-4" /></Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <Button type="button" variant="outline" size="sm" onClick={addPollOption} className="mt-2 border-dashed border-2 text-[10px] font-black uppercase tracking-widest">
+                            <Plus className="h-3 w-3 mr-1" /> Add Ballot Choice
+                          </Button>
                         </div>
-                        <Button type="button" variant="outline" size="sm" onClick={addPollOption} className="mt-2 border-dashed border-2 text-[10px] font-black uppercase tracking-widest">
-                          <Plus className="h-3 w-3 mr-1" /> Add Option
+                      </CardContent>
+                      <CardFooter className="bg-muted/30 border-t pt-6">
+                        <Button type="submit" className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-2xl bg-primary hover:bg-primary/90" disabled={isCreatingPoll}>
+                          {isCreatingPoll ? <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Deploying Ballot...</> : <><ShieldCheck className="mr-2 h-6 w-6 text-accent" /> Execute Referendum</>}
                         </Button>
+                      </CardFooter>
+                    </form>
+                  </Card>
+                ) : (
+                  <div className="space-y-6">
+                    {pollsLoading ? (
+                      <div className="flex justify-center py-24"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
+                    ) : activePolls.length === 0 ? (
+                      <Card className="p-24 text-center border-dashed border-2 bg-muted/20">
+                        <BarChart3 className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                        <p className="text-muted-foreground font-medium uppercase text-xs tracking-widest">No active referendums found.</p>
+                      </Card>
+                    ) : (
+                      <div className="grid gap-6">
+                        {activePolls.map((poll: any) => {
+                          const totalVotes = Object.values(poll.votes || {}).reduce((a: any, b: any) => a + b, 0);
+                          return (
+                            <Card key={poll.id} className="shadow-lg border-l-4 border-l-green-600">
+                              <CardHeader className="bg-muted/30 pb-4">
+                                <div className="flex justify-between items-start">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <CardTitle className="text-base font-black uppercase text-primary font-headline">{poll.question}</CardTitle>
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[8px] font-black">ACTIVE</Badge>
+                                    </div>
+                                    <div className="flex gap-3 text-[9px] font-bold text-muted-foreground uppercase">
+                                      <span className="flex items-center gap-1"><MapPin className="h-2.5 w-2.5" /> {poll.targetGroup}</span>
+                                      <span className="flex items-center gap-1"><Users className="h-2.5 w-2.5" /> {poll.targetRole}</span>
+                                    </div>
+                                  </div>
+                                  <Button variant="ghost" size="sm" onClick={() => handleClosePoll(poll.id)} className="h-8 text-destructive font-black uppercase text-[9px]">
+                                    Close & Archive
+                                  </Button>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="pt-6 space-y-4">
+                                <div className="grid gap-4">
+                                  {poll.options.map((opt: string) => {
+                                    const count = poll.votes[opt] || 0;
+                                    const perc = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                                    return (
+                                      <div key={opt} className="space-y-1">
+                                        <div className="flex justify-between text-[10px] font-black uppercase">
+                                          <span>{opt}</span>
+                                          <span className="text-primary">{count} votes ({perc}%)</span>
+                                        </div>
+                                        <Progress value={perc} className="h-2" />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <div className="pt-4 border-t border-dashed flex justify-between items-center text-[9px] font-black uppercase text-muted-foreground">
+                                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" /> Live Synchronized</span>
+                                  <span>Total Engagement: {totalVotes}</span>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
                       </div>
-                    </CardContent>
-                    <CardFooter className="bg-muted/30 border-t pt-6">
-                      <Button type="submit" className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-2xl bg-primary hover:bg-primary/90" disabled={isCreatingPoll}>
-                        {isCreatingPoll ? <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Deploying Ballot...</> : <><ShieldCheck className="mr-2 h-6 w-6 text-accent" /> Execute National Referendum</>}
-                      </Button>
-                    </CardFooter>
-                  </form>
-                </Card>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="lg:col-span-4">
-                <Card className="shadow-lg border-l-4 border-l-primary bg-primary/5 h-full">
+                <Card className="shadow-lg border-l-4 border-l-primary bg-primary/5 h-fit">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-primary"><BarChart3 className="h-4 w-4" />Referendum Protocol</CardTitle>
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-primary"><ShieldCheck className="h-4 w-4" />Audit Policy</CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-2 italic text-xs text-muted-foreground leading-relaxed">
-                    <p>"One-member-one-vote security is active. Members can only see results after casting their ballot. Ensure options are clear and unbiased."</p>
+                  <CardContent className="pt-2 space-y-4">
+                    <p className="italic text-xs text-muted-foreground leading-relaxed">
+                      "One-member-one-vote security is strictly enforced via registry tracking. Archiving a poll removes it from the member dash but preserves results for the Executive Board."
+                    </p>
+                    <div className="pt-4 border-t">
+                      <h4 className="text-[9px] font-black uppercase text-primary mb-3 flex items-center gap-2"><History className="h-3 w-3" /> Recent History</h4>
+                      <div className="space-y-2">
+                        {archivedPolls.slice(0, 3).map((ap: any) => (
+                          <div key={ap.id} className="p-2 bg-white rounded border text-[10px] font-bold text-muted-foreground truncate">
+                            {ap.question}
+                          </div>
+                        ))}
+                        {archivedPolls.length === 0 && <p className="text-[9px] opacity-40 italic">No archived referendums.</p>}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>

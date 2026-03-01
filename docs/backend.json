@@ -114,6 +114,7 @@
         "question": { "type": "string" },
         "options": { "type": "array", "items": { "type": "string" } },
         "targetGroup": { "type": "string", "description": "National or specific city name." },
+        "targetRole": { "type": "string", "description": "Specific role target (e.g. Vetted Officers) or 'All Members'." },
         "votes": { "type": "object", "description": "Map of option strings to vote counts." },
         "votedBy": { "type": "array", "items": { "type": "string" }, "description": "Array of member UIDs who have voted." },
         "isActive": { "type": "boolean" },

@@ -3,9 +3,10 @@
 
 import { useCollection, useFirestore, useUser } from "@/firebase";
 import { useUserData } from "@/context/user-data-context";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { doc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import { Loader2, Activity, CheckCircle2, BarChart3, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -19,11 +20,13 @@ type Poll = {
   votedBy: string[];
   isActive: boolean;
   targetGroup: string;
+  targetRole: string;
 };
 
 /**
  * @fileOverview Official Party Referendum Interface (Daily Pulse).
  * Secure one-member-one-vote system with real-time analytics.
+ * Respects jurisdictional and role-based targeting.
  */
 export function DailyPulse() {
   const { user } = useUser();
@@ -34,13 +37,27 @@ export function DailyPulse() {
   const { data: polls, loading } = useCollection<Poll>('polls');
   const [isVoting, setIsVoting] = useState<string | null>(null);
 
-  // Filter polls based on member's location or National scope
+  // Filter polls based on member's location, role, and National scope
   const activePolls = useMemo(() => {
     if (!userData) return [];
-    return polls.filter(p => 
-      p.isActive && 
-      (p.targetGroup === "National" || p.targetGroup === userData.city)
-    ).sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    return polls.filter(p => {
+      // 1. Basic active check
+      if (!p.isActive) return false;
+
+      // 2. Jurisdiction Check
+      const matchesLocation = p.targetGroup === "National" || p.targetGroup === userData.city;
+      if (!matchesLocation) return false;
+
+      // 3. Role Targeting Check
+      if (p.targetRole === "All Members") return true;
+      if (p.targetRole === "Only Vetted Officers") return userData.isVerified === true;
+      if (p.targetRole === "Leadership Core") {
+        const leadershipRoles = ["President", "Chairman", "Vice Chairman", "VP", "Secretary General", "Treasurer", "Admin"];
+        return leadershipRoles.includes(userData.role);
+      }
+
+      return true;
+    }).sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   }, [polls, userData]);
 
   const handleVote = async (pollId: string, option: string) => {
