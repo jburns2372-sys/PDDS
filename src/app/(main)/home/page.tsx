@@ -13,6 +13,7 @@ import { ActionCenter } from "@/components/action-center";
 import { DailyPulse } from "@/components/daily-pulse";
 import { CommunityFeedback } from "@/components/community-feedback";
 import { RecruitmentLeaderboard } from "@/components/recruitment-leaderboard";
+import { CoordinatorLeaderboard } from "@/components/coordinator-leaderboard";
 import { VipVerificationBanner } from "@/components/vip-verification-banner";
 import { MeritProgress } from "@/components/merit-progress";
 import { CommandSwitchboard } from "@/components/command-switchboard";
@@ -250,7 +251,7 @@ export default function HomePage() {
                       <Users className="h-3.5 w-3.5 mr-2" /> Mobilize
                     </TabsTrigger>
                     <TabsTrigger value="polls" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-                      <BarChart3 className="h-3.5 w-3.5 mr-2" /> Referendums
+                      <BarChart3 className="h-3.5 w-3.5 mr-2" /> Leaderboard
                     </TabsTrigger>
                     <TabsTrigger value="chat" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white relative">
                       <MessageCircle className="h-3.5 w-3.5 mr-2" /> Town Square
@@ -312,6 +313,7 @@ export default function HomePage() {
 
                   <TabsContent value="polls" className="space-y-10 animate-in fade-in duration-500 pt-6">
                     <DailyPulse />
+                    <CoordinatorLeaderboard />
                     <RecruitmentLeaderboard />
                   </TabsContent>
 

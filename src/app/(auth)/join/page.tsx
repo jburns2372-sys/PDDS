@@ -19,10 +19,10 @@ import {
     GoogleAuthProvider,
     signInWithPopup
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, increment, updateDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Loader2, XCircle, ShieldCheck } from "lucide-react";
+import { Loader2, XCircle } from "lucide-react";
 import { getIslandGroup } from "@/lib/data";
 
 const NCR_CODE = "130000000";
@@ -30,7 +30,7 @@ const NCR_CODE = "130000000";
 /**
  * @fileOverview Join Page for new members.
  * Handles both SMS-based registry and instant Google induction.
- * Includes Referral & Merit reward logic and Legal acceptance.
+ * Includes Referral metadata for Cloud Function processing.
  */
 export default function JoinPage() {
     const auth = useAuth();
@@ -137,7 +137,7 @@ export default function JoinPage() {
                 kartilyaAgreed: true,
                 recruitCount: 0,
                 referralCount: 0,
-                meritPoints: 10, // Initial Signup Merit
+                meritPoints: 10, // Base points, Cloud Function will handle referral bonus
                 referredBy: referralUid || null,
                 createdAt: serverTimestamp(),
                 lastActive: serverTimestamp(),
@@ -145,17 +145,7 @@ export default function JoinPage() {
 
             await setDoc(doc(firestore, "users", user.uid), supporterData);
             
-            // Referral Rewards Logic
-            if (referralUid) {
-                const referrerRef = doc(firestore, "users", referralUid);
-                updateDoc(referrerRef, { 
-                    recruitCount: increment(1),
-                    referralCount: increment(1),
-                    meritPoints: increment(50) // Recruiter reward
-                }).catch(e => console.error("Referral reward failed:", e));
-            }
-
-            toast({ title: "Welcome!", description: "Induction complete. You've earned 10 Merit Points." });
+            toast({ title: "Welcome!", description: "Induction complete. Merit rewards are being processed." });
             setTimeout(() => {
                 window.location.href = "/home?registered=true";
             }, 500);
@@ -178,7 +168,6 @@ export default function JoinPage() {
             const userSnap = await getDoc(userRef);
 
             if (!userSnap.exists()) {
-                // Instant Supporter Induction for Google users
                 await setDoc(userRef, {
                     uid: user.uid,
                     email: userEmail,
@@ -198,19 +187,7 @@ export default function JoinPage() {
                     lastActive: serverTimestamp(),
                 });
 
-                // Apply referral rewards for social induction
-                if (referralUid) {
-                    const referrerRef = doc(firestore, "users", referralUid);
-                    updateDoc(referrerRef, { 
-                        recruitCount: increment(1),
-                        referralCount: increment(1),
-                        meritPoints: increment(50) 
-                    }).catch(e => console.error("Referral reward failed:", e));
-                }
-
-                toast({ title: "Welcome!", description: "You have been inducted as a Supporter (+10 Merit)." });
-            } else {
-                updateDoc(userRef, { lastActive: serverTimestamp() }).catch(e => console.error(e));
+                toast({ title: "Welcome!", description: "You have been inducted as a Supporter." });
             }
 
             setTimeout(() => {

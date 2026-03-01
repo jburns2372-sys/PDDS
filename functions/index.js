@@ -1,7 +1,7 @@
 
 /**
  * @fileOverview Firebase Cloud Functions for PatriotLink.
- * Handles automated role assignment, security triggers, and registry audits.
+ * Handles automated role assignment, security triggers, and referral merit logic.
  */
 
 const { onUserCreated } = require("firebase-functions/v2/auth");
@@ -53,6 +53,45 @@ exports.captureGoogleUserInfo = onUserCreated(async (event) => {
 });
 
 /**
+ * Trigger: handleReferralMerit
+ * Awards points to recruiters and new members upon successful registry induction.
+ */
+exports.handleReferralMerit = onDocumentCreated("users/{userId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const newUser = snapshot.data();
+    const db = getFirestore();
+
+    // 1. Award Joiner Bonus (10 Points)
+    // This is handled here to ensure it's logged even if the client fails
+    if (newUser.meritPoints === undefined) {
+        await snapshot.ref.update({ meritPoints: 10 });
+    }
+
+    // 2. Check for Recruiter
+    if (!newUser.referredBy) return;
+
+    const recruiterRef = db.collection("users").doc(newUser.referredBy);
+    
+    try {
+        await db.runTransaction(async (transaction) => {
+            const recruiterDoc = await transaction.get(recruiterRef);
+            if (!recruiterDoc.exists) return;
+
+            // Award 50 Points to Recruiter
+            transaction.update(recruiterRef, {
+                meritPoints: admin.firestore.FieldValue.increment(50),
+                referralCount: admin.firestore.FieldValue.increment(1)
+            });
+
+            console.log(`[GROWTH] Awarded 50 points to recruiter ${newUser.referredBy} for inducting ${event.params.userId}`);
+        });
+    } catch (error) {
+        console.error("[GROWTH ERROR] Referral transaction failed:", error);
+    }
+});
+
+/**
  * Trigger: auditRegistryRoles
  * Security handshake: Prevents unauthorized role escalation by non-admins.
  */
@@ -75,37 +114,4 @@ exports.auditRegistryRoles = onDocumentUpdated("users/{userId}", async (event) =
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         status: "Logged"
     });
-});
-
-/**
- * Trigger: onActivityCreated
- * Alerts the President via audit log if a new activity requires authorization.
- */
-exports.onActivityCreated = onDocumentCreated("calendar_activities/{activityId}", async (event) => {
-    const snapshot = event.data;
-    if (!snapshot) return;
-    const data = snapshot.data();
-
-    if (data.isAuthorized === true) return;
-
-    const db = getFirestore();
-    
-    try {
-        const presidentQuery = await db.collection("users").where("role", "==", "President").limit(1).get();
-        if (presidentQuery.empty) return;
-
-        const presidentData = presidentQuery.docs[0].data();
-        const alertMessage = `URGENT: New ${data.scope || "National"} activity (${data.title}) requires Presidential authorization.`;
-
-        await db.collection("communication_audit").add({
-            type: "Presidential Alert",
-            recipient: presidentData.email,
-            message: alertMessage,
-            status: "Queued",
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-    } catch (error) {
-        console.error("Cloud Function Error (onActivityCreated):", error);
-    }
 });
