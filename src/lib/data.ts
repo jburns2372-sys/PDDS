@@ -43,6 +43,29 @@ export const policyCategories = [
 ];
 
 /**
+ * Tactical City Coordinates Registry
+ * Used for fallbacks when GPS is unavailable.
+ */
+export const cityCoords: Record<string, [number, number]> = {
+  "QUEZON CITY": [14.6760, 121.0437],
+  "CITY OF MANILA": [14.5995, 120.9842],
+  "METRO MANILA (NCR)": [14.5995, 120.9842],
+  "CEBU CITY": [10.3157, 123.8854],
+  "DAVAO CITY": [7.1907, 125.4553],
+  "ILOILO CITY": [10.7202, 122.5621],
+  "BACOLOD CITY": [10.6765, 122.9509],
+  "CAGAYAN DE ORO": [8.4542, 124.6319],
+  "ZAMBOANGA CITY": [6.9214, 122.0790],
+  "BAGUIO": [16.4023, 120.5960],
+  "TAGUIG CITY": [14.5176, 121.0509],
+  "PASIG CITY": [14.5764, 121.0851],
+  "MAKATI CITY": [14.5547, 121.0244],
+  "ANTIPOLO CITY": [14.5845, 121.1754],
+  "CALOOCAN CITY": [14.6416, 120.9762],
+  "MANILA": [14.5995, 120.9842],
+};
+
+/**
  * Official National Launch Broadcast Template
  */
 export const NATIONAL_LAUNCH_TEMPLATE = {

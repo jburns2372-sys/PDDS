@@ -13,11 +13,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, MapPin, Loader2, Send, ShieldAlert, Image as ImageIcon, CheckCircle2 } from "lucide-react";
+import { Camera, MapPin, Loader2, Send, ShieldAlert, Image as ImageIcon, CheckCircle2, Navigation } from "lucide-react";
+import { cityCoords } from "@/lib/data";
 
 /**
  * @fileOverview Bantay Bayan - Issue Submission Form.
- * Handles photo evidence upload and precision GPS tagging.
+ * Handles photo evidence upload and precision GPS tagging with jurisdictional fallback.
  */
 export function BantayBayanForm({ onSuccess }: { onSuccess: () => void }) {
   const { user } = useUser();
@@ -44,6 +45,41 @@ export function BantayBayanForm({ onSuccess }: { onSuccess: () => void }) {
     }
   };
 
+  /**
+   * Resilient Location Acquisition
+   * Attempts GPS but falls back to user city if denied.
+   */
+  const getLocation = (): Promise<{ lat: number, lng: number }> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(getFallbackCoords());
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({ lat: position.coords.latitude, lng: position.coords.longitude });
+        },
+        () => {
+          toast({ 
+            title: "GPS Restricted", 
+            description: "Falling back to city-based tagging.",
+            variant: "default"
+          });
+          resolve(getFallbackCoords());
+        },
+        { timeout: 5000 }
+      );
+    });
+  };
+
+  const getFallbackCoords = () => {
+    const city = (userData?.city || "").toUpperCase();
+    const coords = cityCoords[city];
+    if (coords) return { lat: coords[0], lng: coords[1] };
+    return { lat: 14.5995, lng: 120.9842 }; // Manila default
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !userData || !selectedFile) {
@@ -53,59 +89,44 @@ export function BantayBayanForm({ onSuccess }: { onSuccess: () => void }) {
 
     setLoading(true);
 
-    // 1. Capture Precision GPS
-    if (!navigator.geolocation) {
-      toast({ variant: "destructive", title: "GPS Error", description: "Geolocation is required for reporting." });
+    try {
+      // 1. Get Coordinates (Resilient)
+      const location = await getLocation();
+
+      // 2. Upload Evidence to Storage
+      const storageRef = ref(storage, `civic_reports/${user.uid}/${Date.now()}.jpg`);
+      const uploadResult = await uploadBytes(storageRef, selectedFile);
+      const photoUrl = await getDownloadURL(uploadResult.ref);
+
+      // 3. Save Report to Firestore
+      const reportData = {
+        uid: user.uid,
+        authorName: userData.fullName,
+        title: title.trim().toUpperCase(),
+        category,
+        description: description.trim(),
+        photoUrl,
+        location,
+        city: userData.city,
+        province: userData.province,
+        status: "Pending",
+        upvotes: [],
+        createdAt: serverTimestamp()
+      };
+
+      await addDoc(collection(firestore, "civic_reports"), reportData);
+      
+      toast({ 
+        title: "Report Documented", 
+        description: "Your entry has been logged in the National Accountability Ledger.",
+      });
+      
+      onSuccess();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Submission Failed", description: error.message });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-
-        try {
-          // 2. Upload Evidence to Storage
-          const storageRef = ref(storage, `civic_reports/${user.uid}/${Date.now()}.jpg`);
-          const uploadResult = await uploadBytes(storageRef, selectedFile);
-          const photoUrl = await getDownloadURL(uploadResult.ref);
-
-          // 3. Save Report to Firestore
-          const reportData = {
-            uid: user.uid,
-            authorName: userData.fullName,
-            title: title.trim().toUpperCase(),
-            category,
-            description: description.trim(),
-            photoUrl,
-            location: { lat: latitude, lng: longitude },
-            city: userData.city,
-            province: userData.province,
-            status: "Pending",
-            upvotes: [],
-            createdAt: serverTimestamp()
-          };
-
-          await addDoc(collection(firestore, "civic_reports"), reportData);
-          
-          toast({ 
-            title: "Report Documented", 
-            description: "Your entry has been logged in the National Accountability Ledger.",
-          });
-          
-          onSuccess();
-        } catch (error: any) {
-          toast({ variant: "destructive", title: "Submission Failed", description: error.message });
-        } finally {
-          setLoading(false);
-        }
-      },
-      (error) => {
-        toast({ variant: "destructive", title: "GPS Denied", description: "Allow location access to tag this report." });
-        setLoading(false);
-      },
-      { enableHighAccuracy: true }
-    );
   };
 
   return (
@@ -179,9 +200,9 @@ export function BantayBayanForm({ onSuccess }: { onSuccess: () => void }) {
           </div>
 
           <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex items-center gap-3">
-            <MapPin className="h-5 w-5 text-primary" />
+            <Navigation className="h-5 w-5 text-primary" />
             <p className="text-[9px] font-black uppercase text-primary/60 leading-tight">
-              Submitter location will be auto-tagged for GPS verification.
+              Reports are auto-tagged via GPS or Jurisdictional Fallback for verification.
             </p>
           </div>
         </CardContent>
