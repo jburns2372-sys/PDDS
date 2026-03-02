@@ -10,9 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, ShieldCheck, Loader2, Sparkles, Heart, Smartphone, Landmark, Receipt, Info, Copy, CheckCircle2 } from "lucide-react";
+import { Wallet, ShieldCheck, Loader2, Heart, Smartphone, Landmark, Info, Copy, CheckCircle2 } from "lucide-react";
 import { DonorCertificateDialog } from "./donor-certificate-dialog";
 import {
   Dialog,
@@ -145,7 +144,7 @@ export function PondoDonationCard() {
                   key={m}
                   type="button"
                   onClick={() => setPaymentMethod(m)}
-                  className={`h-10 text-[9px] font-black uppercase rounded-lg border-2 transition-all ${paymentMethod === m ? 'border-primary bg-primary text-white' : 'border-primary/10 text-primary/40 hover:border-primary/20'}`}
+                  className={`h-10 text-[9px] font-black uppercase rounded-lg border-2 transition-all ${paymentMethod === m ? 'border-primary bg-primary text-white shadow-md' : 'border-primary/10 text-primary/40 hover:border-primary/20 bg-muted/20'}`}
                 >
                   {m === 'BANK' ? 'BPI / BANK' : m}
                 </button>
@@ -164,7 +163,7 @@ export function PondoDonationCard() {
         <CardFooter className="bg-muted/30 border-t pt-6 flex flex-col gap-4">
           <Button 
             onClick={handleOpenInstructions} 
-            className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-2xl" 
+            className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-xl" 
             disabled={loading || (!amount && !customAmount)}
           >
             <Heart className="mr-2 h-6 w-6 text-red-500 fill-current" /> Confirm Contribution

@@ -5,7 +5,6 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet.heat';
 import { Button } from './ui/button';
 import { Mail, Navigation, Megaphone, Loader2, Send, Smartphone, MapPin, ShieldAlert } from 'lucide-react';
 import { Textarea } from './ui/textarea';
@@ -24,25 +23,41 @@ function HeatLayer({ points }: { points: any[] }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!map || !points.length) return;
-    const heatPoints = points.map(p => [p.lat, p.lng, 1.5]); // Increased intensity factor
-    
-    // @ts-ignore
-    const heatLayer = L.heatLayer(heatPoints, {
-      radius: 35,
-      blur: 20,
-      max: 1,
-      minOpacity: 0.3,
-      gradient: {
-        0.4: 'blue',
-        0.6: 'cyan',
-        0.7: 'lime',
-        0.8: 'yellow',
-        1.0: 'red'
-      }
-    }).addTo(map);
+    if (typeof window === 'undefined' || !map || !points.length) return;
 
-    return () => { map.removeLayer(heatLayer); };
+    // Dynamically load leaflet.heat to ensure L is available
+    const loadHeat = async () => {
+      // @ts-ignore
+      if (!L.heatLayer) {
+        require('leaflet.heat');
+      }
+
+      const heatPoints = points.map(p => [p.lat, p.lng, 1.5]);
+      
+      // @ts-ignore
+      const heatLayer = L.heatLayer(heatPoints, {
+        radius: 35,
+        blur: 20,
+        max: 1,
+        minOpacity: 0.3,
+        gradient: {
+          0.4: 'blue',
+          0.6: 'cyan',
+          0.7: 'lime',
+          0.8: 'yellow',
+          1.0: 'red'
+        }
+      }).addTo(map);
+
+      return heatLayer;
+    };
+
+    let layer: any;
+    loadHeat().then(l => { layer = l; });
+
+    return () => {
+      if (layer) map.removeLayer(layer);
+    };
   }, [map, points]);
 
   return null;
@@ -58,8 +73,10 @@ export default function NationalFootprintMap({ supporters }: NationalFootprintMa
   const [radiusKm, setRadiusKm] = useState(5);
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     // Set default icon inside effect to prevent SSR errors
     delete (L.Icon.Default.prototype as any)._getIconUrl;
     L.Icon.Default.mergeOptions({
@@ -115,6 +132,12 @@ export default function NationalFootprintMap({ supporters }: NationalFootprintMa
     }
   };
 
+  if (!isMounted) {
+    return <div className="h-[600px] w-full bg-muted/20 animate-pulse rounded-2xl flex items-center justify-center">
+      <Loader2 className="h-10 w-10 animate-spin text-primary/20" />
+    </div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="relative w-full h-[600px] rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-muted/20">
@@ -138,7 +161,6 @@ export default function NationalFootprintMap({ supporters }: NationalFootprintMa
           <HeatLayer points={processedSupporters} />
           <Circle center={rallyCenter} pathOptions={{ color: 'hsl(var(--primary))', fillColor: 'hsl(var(--primary))', fillOpacity: 0.1, weight: 2, dashArray: '5, 10' }} radius={radiusKm * 1000} />
           
-          {/* Individual Markers for precision lookup */}
           {localSupporters.map((user) => (
             <Marker key={user.id || user.uid} position={[user.lat, user.lng]}>
               <Popup className="font-sans">
