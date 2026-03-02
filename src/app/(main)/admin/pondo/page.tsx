@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useFirestore, useUser, useStorage, useCollection } from "@/firebase";
+import { useFirestore, useUser, useStorage } from "@/firebase";
 import { useUserData } from "@/context/user-data-context";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -13,11 +13,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Landmark, Loader2, Send, ShieldCheck, Receipt, Wallet, ArrowDownRight } from "lucide-react";
+import { Camera, Landmark, Loader2, Send, ShieldCheck, Receipt, Wallet, ArrowDownRight, Printer, Home, HeartHandshake, Megaphone, Package } from "lucide-react";
 
 /**
  * @fileOverview Treasurer's Expense Management Terminal.
  * Authorized for Treasurer, President, and Admin roles.
+ * Enforces mandatory receipt photo evidence for every expenditure.
  */
 export default function PondoAdminPage() {
   const { userData } = useUserData();
@@ -26,9 +27,9 @@ export default function PondoAdminPage() {
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(false);
-  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("Logistics");
+  const [category, setCategory] = useState("Rally Logistics");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -45,30 +46,49 @@ export default function PondoAdminPage() {
 
   const handleLogExpense = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile || !title || !amount) {
-      toast({ variant: "destructive", title: "Audit Error", description: "All fields and receipt photo required." });
+    
+    // MANDATORY FIELD VERIFICATION
+    if (!selectedFile) {
+      toast({ variant: "destructive", title: "Audit Error", description: "A physical receipt photo is mandatory for all expenditures." });
+      return;
+    }
+    if (!description || !amount || Number(amount) <= 0) {
+      toast({ variant: "destructive", title: "Audit Error", description: "Please provide a valid amount and description." });
       return;
     }
 
     setLoading(true);
     try {
-      // 1. Upload Receipt Evidence
-      const storageRef = ref(storage, `expenses/${Date.now()}.jpg`);
+      // 1. Upload Receipt Evidence to Secure Storage
+      const storageRef = ref(storage, `expenses/receipts/${Date.now()}_${userData?.uid}.jpg`);
       const uploadResult = await uploadBytes(storageRef, selectedFile);
       const receiptUrl = await getDownloadURL(uploadResult.ref);
 
-      // 2. Log to Ledger
-      await addDoc(collection(firestore, "expenses"), {
-        title: title.trim().toUpperCase(),
+      // 2. Log to the Expenditures Ledger
+      const expenseData = {
+        description: description.trim().toUpperCase(),
         amount: Number(amount),
         category,
         receiptUrl,
-        loggedBy: userData?.fullName || "Treasurer",
+        treasurerUid: userData?.uid,
+        loggedBy: userData?.fullName || "National Treasurer",
+        approvedBy: userData?.role || "Treasurer Office",
+        status: "Audited",
         timestamp: serverTimestamp()
-      });
+      };
 
-      toast({ title: "Expense Audited", description: "The expenditure has been logged in the public transparency ledger." });
-      setTitle(""); setAmount(""); setSelectedFile(null); setPreviewUrl(null);
+      await addDoc(collection(firestore, "expenses"), expenseData);
+
+      toast({ 
+        title: "Expenditure Audited", 
+        description: "The expense has been synchronized with the Public Transparency Ledger." 
+      });
+      
+      // Reset Form
+      setDescription(""); 
+      setAmount(""); 
+      setSelectedFile(null); 
+      setPreviewUrl(null);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Logging Failed", description: error.message });
     } finally {
@@ -100,35 +120,48 @@ export default function PondoAdminPage() {
                     Audit New Expenditure
                   </CardTitle>
                   <CardDescription className="text-[10px] font-black uppercase tracking-widest">
-                    Record movement of funds with physical evidence.
+                    Authorized personnel only. Physical evidence required.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-primary">Expense Title</Label>
-                      <Input placeholder="e.g. RALLY SOUND SYSTEM" value={title} onChange={e => setTitle(e.target.value.toUpperCase())} className="h-12 font-bold border-2" required />
+                      <Label className="text-[10px] font-black uppercase text-primary">Amount (PHP)</Label>
+                      <Input 
+                        type="number" 
+                        placeholder="0.00" 
+                        value={amount} 
+                        onChange={e => setAmount(e.target.value)} 
+                        className="h-12 font-bold border-2 text-red-600 text-lg" 
+                        required 
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-primary">Amount (PHP)</Label>
-                      <Input type="number" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} className="h-12 font-bold border-2 text-red-600" required />
+                      <Label className="text-[10px] font-black uppercase text-primary">Category</Label>
+                      <Select value={category} onValueChange={setCategory}>
+                        <SelectTrigger className="h-12 border-2 font-bold">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Rally Logistics" className="font-bold uppercase text-[10px]">Rally Logistics & Sound</SelectItem>
+                          <SelectItem value="Bayanihan Aid" className="font-bold uppercase text-[10px]">Bayanihan Mutual Aid</SelectItem>
+                          <SelectItem value="Printing & Assets" className="font-bold uppercase text-[10px]">Printing (Shirts/Flags)</SelectItem>
+                          <SelectItem value="Administrative" className="font-bold uppercase text-[10px]">Office Rent & Admin</SelectItem>
+                          <SelectItem value="Marketing" className="font-bold uppercase text-[10px]">Media & Marketing</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-primary">Allocation Category</Label>
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger className="h-12 border-2 font-bold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Rallies" className="font-bold">RALLIES & ASSEMBLIES</SelectItem>
-                        <SelectItem value="Bayanihan Aid" className="font-bold">BAYANIHAN MUTUAL AID</SelectItem>
-                        <SelectItem value="Admin" className="font-bold">ADMINISTRATIVE</SelectItem>
-                        <SelectItem value="Logistics" className="font-bold">LOGISTICS & UNIFORMS</SelectItem>
-                        <SelectItem value="Marketing" className="font-bold">MARKETING & ASSETS</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-[10px] font-black uppercase text-primary">Description / Purpose</Label>
+                    <Textarea 
+                      placeholder="e.g. 500 Shirts for CDO Rally, Gas for Mobilization..." 
+                      value={description} 
+                      onChange={e => setDescription(e.target.value.toUpperCase())} 
+                      className="min-h-[100px] border-2 font-medium" 
+                      required 
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -138,11 +171,16 @@ export default function PondoAdminPage() {
                       className="border-2 border-dashed border-red-200 rounded-xl p-8 text-center cursor-pointer hover:bg-red-50 transition-all bg-white relative overflow-hidden h-48 flex items-center justify-center"
                     >
                       {previewUrl ? (
-                        <img src={previewUrl} className="max-h-40 mx-auto rounded shadow-lg" alt="Receipt Preview" />
+                        <div className="relative group w-full h-full">
+                          <img src={previewUrl} className="max-h-40 mx-auto rounded shadow-lg object-contain" alt="Receipt Preview" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
+                            <span className="text-white text-[10px] font-black uppercase">Change Photo</span>
+                          </div>
+                        </div>
                       ) : (
                         <div className="space-y-2">
                           <Camera className="h-8 w-8 mx-auto text-red-300" />
-                          <p className="text-[10px] font-black uppercase text-red-400">Capture Proof of Purchase</p>
+                          <p className="text-[10px] font-black uppercase text-red-400">Upload Receipt Proof</p>
                         </div>
                       )}
                       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
@@ -151,35 +189,49 @@ export default function PondoAdminPage() {
                 </CardContent>
                 <CardFooter className="bg-muted/30 border-t pt-6">
                   <Button type="submit" className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-2xl bg-red-700 hover:bg-red-800" disabled={loading}>
-                    {loading ? <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Verifying Ledger...</> : <><ArrowDownRight className="mr-2 h-6 w-6" /> Commit to Vault</>}
+                    {loading ? (
+                      <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Committing Audit...</>
+                    ) : (
+                      <><ShieldCheck className="mr-2 h-6 w-6" /> Publish to Public Ledger</>
+                    )}
                   </Button>
                 </CardFooter>
               </form>
             </Card>
           </div>
 
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-5 space-y-6">
             <Card className="shadow-lg border-l-4 border-l-accent bg-accent/5">
               <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-accent" />
-                  Auditor's Protocol
+                  Compliance Kernel
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 pt-2">
                 <p className="text-xs font-bold text-primary/80 leading-relaxed italic">
-                  "Every expenditure must be accompanied by a legible receipt. PatriotPondo is a public trust; unauthorized or undocumented spending will trigger a disciplinary review by the Auditor."
+                  "Transparency is non-negotiable. Every entry published from this terminal is visible to the entire movement. Ensure description accuracy and receipt legibility."
                 </p>
                 <div className="pt-4 border-t border-accent/20">
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-[10px] font-black uppercase opacity-60">Status</span>
-                    <Badge className="bg-green-600 font-black text-[8px]">TERMINAL ACTIVE</Badge>
+                    <span className="text-[10px] font-black uppercase opacity-60">Terminal Status</span>
+                    <Badge className="bg-green-600 font-black text-[8px]">SECURE & ONLINE</Badge>
                   </div>
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-[10px] font-black uppercase opacity-60">Encryption</span>
-                    <span className="text-[10px] font-bold text-primary uppercase">AES-256 Enabled</span>
+                    <span className="text-[10px] font-black uppercase opacity-60">Audit Trail</span>
+                    <span className="text-[10px] font-bold text-primary uppercase">UID Linked Logging</span>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-primary text-white shadow-xl">
+              <CardContent className="p-6 text-center space-y-2">
+                <Landmark className="h-10 w-10 mx-auto text-accent mb-2" />
+                <h3 className="text-sm font-black uppercase tracking-widest">PatriotPondo Integrity</h3>
+                <p className="text-[10px] font-medium opacity-70">
+                  Funded by the people, for the people.
+                </p>
               </CardContent>
             </Card>
           </div>

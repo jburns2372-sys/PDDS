@@ -18,7 +18,13 @@ import {
   PieChart as PieChartIcon,
   BarChart3,
   Receipt,
-  ExternalLink
+  ExternalLink,
+  Printer,
+  Home,
+  HeartHandshake,
+  Megaphone,
+  Package,
+  CheckCircle2
 } from "lucide-react";
 import { PondoDonationCard } from "@/components/pondo-donation-card";
 import { 
@@ -37,6 +43,7 @@ import { format } from "date-fns";
 /**
  * @fileOverview PatriotPondo - National Financial Transparency Dashboard.
  * Displays real-time collections and expenditures to members.
+ * Features an "Audit-Ready" aesthetic with category icons and treasurer verification seals.
  */
 export default function PatriotPondoPage() {
   const { user } = useUser();
@@ -71,10 +78,24 @@ export default function PatriotPondoPage() {
     return { totalPondo, totalSpent, balance, pieData, barData };
   }, [donations, expenses]);
 
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Rally Logistics': return <Megaphone className="h-5 w-5 text-red-600" />;
+      case 'Bayanihan Aid': return <HeartHandshake className="h-5 w-5 text-emerald-600" />;
+      case 'Administrative': return <Home className="h-5 w-5 text-blue-600" />;
+      case 'Printing & Assets': return <Printer className="h-5 w-5 text-purple-600" />;
+      case 'Logistics': return <Package className="h-5 w-5 text-amber-600" />;
+      default: return <Receipt className="h-5 w-5 text-gray-600" />;
+    }
+  };
+
   if (donLoading || expLoading) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Syncing National Ledger...</p>
+        </div>
       </div>
     );
   }
@@ -95,7 +116,7 @@ export default function PatriotPondoPage() {
               <h1 className="text-4xl font-black text-primary font-headline uppercase tracking-tight">PatriotPondo</h1>
               <div className="flex items-center gap-2 mt-1">
                 <Badge className="bg-emerald-100 text-emerald-700 font-black text-[10px] uppercase border-none">Verified Transparency</Badge>
-                <Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20">Real-Time Ledger</Badge>
+                <Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20">Audit Trail Active</Badge>
               </div>
             </div>
           </div>
@@ -103,11 +124,13 @@ export default function PatriotPondoPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="text-right">
               <p className="text-2xl font-black text-primary">₱{stats.totalPondo.toLocaleString()}</p>
-              <p className="text-[9px] font-black uppercase tracking-widest opacity-60">National collections</p>
+              <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Total Collections</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-black text-emerald-600">₱{stats.balance.toLocaleString()}</p>
-              <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Current Vault</p>
+              <p className={`text-2xl font-black ${stats.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                ₱{stats.balance.toLocaleString()}
+              </p>
+              <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Vault Balance</p>
             </div>
           </div>
         </div>
@@ -118,11 +141,11 @@ export default function PatriotPondoPage() {
           <div className="lg:col-span-8 space-y-10">
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="shadow-lg border-t-4 border-primary">
+              <Card className="shadow-lg border-t-4 border-primary bg-white">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-primary">
                     <PieChartIcon className="h-4 w-4 text-accent" />
-                    Spending Breakdown
+                    Allocation breakdown
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="h-[250px] pt-4">
@@ -139,11 +162,11 @@ export default function PatriotPondoPage() {
                 </CardContent>
               </Card>
 
-              <Card className="shadow-lg border-t-4 border-accent">
+              <Card className="shadow-lg border-t-4 border-accent bg-white">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-primary">
                     <BarChart3 className="h-4 w-4 text-primary" />
-                    Top Regional Collections
+                    Regional Strength
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="h-[250px] pt-4">
@@ -159,22 +182,73 @@ export default function PatriotPondoPage() {
               </Card>
             </div>
 
-            <Tabs defaultValue="ledger" className="w-full">
+            <Tabs defaultValue="expenses" className="w-full">
               <TabsList className="bg-primary/5 p-1 border border-primary/10 h-14 w-full justify-start overflow-x-auto">
-                <TabsTrigger value="ledger" className="px-8 font-black uppercase text-[10px] tracking-widest">
-                  <History className="h-4 w-4 mr-2" /> Public Ledger
-                </TabsTrigger>
                 <TabsTrigger value="expenses" className="px-8 font-black uppercase text-[10px] tracking-widest">
-                  <Receipt className="h-4 w-4 mr-2" /> Expense Feed
+                  <Receipt className="h-4 w-4 mr-2" /> Expenditure Feed
+                </TabsTrigger>
+                <TabsTrigger value="ledger" className="px-8 font-black uppercase text-[10px] tracking-widest">
+                  <History className="h-4 w-4 mr-2" /> Collection Log
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="expenses" className="pt-6">
+                <div className="space-y-4">
+                  {expenses.length === 0 ? (
+                    <div className="py-12 text-center border-2 border-dashed rounded-2xl bg-muted/20">
+                      <p className="text-xs font-bold text-muted-foreground uppercase">No expenditures logged yet.</p>
+                    </div>
+                  ) : (
+                    expenses.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).map((e: any) => (
+                      <Card key={e.id} className="shadow-lg border-l-4 border-l-red-600 overflow-hidden group hover:shadow-xl transition-all bg-white">
+                        <CardContent className="p-5">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-4">
+                              <div className="h-12 w-12 rounded-xl bg-red-50 flex items-center justify-center border border-red-100 shadow-inner">
+                                {getCategoryIcon(e.category)}
+                              </div>
+                              <div>
+                                <p className="font-black text-sm uppercase text-primary leading-tight">{e.description}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge variant="outline" className="text-[8px] font-black uppercase border-primary/20">{e.category}</Badge>
+                                  <span className="text-[9px] font-bold text-muted-foreground uppercase">{e.timestamp ? format(e.timestamp.toDate(), 'MMM dd, yyyy') : 'Recently'}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-black text-red-600 text-lg">-₱{e.amount.toLocaleString()}</p>
+                              <div className="flex items-center justify-end gap-1 mt-1">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                <span className="text-[8px] font-black uppercase text-emerald-600 tracking-widest">VERIFIED BY TREASURER</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="pt-4 border-t border-dashed flex items-center justify-between">
+                            <div className="text-[8px] font-black uppercase text-primary/40 tracking-widest">
+                              AUDIT ID: {e.id.substring(0, 12).toUpperCase()}
+                            </div>
+                            {e.receiptUrl && (
+                              <Button variant="outline" size="sm" asChild className="h-9 font-black uppercase text-[9px] tracking-widest border-2 hover:bg-primary hover:text-white transition-all">
+                                <a href={e.receiptUrl} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="h-3 w-3 mr-2" /> View Official Receipt
+                                </a>
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
 
               <TabsContent value="ledger" className="pt-6">
                 <div className="space-y-4">
                   {donations.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).slice(0, 20).map((d: any) => (
                     <div key={d.id} className="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center">
+                        <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100">
                           <ArrowUpRight className="h-5 w-5 text-emerald-600" />
                         </div>
                         <div>
@@ -182,49 +256,14 @@ export default function PatriotPondoPage() {
                             {d.isAnonymous ? "Anonymous Patriot" : d.donorName}
                           </p>
                           <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">
-                            {d.region} • {format(d.timestamp?.toDate() || new Date(), 'MMM dd, p')}
+                            {d.region} • {d.timestamp ? format(d.timestamp.toDate(), 'MMM dd, p') : 'Just now'}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-black text-emerald-600">₱{d.amount.toLocaleString()}</p>
+                        <p className="font-black text-emerald-600 text-lg">₱{d.amount.toLocaleString()}</p>
                         <Badge variant="outline" className="text-[7px] font-black uppercase border-emerald-200 text-emerald-700 h-4 px-1">SUCCESSFUL</Badge>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="expenses" className="pt-6">
-                <div className="space-y-4">
-                  {expenses.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).map((e: any) => (
-                    <div key={e.id} className="flex flex-col p-4 bg-white border rounded-xl shadow-sm">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center">
-                            <ArrowDownRight className="h-5 w-5 text-red-600" />
-                          </div>
-                          <div>
-                            <p className="font-black text-sm uppercase text-primary leading-none">{e.title}</p>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">
-                              {e.category} • {format(e.timestamp?.toDate() || new Date(), 'MMM dd, yyyy')}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-black text-red-600">-₱{e.amount.toLocaleString()}</p>
-                          <Badge className="bg-red-700 text-white text-[7px] font-black uppercase h-4 px-1">AUDITED</Badge>
-                        </div>
-                      </div>
-                      {e.receiptUrl && (
-                        <div className="pt-3 border-t border-dashed flex justify-end">
-                          <Button variant="link" size="sm" asChild className="h-auto p-0 text-[10px] font-black uppercase text-primary">
-                            <a href={e.receiptUrl} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="h-3 w-3 mr-1" /> View Official Receipt
-                            </a>
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -236,7 +275,7 @@ export default function PatriotPondoPage() {
           <div className="lg:col-span-4 space-y-6">
             <PondoDonationCard />
             
-            <Card className="bg-primary text-white shadow-2xl overflow-hidden relative">
+            <Card className="bg-primary text-white shadow-2xl overflow-hidden relative border-none">
               <div className="absolute inset-0 opacity-10 pointer-events-none">
                 <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                   <pattern id="pondo-grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -247,14 +286,15 @@ export default function PatriotPondoPage() {
               </div>
               <CardContent className="p-6 space-y-4 relative z-10">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-accent" />
+                  <ShieldCheck className="h-5 w-5 text-accent animate-pulse" />
                   <h3 className="font-black uppercase text-sm tracking-tight">Financial Sovereignty</h3>
                 </div>
                 <p className="text-[11px] font-medium leading-relaxed italic opacity-80">
-                  "A movement funded by its members is a movement beholden only to the people. Every centavo fuels our national mobilization for Federalism."
+                  "Every centavo fuels our national mobilization. By maintaining a public ledger, we ensure that the resources of the movement are utilized with absolute integrity and transparency."
                 </p>
-                <div className="pt-2 border-t border-white/10">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-accent">Audited by National Treasurer</p>
+                <div className="pt-2 border-t border-white/10 flex justify-between items-center">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-accent">Office of the Treasurer</p>
+                  <CheckCircle2 className="h-3 w-3 text-accent" />
                 </div>
               </CardContent>
             </Card>
