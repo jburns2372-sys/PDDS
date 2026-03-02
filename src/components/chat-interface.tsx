@@ -163,7 +163,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
         <div className="absolute inset-0 z-50 bg-primary/95 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-500">
           <div className="max-w-xl w-full bg-white rounded-[32px] shadow-2xl overflow-hidden relative group">
             <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
-              <PddsLogo className="h-64 w-64" />
+              <PddsLogo className="h-64 w-auto" />
             </div>
             
             <div className="p-8 md:p-12 space-y-8 relative z-10">
@@ -210,7 +210,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
               </div>
 
               <div className="flex flex-col items-center gap-3 pt-4 border-t border-dashed">
-                <PddsLogo className="h-10 w-10" />
+                <PddsLogo className="h-12 w-auto" />
                 <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/40 italic">
                   Para sa Dugong Dakilang Samahan!
                 </p>
@@ -226,7 +226,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
           {globalPins.map(pin => (
             <div key={pin.id} className="max-w-7xl mx-auto flex items-start gap-3">
               <div className="bg-primary/10 p-1.5 rounded-lg shrink-0">
-                {pin.isSystem ? <PddsLogo className="h-5 w-5" /> : <Pin className="h-4 w-4 text-primary" />}
+                {pin.isSystem ? <PddsLogo className="h-6 w-auto" /> : <Pin className="h-4 w-4 text-primary" />}
               </div>
               <div className="flex-1">
                 <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">

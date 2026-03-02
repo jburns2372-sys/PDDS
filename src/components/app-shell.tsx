@@ -123,7 +123,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex min-h-screen w-full flex-col md:flex-row">
           <div className="flex h-16 w-full items-center justify-between border-b bg-primary px-4 md:hidden sticky top-0 z-50">
             <div className="flex items-center gap-2">
-              <PddsLogo variant="white" className="h-10 w-10" />
+              <PddsLogo variant="white" className="h-10 w-auto" />
               <span className="font-headline font-black uppercase text-xs tracking-[0.2em] text-white">PatriotLink</span>
             </div>
             <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>

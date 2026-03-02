@@ -5,6 +5,9 @@ import { Landmark, Scale, Building2, Shield, HeartHandshake, BookOpen } from "lu
  * PDDS Party Configuration & Official References
  */
 
+// Official Logo Source of Truth
+export const PDDS_LOGO_URL = "https://firebasestorage.googleapis.com/v0/b/patriot-link-production.firebasestorage.app/o/PDDS_1024x1024.png?alt=media";
+
 // Official PDDS leadership roles - Synchronized with Command Manual 2025
 export const pddsLeadershipRoles = [
   "President",

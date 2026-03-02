@@ -64,11 +64,11 @@ export function DigitalIdCard({ userData }: { userData: any }) {
             <div className="flex w-full items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <div className="bg-white p-1 rounded-full shadow-sm">
-                  <PddsLogo className="h-8 w-8" />
+                  <PddsLogo className="h-10 w-auto" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-black text-xs tracking-tighter uppercase leading-none">Pederalismo ng Dugong</span>
-                  <span className="font-black text-xs tracking-tighter uppercase leading-none">Dakilang Samahan</span>
+                  <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Pederalismo ng Dugong</span>
+                  <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Dakilang Samahan</span>
                 </div>
               </div>
               <Badge variant="outline" className="text-[6px] font-black tracking-widest uppercase border-white/20 text-white">ID-REG-2025</Badge>
@@ -82,7 +82,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
                     <img src={userData.photoURL} alt={userData.fullName} className="h-full w-full object-cover" crossOrigin="anonymous" />
                   ) : (
                     <div className="flex items-center justify-center h-full w-full bg-[#1e3a8a]/20">
-                      <PddsLogo className="h-10 w-10 opacity-20" />
+                      <PddsLogo className="h-12 w-auto opacity-20" />
                     </div>
                   )}
                 </div>

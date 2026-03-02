@@ -48,9 +48,9 @@ export function DesktopSidebarContent() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-24 flex-col items-center justify-center px-6 py-4">
-        <div className="bg-white p-1 rounded-full shadow-md border border-[#D4AF37]">
-            <PddsLogo className="h-12 w-12" />
+      <div className="flex h-32 flex-col items-center justify-center px-6 py-6">
+        <div className="bg-white p-2 rounded-full shadow-lg border-2 border-[#D4AF37]">
+            <PddsLogo className="h-16 w-auto" />
         </div>
       </div>
       <Separator />
