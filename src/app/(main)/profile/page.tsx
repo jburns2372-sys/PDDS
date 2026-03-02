@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -6,7 +5,7 @@ import { useUserData } from "@/context/user-data-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,41 +13,38 @@ import { useAuth, useFirestore, useStorage } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { updatePassword, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, User, Loader2, LogOut, Save, Phone, Lock, Eye, EyeOff, X, Check, ShieldCheck, MapPin } from "lucide-react";
+import { 
+    Camera, 
+    User, 
+    Loader2, 
+    LogOut, 
+    Save, 
+    Phone, 
+    Lock, 
+    Eye, 
+    EyeOff, 
+    X, 
+    Check, 
+    ShieldCheck, 
+    MapPin, 
+    Trash2, 
+    AlertTriangle, 
+    ShieldAlert, 
+    FileText 
+} from "lucide-react";
 import { getIslandGroup } from "@/lib/data";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const NCR_CODE = "130000000";
-
-// Comprehensive Zip Code Map
-const ZIP_CODE_MAP: Record<string, any> = {
-    "METRO MANILA (NCR)": {
-        "CITY OF MANILA": { 
-            default: "1000", "SAMPALOC": "1008", "MALATE": "1004", "BINONDO": "1006", "ERMITA": "1000", "QUIAPO": "1001", "TONDO": "1012", "SANTA CRUZ": "1014", "SANTA ANA": "1009", "SAN MIGUEL": "1005", "SAN NICOLAS": "1010", "PANDACAN": "1011", "PACO": "1007", "INTRAMUROS": "1002", "PORT AREA": "1018"
-        },
-        "QUEZON CITY": { 
-            default: "1100", "COMMONWEALTH": "1121", "DILIMAN": "1101", "BATASAN HILLS": "1126", "CUBAO": "1109", "LOYOLA HEIGHTS": "1108", "PASONG TAMO": "1107", "PAANG BUNDOK": "1114", "BAGONG SILANGAN": "1119", "NOVALICHES": "1123", "NEW ERA": "1107", "SAN BARTOLOME": "1116", "TANDANG SORA": "1116", "PROJECT 4": "1109", "PROJECT 6": "1100", "PROJECT 7": "1105", "PROJECT 8": "1106", "FAIRVIEW": "1118", "HOLY SPIRIT": "1127", "PAYATAS": "1119", "UP CAMPUS": "1101"
-        },
-        "MAKATI CITY": { 
-            default: "1200", "BEL-AIR": "1209", "FORBES PARK": "1219", "MAGALLANES VILLAGE": "1232", "DASMARIÑAS VILLAGE": "1222", "GUADALUPE NUEVO": "1212", "GUADALUPE VIEJO": "1211", "POBLACION": "1210", "SAN LORENZO": "1223", "URA-DANZA": "1200"
-        },
-        "CALOOCAN CITY": "1400",
-        "PASIG CITY": "1600",
-        "TAGUIG CITY": "1630",
-        "PARAÑAQUE CITY": "1700",
-        "VALENZUELA CITY": "1440",
-        "LAS PIÑAS CITY": "1740",
-        "MUNTINLUPA CITY": "1770",
-        "MARIKINA CITY": "1800",
-        "PASAY CITY": "1300",
-        "MALABON CITY": "1470",
-        "NAVOTAS CITY": "1485",
-        "SAN JUAN CITY": "1500",
-        "PATEROS": "1620",
-        "default": "1000"
-    }
-};
 
 export default function ProfilePage() {
     const { user, userData, loading: userLoading } = useUserData();
@@ -74,15 +70,15 @@ export default function ProfilePage() {
     const [selectedCity, setSelectedCity] = useState<string>("");
     const [selectedBarangay, setSelectedBarangay] = useState<string>("");
 
-    // Password fields
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-
     // UI State
     const [saving, setSaving] = useState(false);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+
+    // RA 10173 Consent State
+    const [showConsent, setShowConsent] = useState(false);
+    const [idForUpload, setIdForUpload] = useState<File | null>(null);
+    const [isUploadingId, setIsUploadingId] = useState(false);
 
     // Phone Verification State
     const [showOtpInput, setShowOtpInput] = useState(false);
@@ -91,6 +87,7 @@ export default function ProfilePage() {
     const [isPhoneVerified, setIsPhoneVerified] = useState(true);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const idInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -241,8 +238,6 @@ export default function ProfilePage() {
                 finalPhotoURL = await getDownloadURL(storageRef);
             }
 
-            if (newPassword) await updatePassword(user, newPassword);
-
             const userRef = doc(firestore, "users", user.uid);
             const updates: any = {
                 fullName: fullName.trim().toUpperCase(),
@@ -256,7 +251,6 @@ export default function ProfilePage() {
                 photoURL: finalPhotoURL,
             };
 
-            // AUTO-ELEVATION LOGIC
             if (userData.role === 'Supporter' && isPhoneVerified) {
                 updates.role = 'Member';
                 updates.isVerified = true;
@@ -267,7 +261,7 @@ export default function ProfilePage() {
             await updateDoc(userRef, updates);
 
             toast({ title: "Profile Updated", description: "Induction record synchronized." });
-            setNewPassword(""); setConfirmPassword(""); setSelectedFile(null);
+            setSelectedFile(null);
         } catch (error: any) {
             toast({ variant: "destructive", title: "Update Failed", description: error.message });
         } finally {
@@ -275,12 +269,63 @@ export default function ProfilePage() {
         }
     };
 
-    if (userLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
+    const handleIdSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setIdForUpload(file);
+            setShowConsent(true);
+        }
+    };
+
+    const confirmIdUpload = async () => {
+        if (!idForUpload || !user) return;
+        setIsUploadingId(true);
+        try {
+            const storageRef = ref(storage, `id_verifications/${user.uid}`);
+            await uploadBytes(storageRef, idForUpload);
+            const downloadURL = await getDownloadURL(storageRef);
+
+            const userRef = doc(firestore, "users", user.uid);
+            await updateDoc(userRef, {
+                idVerificationUrl: downloadURL,
+                idConsentRA10173: true,
+                idUploadTimestamp: serverTimestamp(),
+                vettingStatus: "Pending Audit"
+            });
+
+            toast({ title: "ID Uploaded", description: "Vetting queue updated for Sec-Gen audit." });
+            setShowConsent(false);
+            setIdForUpload(null);
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Upload Failed" });
+        } finally {
+            setIsUploadingId(false);
+        }
+    };
+
+    const handleRequestErasure = async () => {
+        const conf = prompt("WARNING: Type 'PURGE MY DATA' to formally request account deletion under the Data Privacy Act.");
+        if (conf !== "PURGE MY DATA") return;
+
+        try {
+            await addDoc(collection(firestore, "security_logs"), {
+                adminUid: "SYSTEM",
+                action: "DATA_ERASURE_REQUESTED",
+                targetUid: user?.uid,
+                targetName: userData?.fullName,
+                timestamp: serverTimestamp(),
+                systemLevel: "PRIVACY_PROTOCOL"
+            });
+            toast({ title: "Request Logged", description: "The Secretary General has been notified of your erasure request." });
+        } catch (e) {}
+    };
+
+    if (userLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
 
     const needsVerification = phoneNumber !== userData?.phoneNumber && !isPhoneVerified;
 
     return (
-        <div className="flex flex-col min-h-screen bg-gray-50/50 pb-20">
+        <div className="flex flex-col min-h-screen bg-gray-50/50 pb-32">
             <div id="recaptcha-profile"></div>
             <div className="bg-card p-6 md:p-8 border-b shadow-sm">
                 <div className="max-w-5xl mx-auto flex justify-between items-center">
@@ -294,8 +339,8 @@ export default function ProfilePage() {
                 </div>
             </div>
 
-            <div className="p-4 md:p-8 max-w-5xl mx-auto w-full">
-                <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-24">
+            <div className="p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8">
+                <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-1 space-y-6">
                         <Card className="shadow-lg overflow-hidden border-primary/10">
                             <CardHeader className="bg-primary text-primary-foreground text-center pb-8 pt-10">
@@ -322,6 +367,29 @@ export default function ProfilePage() {
                                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={e => {const f=e.target.files?.[0]; if(f){setSelectedFile(f); const r=new FileReader(); r.onloadend=()=>setPhotoURL(r.result as string); r.readAsDataURL(f);}}} />
                                     </div>
                                 )}
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-lg border-t-4 border-emerald-600">
+                            <CardHeader>
+                                <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-800 flex items-center gap-2">
+                                    <ShieldCheck className="h-4 w-4" />
+                                    Member Vetting
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
+                                    To upgrade to **Silver** or **Gold** status, you must upload a clear photo of your Government ID.
+                                </p>
+                                <Button 
+                                    type="button"
+                                    onClick={() => idInputRef.current?.click()} 
+                                    className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-black uppercase text-[10px] tracking-widest"
+                                    disabled={userData?.vettingStatus === "Pending Audit"}
+                                >
+                                    {userData?.vettingStatus === "Pending Audit" ? "Vetting in Progress..." : "Upload Government ID"}
+                                </Button>
+                                <input type="file" ref={idInputRef} className="hidden" accept="image/*" onChange={handleIdSelect} />
                             </CardContent>
                         </Card>
                     </div>
@@ -380,9 +448,72 @@ export default function ProfilePage() {
                                 </Button>
                             </CardFooter>
                         </Card>
+
+                        {/* RA 10173 Right to Erasure Zone */}
+                        <Card className="border-red-200 bg-red-50/30">
+                            <CardHeader>
+                                <CardTitle className="text-sm font-black uppercase tracking-widest text-red-700 flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    Privacy Danger Zone
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <p className="text-[10px] font-bold text-red-900/60 uppercase leading-relaxed">
+                                    Under **RA 10173 (Data Privacy Act of 2012)**, you have the right to be forgotten. Requesting erasure will flag your account for permanent deletion of all biometric and identity evidence.
+                                </p>
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    className="w-full border-red-200 text-red-700 hover:bg-red-50 font-black uppercase text-[10px] tracking-widest"
+                                    onClick={handleRequestErasure}
+                                >
+                                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Request Full Data Erasure
+                                </Button>
+                            </CardContent>
+                        </Card>
                     </div>
                 </form>
             </div>
+
+            {/* RA 10173 Consent Dialog */}
+            <Dialog open={showConsent} onOpenChange={setShowConsent}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="font-headline uppercase text-primary flex items-center gap-2">
+                            <ShieldAlert className="h-5 w-5 text-accent" />
+                            Identity Consent Protocol
+                        </DialogTitle>
+                        <DialogDescription className="text-xs font-bold uppercase tracking-tight pt-2">
+                            RA 10173 Data Privacy Compliance
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-6 space-y-4">
+                        <div className="bg-primary/5 p-4 rounded-xl border border-primary/10">
+                            <p className="text-xs font-medium text-foreground/80 leading-relaxed italic">
+                                "I hereby consent to the collection and processing of my government-issued identification by the PDDS (Federalismo ng Dugong Dakilang Samahan) strictly for the purpose of membership vetting and leadership rank assignment under the Data Privacy Act of 2012."
+                            </p>
+                        </div>
+                        <ul className="space-y-2">
+                            <li className="flex items-center gap-2 text-[10px] font-black uppercase text-primary/60">
+                                <Check className="h-3 w-3 text-green-600" /> Secure Encryption Active
+                            </li>
+                            <li className="flex items-center gap-2 text-[10px] font-black uppercase text-primary/60">
+                                <Check className="h-3 w-3 text-green-600" /> Authorized Access Only (Sec-Gen)
+                            </li>
+                        </ul>
+                    </div>
+                    <DialogFooter className="flex flex-col gap-3">
+                        <Button 
+                            className="w-full h-14 bg-primary hover:bg-primary/90 font-black uppercase tracking-widest shadow-xl" 
+                            onClick={confirmIdUpload}
+                            disabled={isUploadingId}
+                        >
+                            {isUploadingId ? <Loader2 className="animate-spin h-5 w-5" /> : "I Consent & Upload ID"}
+                        </Button>
+                        <Button variant="ghost" onClick={() => {setShowConsent(false); setIdForUpload(null);}} className="text-[10px] font-black uppercase">Cancel</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

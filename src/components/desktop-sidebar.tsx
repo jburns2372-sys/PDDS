@@ -1,9 +1,8 @@
-
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks, Gavel, Newspaper, LayoutGrid, Hexagon, GraduationCap, Eye, Landmark, Wallet, ShieldCheck, Lock } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks, Gavel, Newspaper, LayoutGrid, Hexagon, GraduationCap, Eye, Landmark, Wallet, ShieldCheck, Lock, FileText, Scale } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -136,20 +135,35 @@ export function DesktopSidebarContent() {
               </>
             )}
         </div>
-        <div className="pt-4 mt-auto border-t">
-            <div className="px-4 py-2 text-[9px] font-black uppercase text-muted-foreground tracking-widest opacity-60">
-                Member ID: {isLoadingRole ? '...' : (userData?.uid?.substring(0, 8) || 'Unknown')}
+        <div className="pt-4 mt-auto border-t space-y-4">
+            <div className="space-y-1">
+                <Link
+                  href="/profile"
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest",
+                    pathname.startsWith('/profile') && "bg-primary/10 text-primary font-bold"
+                  )}
+                >
+                  <UserCircle className="h-4 w-4" />
+                  <span>My Profile</span>
+                </Link>
             </div>
-             <Link
-              href="/profile"
-              className={cn(
-                "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest",
-                pathname.startsWith('/profile') && "bg-primary/10 text-primary font-bold"
-              )}
-            >
-              <UserCircle className="h-4 w-4" />
-              <span>My Profile</span>
-            </Link>
+
+            {/* Legal Footer Section */}
+            <div className="px-4 py-4 bg-primary/5 rounded-xl border border-primary/10">
+                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/40 mb-3">Legal & Privacy Compliance</p>
+                <div className="space-y-3">
+                    <Link href="/legal/privacy" className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground hover:text-primary transition-colors uppercase">
+                        <Scale className="h-3 w-3" /> Privacy Policy (RA 10173)
+                    </Link>
+                    <Link href="/legal/terms" className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground hover:text-primary transition-colors uppercase">
+                        <FileText className="h-3 w-3" /> Terms of Service
+                    </Link>
+                </div>
+                <div className="mt-4 pt-3 border-t border-dashed border-primary/10 text-[8px] font-bold text-muted-foreground/60 uppercase">
+                    Member ID: {isLoadingRole ? '...' : (userData?.uid?.substring(0, 12).toUpperCase() || 'ANONYMOUS')}
+                </div>
+            </div>
         </div>
       </nav>
     </div>

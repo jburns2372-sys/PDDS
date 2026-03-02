@@ -21,8 +21,9 @@ import {
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Loader2, XCircle, Sparkles, Trophy } from "lucide-react";
+import { Loader2, XCircle, Sparkles, Trophy, ShieldCheck, ScrollText } from "lucide-react";
 import { getIslandGroup } from "@/lib/data";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const NCR_CODE = "130000000";
 
@@ -53,6 +54,7 @@ export default function JoinPage() {
     const [otp, setOtp] = useState("");
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
     const [agreed, setAgreed] = useState(false);
+    const [hasScrolledTerms, setHasScrolledTerms] = useState(false);
 
     const verifierRef = useRef<RecaptchaVerifier | null>(null);
 
@@ -135,6 +137,7 @@ export default function JoinPage() {
                 createdAt: serverTimestamp(),
                 lastActive: serverTimestamp(),
                 isFoundingPatriot: true,
+                consentTimestamp: serverTimestamp(),
             };
 
             await setDoc(doc(firestore, "users", user.uid), memberData);
@@ -177,6 +180,7 @@ export default function JoinPage() {
                     referredBy: referralUid || null,
                     createdAt: serverTimestamp(),
                     lastActive: serverTimestamp(),
+                    consentTimestamp: serverTimestamp(),
                 });
 
                 toast({ title: "Welcome!", description: "You have been inducted as a Supporter." });
@@ -298,13 +302,37 @@ export default function JoinPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-start space-x-3 bg-muted/50 p-4 rounded-xl border border-dashed">
-                                    <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} className="mt-1" />
-                                    <div className="space-y-1">
-                                        <Label htmlFor="terms" className="text-xs font-bold leading-none text-primary uppercase">Accept National Registry Terms</Label>
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                            By checking this, you formally declare support for PDDS and the principles of Federalism. You agree to the official <Link href="/legal/terms" target="_blank" className="text-primary underline">Code of Conduct</Link> and <Link href="/legal/privacy" target="_blank" className="text-primary underline">Privacy Policy</Link>.
-                                        </p>
+                                <div className="space-y-3">
+                                    <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
+                                        <ScrollText className="h-3 w-3" />
+                                        National Registry Terms & Privacy
+                                    </Label>
+                                    <Card className="border-2 bg-muted/30">
+                                        <ScrollArea className="h-32 p-4" onScrollCapture={() => setHasScrolledTerms(true)}>
+                                            <div className="text-[10px] text-muted-foreground space-y-4 font-medium leading-relaxed">
+                                                <p className="font-bold text-primary">1. ELIGIBILITY & MISSION ALIGNMENT</p>
+                                                <p>By joining PatriotLink, you formally declare your support for PDDS and the principles of Federalism. Membership is restricted to individuals 18+ years of age.</p>
+                                                <p className="font-bold text-primary">2. DATA PRIVACY (RA 10173)</p>
+                                                <p>We collect your identity data solely for membership verification and tactical coordination. We implement industry-standard encryption to protect your records. You have the right to request erasure at any time.</p>
+                                                <p className="font-bold text-primary">3. CODE OF CONDUCT</p>
+                                                <p>Users must not share internal tactical briefings or engage in harassment. Violation of party integrity may result in immediate revocation of access by the Secretary General.</p>
+                                            </div>
+                                        </ScrollArea>
+                                    </Card>
+                                    
+                                    <div className="flex items-start space-x-3 bg-primary/5 p-4 rounded-xl border border-primary/10">
+                                        <Checkbox 
+                                            id="terms" 
+                                            checked={agreed} 
+                                            onCheckedChange={(checked) => setAgreed(checked === true)} 
+                                            className="mt-1" 
+                                        />
+                                        <div className="space-y-1">
+                                            <Label htmlFor="terms" className="text-xs font-bold leading-none text-primary uppercase">I Accept the National Registry Terms</Label>
+                                            <p className="text-[10px] text-muted-foreground leading-relaxed">
+                                                I confirm that I have read and agree to the official <Link href="/legal/terms" target="_blank" className="text-primary underline">Code of Conduct</Link> and <Link href="/legal/privacy" target="_blank" className="text-primary underline">Privacy Policy</Link>.
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>
