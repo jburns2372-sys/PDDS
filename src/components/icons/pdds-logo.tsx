@@ -20,8 +20,8 @@ export default function PddsLogo({ className, variant = "default", ...props }: P
       src={PDDS_LOGO_URL} 
       alt="PDDS Official Party Logo"
       className={cn(
-        "object-contain transition-all duration-300", 
-        variant === "white" && "brightness-0 invert contrast-[200%]", // Enhanced knockout for better visibility on dark backgrounds
+        "object-contain transition-all duration-300 bg-transparent", 
+        variant === "white" && "brightness-0 invert",
         className
       )}
       {...props}

@@ -49,9 +49,7 @@ export function DesktopSidebarContent() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-32 flex-col items-center justify-center px-6 py-6">
-        <div className="bg-white p-2 rounded-full shadow-lg border-2 border-[#D4AF37]">
-            <PddsLogo className="h-16 w-auto" />
-        </div>
+        <PddsLogo className="h-20 w-auto" />
       </div>
       <Separator />
       <nav className="flex flex-col flex-1 justify-between p-4">

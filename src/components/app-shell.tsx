@@ -88,7 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (loading || (user && userDataLoading)) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-8">
             <div className="relative">
               <PddsLogo className="h-32 w-32 animate-pulse" />

@@ -109,9 +109,7 @@ export function DonorCertificateDialog({
             </div>
 
             <div className="space-y-4 relative z-10 w-full">
-              <div className="bg-white p-2 rounded-full inline-block shadow-xl">
-                <PddsLogo className="h-16 w-16" />
-              </div>
+              <PddsLogo className="h-20 w-auto mx-auto" />
               <h2 className="text-sm font-black uppercase tracking-[0.3em] text-accent">PatriotLink</h2>
               <div className="h-0.5 w-16 bg-accent mx-auto" />
             </div>

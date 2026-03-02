@@ -63,9 +63,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
             {/* Header: Official Logo Top-Left */}
             <div className="flex w-full items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
-                <div className="bg-white p-1 rounded-full shadow-sm">
-                  <PddsLogo className="h-10 w-auto" />
-                </div>
+                <PddsLogo className="h-10 w-auto" />
                 <div className="flex flex-col">
                   <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Pederalismo ng Dugong</span>
                   <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Dakilang Samahan</span>
