@@ -12,11 +12,23 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, ShieldCheck, Loader2, Sparkles, Heart } from "lucide-react";
+import { Wallet, ShieldCheck, Loader2, Sparkles, Heart, Smartphone, Landmark, Receipt, Info, Copy } from "lucide-react";
 import { DonorCertificateDialog } from "./donor-certificate-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const AMOUNTS = [50, 100, 500];
 
+/**
+ * @fileOverview PatriotPondo Donation Card with Active Test Gateways.
+ * Features simulation logic for GCash (09053300021) and BPI (9619213553).
+ */
 export function PondoDonationCard() {
   const { user } = useUser();
   const { userData } = useUserData();
@@ -27,25 +39,33 @@ export function PondoDonationCard() {
   const [customAmount, setCustomAmount] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"GCASH" | "MAYA" | "CARD">("GCASH");
+  const [paymentMethod, setPaymentMethod] = useState<"GCASH" | "MAYA" | "BANK">("GCASH");
   
-  // Post-donation state
+  // Simulation State
+  const [showInstructions, setShowInstructions] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
   const [lastAmount, setLastAmount] = useState(0);
 
-  const handleDonate = async () => {
+  const handleOpenInstructions = () => {
     const finalAmount = customAmount ? Number(customAmount) : amount;
-    if (!finalAmount || finalAmount <= 0) return;
+    if (!finalAmount || finalAmount <= 0) {
+      toast({ variant: "destructive", title: "Invalid Amount", description: "Please select or enter a valid donation amount." });
+      return;
+    }
+    setLastAmount(finalAmount);
+    setShowInstructions(true);
+  };
 
+  const handleFinalizeDonation = async () => {
     setLoading(true);
     try {
-      // Simulate Payment Gateway Handshake
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // 1. Simulate Registry Handshake
+      await new Promise(resolve => setTimeout(resolve, 1200));
 
       const donationData = {
         uid: user?.uid || "anonymous",
         donorName: userData?.fullName || "Guest Patriot",
-        amount: finalAmount,
+        amount: lastAmount,
         status: "Successful",
         isAnonymous,
         region: userData?.city || "National",
@@ -53,25 +73,31 @@ export function PondoDonationCard() {
         timestamp: serverTimestamp()
       };
 
+      // 2. Commit to National Ledger
       await addDoc(collection(firestore, "donations"), donationData);
 
       toast({
-        title: "Patriot Contribution Confirmed!",
-        description: `Your contribution of ₱${finalAmount.toLocaleString()} has been added to the National Vault.`,
+        title: "Contribution Audited",
+        description: `₱${lastAmount.toLocaleString()} successfully added to the National Vault.`,
       });
       
-      setLastAmount(finalAmount);
+      setShowInstructions(false);
       setCustomAmount("");
       
-      // If not anonymous, offer the social share certificate
+      // 3. Trigger Advocacy Recognition if not anonymous
       if (!isAnonymous) {
         setShowCertificate(true);
       }
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Transaction Failed", description: error.message });
+      toast({ variant: "destructive", title: "Sync Failed", description: error.message });
     } finally {
       setLoading(false);
     }
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied", description: `${label} saved to clipboard.` });
   };
 
   return (
@@ -114,14 +140,14 @@ export function PondoDonationCard() {
           <div className="space-y-3 pt-2">
             <Label className="text-[10px] font-black uppercase text-primary">Select Payment Method</Label>
             <div className="grid grid-cols-3 gap-2">
-              {(["GCASH", "MAYA", "CARD"] as const).map(m => (
+              {(["GCASH", "MAYA", "BANK"] as const).map(m => (
                 <button 
                   key={m}
                   type="button"
                   onClick={() => setPaymentMethod(m)}
                   className={`h-10 text-[9px] font-black uppercase rounded-lg border-2 transition-all ${paymentMethod === m ? 'border-primary bg-primary text-white' : 'border-primary/10 text-primary/40 hover:border-primary/20'}`}
                 >
-                  {m}
+                  {m === 'BANK' ? 'BPI / BANK' : m}
                 </button>
               ))}
             </div>
@@ -137,15 +163,11 @@ export function PondoDonationCard() {
         </CardContent>
         <CardFooter className="bg-muted/30 border-t pt-6 flex flex-col gap-4">
           <Button 
-            onClick={handleDonate} 
+            onClick={handleOpenInstructions} 
             className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-2xl" 
             disabled={loading || (!amount && !customAmount)}
           >
-            {loading ? (
-              <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Transmitting...</>
-            ) : (
-              <><Heart className="mr-2 h-6 w-6 text-red-500 fill-current" /> Confirm Contribution</>
-            )}
+            <Heart className="mr-2 h-6 w-6 text-red-500 fill-current" /> Confirm Contribution
           </Button>
           <div className="flex items-center justify-center gap-2">
             <ShieldCheck className="h-3 w-3 text-primary opacity-40" />
@@ -153,6 +175,84 @@ export function PondoDonationCard() {
           </div>
         </CardFooter>
       </Card>
+
+      {/* Payment Instruction Dialog (Test Mode) */}
+      <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-headline uppercase text-primary flex items-center gap-2">
+              <Landmark className="h-5 w-5 text-accent" />
+              Official Payment Instruction
+            </DialogTitle>
+            <DialogDescription className="text-xs font-bold uppercase tracking-tight">
+              Test Mode Active: Use the credentials below to simulate a contribution.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-6 space-y-6">
+            <div className="p-4 bg-primary text-white rounded-xl text-center space-y-1 shadow-lg">
+              <p className="text-[10px] font-black uppercase opacity-60">Total Contribution</p>
+              <p className="text-3xl font-black">₱{lastAmount.toLocaleString()}.00</p>
+            </div>
+
+            <div className="space-y-4">
+              {paymentMethod === 'GCASH' && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 rounded-lg"><Smartphone className="h-5 w-5 text-blue-600" /></div>
+                    <p className="text-xs font-black uppercase text-primary">Send via GCash</p>
+                  </div>
+                  <div className="p-4 border-2 border-dashed rounded-xl flex items-center justify-between bg-muted/20">
+                    <div>
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Recipient Number</p>
+                      <p className="text-lg font-black text-primary">09053300021</p>
+                    </div>
+                    <Button size="icon" variant="ghost" onClick={() => copyToClipboard('09053300021', 'GCash Number')}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {(paymentMethod === 'BANK' || paymentMethod === 'MAYA') && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-red-50 rounded-lg"><Landmark className="h-5 w-5 text-red-600" /></div>
+                    <p className="text-xs font-black uppercase text-primary">Deposit to BPI Official</p>
+                  </div>
+                  <div className="p-4 border-2 border-dashed rounded-xl flex items-center justify-between bg-muted/20">
+                    <div>
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Account Number</p>
+                      <p className="text-lg font-black text-primary">9619213553</p>
+                    </div>
+                    <Button size="icon" variant="ghost" onClick={() => copyToClipboard('9619213553', 'Account Number')}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
+                <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[10px] font-bold text-amber-800 leading-snug uppercase">
+                  Instruction: Complete the transfer in your {paymentMethod} app, then click verify below to finalize your patriot status.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              onClick={handleFinalizeDonation} 
+              className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-widest shadow-xl"
+              disabled={loading}
+            >
+              {loading ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
+              Verify & Complete Contribution
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <DonorCertificateDialog 
         isOpen={showCertificate} 
