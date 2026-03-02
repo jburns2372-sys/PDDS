@@ -18,7 +18,7 @@ import { DesktopSidebarContent } from "./desktop-sidebar";
 
 /**
  * @fileOverview Application Shell & Global Route Guard.
- * Refactored Mobile Header to use the global PddsLogo component with standardized size.
+ * Standardized Mobile Header to use the global PddsLogo component.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -120,10 +120,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <UserDataContext.Provider value={contextValue}>
         <div className="flex min-h-screen w-full flex-col md:flex-row">
-          <div className="flex h-16 w-full items-center justify-between border-b bg-primary px-4 md:hidden sticky top-0 z-50">
+          <div className="flex h-16 w-full items-center justify-between border-b bg-primary px-4 md:hidden sticky top-0 z-50 shadow-md">
             <div className="flex items-center gap-2">
-              <PddsLogo variant="white" className="h-10 w-auto" />
-              <span className="font-headline font-black uppercase text-xs tracking-[0.2em] text-white">PatriotLink</span>
+              {/* The Logo is now "Forced" to load from your Firebase link with shadow and h-12 */}
+              <PddsLogo variant="white" className="h-12 w-auto" />
+              <h1 className="text-white font-black uppercase text-xs tracking-widest ml-1 font-headline">PatriotLink Command</h1>
             </div>
             <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
               <SheetTrigger asChild>
