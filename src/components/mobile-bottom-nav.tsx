@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, MessageSquare, Megaphone, Map, Info, Library, Newspaper, LayoutGrid, MessageCircle } from "lucide-react";
+import { Home, Users, BookText, UserCircle, MessageSquare, Megaphone, Map, Info, Library, Newspaper, LayoutGrid, Hexagon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AboutPddsDialog } from "./about-pdds-dialog";
 import { useUserData } from "@/context/user-data-context";
@@ -11,7 +11,7 @@ import { pddsLeadershipRoles } from "@/lib/data";
 
 const baseNavItems = [
   { href: "/home", icon: Home, label: "Home" },
-  { href: "/chat", icon: MessageCircle, label: "Chat" },
+  { href: "/chat", icon: Hexagon, label: "Hub" },
   { href: "/directory", icon: Users, label: "Directory" },
   { href: "/vault", icon: Library, label: "Vault" },
 ];

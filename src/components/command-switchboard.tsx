@@ -20,7 +20,8 @@ import {
   HeartHandshake,
   Eye,
   Landmark,
-  Wallet
+  Wallet,
+  Hexagon
 } from "lucide-react";
 import Link from "next/link";
 
@@ -35,7 +36,7 @@ export function CommandSwitchboard() {
 
   const getRoleActions = () => {
     const baseActions = [
-      { label: 'PatriotPondo', icon: Landmark, href: '/patriot-pondo', color: 'text-emerald-600' }
+      { label: 'PatriotHub', icon: Hexagon, href: '/chat', color: 'text-primary' }
     ];
     
     if (role === 'Coordinator' || isGold || role === 'President' || role === 'Admin') {

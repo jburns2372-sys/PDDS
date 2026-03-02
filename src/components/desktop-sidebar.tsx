@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks, Gavel, Newspaper, LayoutGrid, MessageCircle, GraduationCap, Eye, Landmark, Wallet } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks, Gavel, Newspaper, LayoutGrid, Hexagon, GraduationCap, Eye, Landmark, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -14,7 +14,7 @@ import { pddsLeadershipRoles } from "@/lib/data";
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
   { href: '/patriot-pondo', label: 'PatriotPondo', icon: Landmark },
-  { href: '/chat', label: 'Town Square', icon: MessageCircle },
+  { href: '/chat', label: 'PatriotHub', icon: Hexagon },
   { href: '/academy', label: 'Academy', icon: GraduationCap },
   { href: '/bantay-bayan', label: 'Bantay Bayan', icon: Eye },
   { href: '/policies', label: 'Manifestos', icon: GraduationCap },

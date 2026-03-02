@@ -47,6 +47,17 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
     
+    match /patriothub_rooms/{roomId}/messages/{msgId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && getUserData().isVerified == true;
+      allow delete: if isSignedIn() && (getUserData().role == 'Coordinator' || getUserData().role in ['Admin', 'President']);
+    }
+
+    match /patriothub_pins/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && getUserData().role in ['Public Relations Officer', 'President', 'Admin'];
+    }
+    
     match /chat_rooms/{roomId}/messages/{msgId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && getUserData().isVerified == true;

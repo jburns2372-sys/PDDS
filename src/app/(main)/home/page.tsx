@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatInterface } from "@/components/chat-interface";
-import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck, Share2, MessageCircle, BarChart3, Newspaper, Users, GraduationCap } from "lucide-react";
+import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck, Share2, Hexagon, BarChart3, Newspaper, Users, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMessaging, useFirestore, useCollection } from "@/firebase";
 import { doc, updateDoc, collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
@@ -81,7 +81,7 @@ function LocalChapterSection({ userData }: { userData: any }) {
               </div>
               <div>
                 <p className="text-xs font-black uppercase text-primary leading-tight">{localCoordinator.fullName}</p>
-                <p className="text-[9px] font-bold text-muted-foreground uppercase">Regional Coordinator</p>
+                <p className="text-[9px] font-bold text-muted-foreground uppercase">Hub Moderator</p>
               </div>
             </div>
             <Button 
@@ -89,13 +89,13 @@ function LocalChapterSection({ userData }: { userData: any }) {
               onClick={() => window.open(`mailto:${localCoordinator.email}?subject=PDDS Member Inquiry - ${userData.fullName}`, '_blank')}
             >
               <Mail className="mr-2 h-4 w-4" />
-              Contact Coordinator
+              Contact Moderator
             </Button>
           </div>
         ) : (
           <div className="py-4 text-center border-2 border-dashed rounded-xl bg-white/50">
             <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed px-4">
-              Finding an active coordinator for {userData?.city || 'your area'}...
+              Provisioning an active moderator for {userData?.city || 'your area'}...
             </p>
           </div>
         )}
@@ -113,16 +113,16 @@ export default function HomePage() {
   
   const [domain, setDomain] = useState("");
   const [activeTab, setActiveTab] = useState("newsfeed");
-  const [hasUnreadChat, setHasUnreadChat] = useState(false);
-  const [lastSeenChatTime, setLastSeenChatTime] = useState<number>(Date.now());
+  const [hasUnreadHub, setHasUnreadHub] = useState(false);
+  const [lastSeenHubTime, setLastSeenHubTime] = useState<number>(Date.now());
 
   const { data: allAnnouncements, loading: announcementsLoading } = useCollection('announcements');
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setDomain(window.location.origin);
-      const savedTime = localStorage.getItem('last_chat_view_time');
-      if (savedTime) setLastSeenChatTime(parseInt(savedTime));
+      const savedTime = localStorage.getItem('last_hub_view_time');
+      if (savedTime) setLastSeenHubTime(parseInt(savedTime));
     }
   }, []);
 
@@ -138,7 +138,7 @@ export default function HomePage() {
     if (!userData?.city || !firestore) return;
 
     const roomName = userData.city;
-    const messagesRef = collection(firestore, "chat_rooms", roomName, "messages");
+    const messagesRef = collection(firestore, "patriothub_rooms", roomName, "messages");
     const q = query(messagesRef, orderBy("timestamp", "desc"), limit(1));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -146,21 +146,21 @@ export default function HomePage() {
       const latestMsg = snapshot.docs[0].data();
       const msgTime = latestMsg.timestamp?.toMillis() || Date.now();
 
-      if (activeTab !== 'chat' && msgTime > lastSeenChatTime) {
-        setHasUnreadChat(true);
+      if (activeTab !== 'chat' && msgTime > lastSeenHubTime) {
+        setHasUnreadHub(true);
       }
     });
 
     return () => unsubscribe();
-  }, [userData?.city, firestore, activeTab, lastSeenChatTime]);
+  }, [userData?.city, firestore, activeTab, lastSeenHubTime]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (value === 'chat') {
-      setHasUnreadChat(false);
+      setHasUnreadHub(false);
       const now = Date.now();
-      setLastSeenChatTime(now);
-      localStorage.setItem('last_chat_view_time', now.toString());
+      setLastSeenHubTime(now);
+      localStorage.setItem('last_hub_view_time', now.toString());
     }
   };
 
@@ -259,8 +259,8 @@ export default function HomePage() {
                       <BarChart3 className="h-3.5 w-3.5 mr-2" /> Stats
                     </TabsTrigger>
                     <TabsTrigger value="chat" className="px-6 font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white relative">
-                      <MessageCircle className="h-3.5 w-3.5 mr-2" /> Town Square
-                      {hasUnreadChat && (
+                      <Hexagon className="h-3.5 w-3.5 mr-2" /> PatriotHub
+                      {hasUnreadHub && (
                         <span className="absolute top-2 right-2 h-2 w-2 bg-red-600 rounded-full animate-pulse border border-white" />
                       )}
                     </TabsTrigger>
@@ -353,10 +353,10 @@ export default function HomePage() {
                     <div className="h-full flex flex-col">
                       <div className="bg-primary/5 p-4 border-b flex justify-between items-center">
                         <div>
-                          <h3 className="text-sm font-black uppercase text-primary tracking-tight">{userData?.city || 'National'} Mobilization Room</h3>
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase">End-to-End Encrypted</p>
+                          <h3 className="text-sm font-black uppercase text-primary tracking-tight">{userData?.city || 'National'} Intelligence Node</h3>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase">PatriotHub Protocol</p>
                         </div>
-                        <Badge className="bg-green-600 font-black text-[8px] uppercase">Live Signal</Badge>
+                        <Badge className="bg-green-600 font-black text-[8px] uppercase">Secure Link</Badge>
                       </div>
                       <div className="flex-1 min-h-0">
                         <ChatInterface roomName={userData?.city || 'National'} />
