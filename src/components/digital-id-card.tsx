@@ -12,7 +12,7 @@ import { Download, CheckCircle2, MapPin, UserCheck, AlertCircle } from "lucide-r
 
 /**
  * @fileOverview High-fidelity Digital Member ID Card.
- * Non-negotiable implementation of the PDDS Logo on the top-left header.
+ * Refactored to use standardized PddsLogo component with defined size and alt text.
  */
 export function DigitalIdCard({ userData }: { userData: any }) {
   const cardRef = useRef<HTMLDivElement>(null);

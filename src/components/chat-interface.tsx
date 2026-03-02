@@ -30,7 +30,7 @@ type Message = {
 
 /**
  * @fileOverview PatriotHub Strategy Node Interface.
- * Implements jurisdictional routing and the non-negotiable PDDS watermark.
+ * Standardized PddsLogo application for the welcome overlay and executive pins.
  */
 export function ChatInterface({ roomName }: { roomName: string }) {
   const firestore = useFirestore();

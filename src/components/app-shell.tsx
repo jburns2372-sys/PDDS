@@ -18,8 +18,7 @@ import { DesktopSidebarContent } from "./desktop-sidebar";
 
 /**
  * @fileOverview Application Shell & Global Route Guard.
- * Strictly manages synchronization with the National Registry.
- * Enforces the Official PDDS Logo as the dominant visual on launch.
+ * Refactored Mobile Header to use the global PddsLogo component with standardized size.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -91,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-8">
             <div className="relative">
-              <PddsLogo className="h-32 w-32 animate-pulse" />
+              <PddsLogo className="h-32 w-auto animate-pulse" />
               <div className="absolute inset-0 border-4 border-primary/10 rounded-full animate-ping" />
             </div>
             <div className="flex flex-col items-center gap-3 text-center">
