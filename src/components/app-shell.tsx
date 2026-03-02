@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -90,7 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-8">
             <div className="relative">
-              <PddsLogo className="h-32 w-auto animate-pulse" />
+              <PddsLogo className="h-48 w-auto animate-pulse shadow-none" />
               <div className="absolute inset-0 border-4 border-primary/10 rounded-full animate-ping" />
             </div>
             <div className="flex flex-col items-center gap-3 text-center">
@@ -120,10 +119,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <UserDataContext.Provider value={contextValue}>
         <div className="flex min-h-screen w-full flex-col md:flex-row">
-          <div className="flex h-16 w-full items-center justify-between border-b bg-primary px-4 md:hidden sticky top-0 z-50 shadow-md">
+          <div className="flex h-20 w-full items-center justify-between border-b bg-primary px-4 md:hidden sticky top-0 z-50 shadow-md">
             <div className="flex items-center gap-2">
-              {/* The Logo is now "Forced" to load from your Firebase link with shadow and h-12 */}
-              <PddsLogo variant="white" className="h-12 w-auto" />
+              <PddsLogo variant="white" className="h-14 w-auto" />
               <h1 className="text-white font-black uppercase text-xs tracking-widest ml-1 font-headline">PatriotLink Command</h1>
             </div>
             <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>

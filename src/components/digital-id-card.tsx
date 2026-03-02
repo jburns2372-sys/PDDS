@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef } from "react";
@@ -63,7 +62,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
             {/* Header: Official Logo Top-Left */}
             <div className="flex w-full items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
-                <PddsLogo className="h-10 w-auto" />
+                <PddsLogo className="h-12 w-auto shadow-none" />
                 <div className="flex flex-col">
                   <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Pederalismo ng Dugong</span>
                   <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Dakilang Samahan</span>
@@ -80,7 +79,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
                     <img src={userData.photoURL} alt={userData.fullName} className="h-full w-full object-cover" crossOrigin="anonymous" />
                   ) : (
                     <div className="flex items-center justify-center h-full w-full bg-[#1e3a8a]/20">
-                      <PddsLogo className="h-12 w-auto opacity-20" />
+                      <PddsLogo className="h-12 w-auto opacity-20 shadow-none" />
                     </div>
                   )}
                 </div>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -20,7 +19,7 @@ export default function PddsLogo({ className, variant = "default", ...props }: P
       src={PDDS_LOGO_URL} 
       alt="PDDS Official Party Logo"
       className={cn(
-        "object-contain transition-all duration-300 bg-transparent h-12 w-auto shadow-md", 
+        "object-contain transition-all duration-300 bg-transparent h-16 w-auto shadow-md", 
         variant === "white" && "brightness-0 invert",
         className
       )}
