@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useCollection } from "@/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -15,9 +15,10 @@ import {
   Tooltip
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Map, TrendingUp, Users, Loader2, Sparkles, Trophy, Globe, CalendarDays, ShieldCheck, Package, Flag, Medal, Activity, BarChart3 } from "lucide-react";
+import { Map, TrendingUp, Users, Loader2, Sparkles, Trophy, Globe, CalendarDays, ShieldCheck, Package, Flag, Medal, Activity, BarChart3, Landmark } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { subDays, isAfter } from "date-fns";
 import dynamic from 'next/dynamic';
 
@@ -33,16 +34,27 @@ const NationalFootprintMap = dynamic(
   }
 );
 
+const NationalFundMap = dynamic(
+  () => import('@/components/national-fund-map'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-[500px] w-full bg-muted/20 rounded-2xl animate-pulse flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary/20" />
+      </div>
+    )
+  }
+);
+
 /**
  * @fileOverview National Command & Analytics Center.
- * Aggregates Registry Health, Vetting Tiers, and Logistics Dispatches for the Executive Committee.
+ * Aggregates Registry Health, Vetting Tiers, and Fund Footprint for the Executive Committee.
  */
 export default function AdminAnalyticsPage() {
   const { data: users, loading: usersLoading } = useCollection('users');
   const { data: logistics, loading: logisticsLoading } = useCollection('logistics_logs');
   const { data: polls, loading: pollsLoading } = useCollection('polls');
 
-  // Logic to process Membership Density, Growth, and Executive Metrics
   const stats = useMemo(() => {
     if (!users.length) return { hotspots: [], total: 0, growth: 0, cityRankings: [], supporters: [], vettedCount: 0, shirts: 0, flags: 0 };
 
@@ -176,47 +188,80 @@ export default function AdminAnalyticsPage() {
           </div>
         </div>
 
-        {/* Tactical Metrics Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="shadow-lg border-l-4 border-l-accent overflow-hidden">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 bg-accent/10 rounded-2xl">
-                <ShieldCheck className="h-8 w-8 text-accent" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Officer Readiness</p>
-                <p className="text-3xl font-black text-primary">{stats.vettedCount}</p>
-                <p className="text-[9px] font-bold text-muted-foreground uppercase">Verified Officer Corps</p>
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="geography" className="space-y-8">
+          <TabsList className="bg-primary/5 p-1 border border-primary/10 h-14 justify-start">
+            <TabsTrigger value="geography" className="px-8 h-full font-black uppercase text-[10px] tracking-widest">
+              <Map className="h-4 w-4 mr-2" /> Supporter Pulse
+            </TabsTrigger>
+            <TabsTrigger value="finance" className="px-8 h-full font-black uppercase text-[10px] tracking-widest text-accent">
+              <Landmark className="h-4 w-4 mr-2" /> Fund Footprint
+            </TabsTrigger>
+          </TabsList>
 
-          <Card className="shadow-lg border-l-4 border-l-primary overflow-hidden">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 bg-primary/5 rounded-2xl">
-                <Package className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Field Uniforms</p>
-                <p className="text-3xl font-black text-primary">{stats.shirts.toLocaleString()}</p>
-                <p className="text-[9px] font-bold text-muted-foreground uppercase">Dispatched nationwide</p>
-              </div>
-            </CardContent>
-          </Card>
+          <TabsContent value="geography" className="space-y-8 animate-in fade-in duration-500">
+            {/* Tactical Metrics Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="shadow-lg border-l-4 border-l-accent overflow-hidden">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-3 bg-accent/10 rounded-2xl">
+                    <ShieldCheck className="h-8 w-8 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Officer Readiness</p>
+                    <p className="text-3xl font-black text-primary">{stats.vettedCount}</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Verified Officer Corps</p>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="shadow-lg border-l-4 border-l-red-600 overflow-hidden">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 bg-red-50 rounded-2xl">
-                <Flag className="h-8 w-8 text-red-600" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Branding Strength</p>
-                <p className="text-3xl font-black text-red-600">{stats.flags.toLocaleString()}</p>
-                <p className="text-[9px] font-bold text-muted-foreground uppercase">Active Flags & Banners</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Card className="shadow-lg border-l-4 border-l-primary overflow-hidden">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-3 bg-primary/5 rounded-2xl">
+                    <Package className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Field Uniforms</p>
+                    <p className="text-3xl font-black text-primary">{stats.shirts.toLocaleString()}</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Dispatched nationwide</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-lg border-l-4 border-l-red-600 overflow-hidden">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-3 bg-red-50 rounded-2xl">
+                    <Flag className="h-8 w-8 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Branding Strength</p>
+                    <p className="text-3xl font-black text-red-600">{stats.flags.toLocaleString()}</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Active Flags & Banners</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* 🗺️ Tactical Deployment Map */}
+            <section className="space-y-4">
+                <div className="flex items-center gap-2 px-2">
+                    <Map className="h-5 w-5 text-primary" />
+                    <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight">Geographic Supporter Pulse</h2>
+                </div>
+                <NationalFootprintMap supporters={stats.supporters} />
+            </section>
+          </TabsContent>
+
+          <TabsContent value="finance" className="space-y-8 animate-in fade-in duration-500">
+            {/* 📊 National Fund Map */}
+            <section className="space-y-4">
+                <div className="flex items-center gap-2 px-2">
+                    <Landmark className="h-5 w-5 text-primary" />
+                    <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight">Regional Resource Allocation</h2>
+                </div>
+                <NationalFundMap />
+            </section>
+          </TabsContent>
+        </Tabs>
 
         {/* 📊 National Sentiment Pulse */}
         <section className="space-y-4">
@@ -288,15 +333,6 @@ export default function AdminAnalyticsPage() {
               })
             )}
           </div>
-        </section>
-
-        {/* 🗺️ Tactical Deployment Map */}
-        <section className="space-y-4">
-            <div className="flex items-center gap-2 px-2">
-                <Map className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight">Geographic Supporter Pulse</h2>
-            </div>
-            <NationalFootprintMap supporters={stats.supporters} />
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

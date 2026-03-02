@@ -63,7 +63,6 @@ exports.handleReferralMerit = onDocumentCreated("users/{userId}", async (event) 
     const db = getFirestore();
 
     // 1. Award Joiner Bonus (10 Points)
-    // This is handled here to ensure it's logged even if the client fails
     if (newUser.meritPoints === undefined) {
         await snapshot.ref.update({ meritPoints: 10 });
     }
@@ -88,6 +87,36 @@ exports.handleReferralMerit = onDocumentCreated("users/{userId}", async (event) 
         });
     } catch (error) {
         console.error("[GROWTH ERROR] Referral transaction failed:", error);
+    }
+});
+
+/**
+ * Trigger: aggregateRegionalDonations
+ * Triggers on a successful donation to update regional financial stats for the Heatmap.
+ */
+exports.aggregateRegionalDonations = onDocumentCreated("donations/{donationId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const donation = snapshot.data();
+
+    // Only aggregate successful donations
+    if (donation.status !== "Successful") return;
+
+    const db = getFirestore();
+    const regionId = (donation.region || "National").toUpperCase().replace(/\s+/g, '_');
+    const statsRef = db.collection("regional_stats").doc(regionId);
+
+    try {
+        await statsRef.set({
+            regionName: donation.region || "National",
+            totalFunds: admin.firestore.FieldValue.increment(donation.amount),
+            donorCount: admin.firestore.FieldValue.increment(1),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        
+        console.log(`[FINANCE] Aggregated donation of ₱${donation.amount} for region ${donation.region}`);
+    } catch (error) {
+        console.error("[FINANCE ERROR] Aggregation failed:", error);
     }
 });
 

@@ -71,6 +71,17 @@
         "loggedBy": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" }
       }
+    },
+    "regional_stats": {
+      "title": "Regional Financial Stats",
+      "description": "Aggregated financial data for map visualization.",
+      "type": "object",
+      "properties": {
+        "regionName": { "type": "string" },
+        "totalFunds": { "type": "number", "default": 0 },
+        "donorCount": { "type": "number", "default": 0 },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -88,6 +99,10 @@
     "/expenses/{expenseId}": {
       "schema": { "$ref": "#/backend/entities/expense" },
       "description": "Stores verified party expenditures."
+    },
+    "/regional_stats/{regionId}": {
+      "schema": { "$ref": "#/backend/entities/regional_stats" },
+      "description": "Aggregated regional financial metrics."
     }
   }
 }
