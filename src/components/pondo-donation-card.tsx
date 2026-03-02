@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, ShieldCheck, Loader2, Sparkles, Heart, Smartphone, Landmark, Receipt, Info, Copy } from "lucide-react";
+import { Wallet, ShieldCheck, Loader2, Sparkles, Heart, Smartphone, Landmark, Receipt, Info, Copy, CheckCircle2 } from "lucide-react";
 import { DonorCertificateDialog } from "./donor-certificate-dialog";
 import {
   Dialog,
