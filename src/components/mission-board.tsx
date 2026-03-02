@@ -1,16 +1,15 @@
-
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Target, Users, Share2, ShieldCheck, CheckCircle2, ChevronRight, Star } from "lucide-react";
+import { Target, Users, Share2, ShieldCheck, CheckCircle2, ChevronRight, Star, GraduationCap, Eye } from "lucide-react";
 import Link from "next/link";
 import { useUserData } from "@/context/user-data-context";
 
 /**
  * @fileOverview gamified Mission Board for Merit Points.
- * Encourages high-value organizational behavior.
+ * Encourages high-value organizational behavior aligned with PRD features.
  */
 export function MissionBoard() {
   const { userData } = useUserData();
@@ -26,31 +25,31 @@ export function MissionBoard() {
       desc: "Grow the movement by bringing in a fellow citizen."
     },
     { 
-      id: "share",
-      title: "Share Policy of the Day", 
-      points: 10, 
-      icon: Share2, 
+      id: "academy",
+      title: "Complete Federalismo 101", 
+      points: 25, 
+      icon: GraduationCap, 
       status: "Active", 
-      href: "/policies",
-      desc: "Spread the roadmap for Federalism on your social media."
+      href: "/academy",
+      desc: "Level up your ideology at the Federalismo Academy."
     },
     { 
       id: "vetting",
-      title: "Verify Induction (Silver Tier)", 
+      title: "Secure Member Induction", 
       points: 100, 
       icon: ShieldCheck, 
-      status: userData?.vettingLevel !== "Bronze" ? "Completed" : "Active", 
+      status: userData?.isVerified ? "Completed" : "Active", 
       href: "/profile",
-      desc: "Upload your ID to become a fully vetted Mobilizer."
+      desc: "Complete ID verification to unlock Official Member status."
     },
     { 
       id: "reporting",
-      title: "Audit a Local Concern", 
+      title: "Bantay Bayan: Audit a Local Concern", 
       points: 25, 
-      icon: Target, 
+      icon: Eye, 
       status: "Active", 
       href: "/bantay-bayan",
-      desc: "Document 1 civic issue in your community."
+      desc: "Document 1 civic issue in your community for advocacy."
     }
   ];
 

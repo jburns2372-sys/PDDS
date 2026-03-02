@@ -4,8 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'Federalismo Portal',
-  description: 'A political party management and membership portal for PDDS.',
+  title: 'PatriotLink | PDDS Official App',
+  description: 'Dugong Dakilang Samahan. Isang App, Isang Layunin. Join the movement to build a Federal Philippines.',
 };
 
 export default function RootLayout({

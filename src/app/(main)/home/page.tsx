@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { AnnouncementCard } from "@/components/announcement-card";
 import { useUserData } from "@/context/user-data-context";
 import { useEffect, useState, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DigitalIdCard } from "@/components/digital-id-card";
 import { DailyActionGrid } from "@/components/daily-action-grid";
@@ -14,17 +13,13 @@ import { MissionBoard } from "@/components/mission-board";
 import { ImpactFeed } from "@/components/impact-feed";
 import { MeritProgress } from "@/components/merit-progress";
 import { SkillsProgress } from "@/components/skills-progress";
-import { SOSButton } from "@/components/sos-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChatInterface } from "@/components/chat-interface";
-import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Mail, UserCheck, Share2, Hexagon, BarChart3, Newspaper, Users, GraduationCap, Target } from "lucide-react";
+import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Share2, Hexagon, Newspaper, Target, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useCollection } from "@/firebase";
-import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
-import Link from "next/link";
+import { useCollection } from "@/firebase";
 import PddsLogo from "@/components/icons/pdds-logo";
 
 function UserHeader({userData}: {userData: any}) {
@@ -59,11 +54,9 @@ function UserHeader({userData}: {userData: any}) {
 }
 
 export default function HomePage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { userData, loading: userLoading } = useUserData();
   const { toast } = useToast();
-  const firestore = useFirestore();
   
   const [domain, setDomain] = useState("");
   const [activeTab, setActiveTab] = useState("newsfeed");
@@ -109,6 +102,33 @@ export default function HomePage() {
       <UserHeader userData={userData} />
       
       <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
+        {/* Launch Special Banner */}
+        {!userData?.isVerified && (
+          <Card className="bg-gradient-to-r from-primary to-blue-900 text-white border-none shadow-2xl overflow-hidden relative group mb-8 rounded-3xl">
+            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+              <Sparkles className="h-32 w-32" />
+            </div>
+            <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+              <div className="flex items-center gap-6">
+                <div className="bg-accent p-4 rounded-2xl shadow-2xl animate-bounce">
+                  <ShieldCheck className="h-8 w-8 text-primary" />
+                </div>
+                <div className="text-center md:text-left">
+                  <h3 className="text-2xl font-black uppercase font-headline tracking-tighter leading-tight">
+                    Launch Special: <span className="text-accent">First 1,000 Push</span>
+                  </h3>
+                  <p className="text-sm font-medium opacity-80 mt-1 max-w-lg leading-relaxed">
+                    Complete your ID verification now to secure the exclusive **"Founding Patriot"** Digital Badge and a permanent **+100 Merit Point** headstart!
+                  </p>
+                </div>
+              </div>
+              <Button asChild className="h-14 px-10 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-2xl rounded-xl shrink-0">
+                <Link href="/profile">Claim Badge Now</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-8 lg:grid-cols-12 items-start">
             
             {/* LEFT COLUMN: Patriot Progress & Profile */}

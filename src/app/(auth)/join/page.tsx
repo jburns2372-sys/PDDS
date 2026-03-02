@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -22,16 +21,11 @@ import {
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Loader2, XCircle } from "lucide-react";
+import { Loader2, XCircle, Sparkles, Trophy } from "lucide-react";
 import { getIslandGroup } from "@/lib/data";
 
 const NCR_CODE = "130000000";
 
-/**
- * @fileOverview Join Page for new members.
- * Handles both SMS-based registry and instant Google induction.
- * SMS-verified users are automatically promoted to 'Member' status.
- */
 export default function JoinPage() {
     const auth = useAuth();
     const firestore = useFirestore();
@@ -120,7 +114,6 @@ export default function JoinPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // SMS Verified users are promoted to 'Member' and marked as 'isVerified'
             const memberData = {
                 uid: user.uid,
                 email: email.trim().toLowerCase(),
@@ -129,24 +122,24 @@ export default function JoinPage() {
                 city: selectedCity,
                 province: selectedProvince,
                 islandGroup: getIslandGroup(selectedProvince),
-                photoURL: null,
-                role: "Member", // Elevated from Supporter immediately
+                role: "Member",
                 jurisdictionLevel: "City/Municipal",
                 isAdmin: false,
                 isApproved: true,
-                isVerified: true, // Instant verification via SMS
+                isVerified: true,
                 vettingLevel: "Bronze",
                 kartilyaAgreed: true,
-                meritPoints: 10,
+                meritPoints: 110, // Initial 10 + 100 Launch Bonus
                 referralCount: 0,
                 referredBy: referralUid || null,
                 createdAt: serverTimestamp(),
                 lastActive: serverTimestamp(),
+                isFoundingPatriot: true,
             };
 
             await setDoc(doc(firestore, "users", user.uid), memberData);
             
-            toast({ title: "Welcome!", description: "Induction complete. You are now an official Verified Member." });
+            toast({ title: "Welcome Founding Patriot!", description: "Induction complete. +100 Merit Points awarded." });
             setTimeout(() => {
                 window.location.href = "/home?registered=true";
             }, 500);
@@ -173,7 +166,6 @@ export default function JoinPage() {
                     uid: user.uid,
                     email: userEmail,
                     fullName: user.displayName?.toUpperCase() || "NEW PDDS SUPPORTER",
-                    photoURL: user.photoURL || null,
                     role: "Supporter",
                     jurisdictionLevel: "National",
                     isAdmin: false,
@@ -194,7 +186,6 @@ export default function JoinPage() {
                 window.location.href = "/home";
             }, 500);
         } catch (error: any) {
-            console.error("Social Auth Error:", error);
             toast({ variant: "destructive", title: "Connection Failed", description: error.message });
             setLoading(false);
         } finally {
@@ -212,125 +203,134 @@ export default function JoinPage() {
                     <p className="text-lg font-black uppercase tracking-widest text-primary animate-pulse text-center px-4 font-headline">
                         Securing your place in the national registry...
                     </p>
-                    <Button 
-                        variant="destructive" 
-                        size="sm"
-                        className="mt-8 font-bold uppercase text-[10px] tracking-widest"
-                        onClick={() => setLoading(false)}
-                    >
-                        <XCircle className="mr-2 h-3 w-3" /> Cancel Induction
-                    </Button>
                 </div>
             )}
 
-            <div className="mb-8 flex items-center gap-4">
-                <PddsLogo className="h-14 w-14" />
-                <h1 className="text-4xl font-black tracking-tighter text-primary font-headline uppercase text-center">
-                    PatriotLink
-                </h1>
+            <div className="mb-8 flex flex-col items-center gap-4">
+                <PddsLogo className="h-24 w-auto" />
+                <div className="text-center">
+                    <h1 className="text-4xl font-black tracking-tighter text-primary font-headline uppercase">
+                        PatriotLink
+                    </h1>
+                    <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em] mt-1">Dugong Dakilang Samahan</p>
+                </div>
             </div>
 
-            <Card className="w-full max-w-lg shadow-2xl border-t-4 border-primary bg-white">
-                {!showOtpInput ? (
-                    <form onSubmit={handleInitialSubmit}>
-                        <CardHeader>
-                            <CardTitle className="text-2xl text-center font-headline uppercase tracking-tight">Join the Movement</CardTitle>
-                            <CardDescription className="text-center font-medium text-muted-foreground">Secure your official party induction.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid grid-cols-1 gap-3">
-                                <Button 
-                                    type="button"
-                                    variant="outline" 
-                                    className="w-full h-14 border-2 border-primary/20 font-black uppercase tracking-widest text-primary hover:bg-primary/5 shadow-md"
-                                    onClick={handleSocialAuth}
-                                    disabled={loading}
-                                >
-                                    <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
-                                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                                    </svg>
-                                    Induct with Google
+            <div className="w-full max-w-lg space-y-4">
+                <div className="bg-primary p-4 rounded-2xl text-white shadow-xl flex items-center gap-4 animate-in slide-in-from-top duration-700">
+                    <div className="bg-accent p-2 rounded-xl">
+                        <Trophy className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-black uppercase tracking-widest">Launch Special</p>
+                        <p className="text-[10px] font-medium opacity-80 leading-snug">
+                            First 1,000 members receive the **Founding Patriot** badge and **+100 Merit Points**.
+                        </p>
+                    </div>
+                </div>
+
+                <Card className="shadow-2xl border-t-4 border-primary bg-white">
+                    {!showOtpInput ? (
+                        <form onSubmit={handleInitialSubmit}>
+                            <CardHeader>
+                                <CardTitle className="text-2xl text-center font-headline uppercase tracking-tight">Join the Movement</CardTitle>
+                                <CardDescription className="text-center font-medium text-muted-foreground italic">"Be more than a voter. Be a Patriot."</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="grid grid-cols-1 gap-3">
+                                    <Button 
+                                        type="button"
+                                        variant="outline" 
+                                        className="w-full h-14 border-2 border-primary/20 font-black uppercase tracking-widest text-primary hover:bg-primary/5 shadow-md"
+                                        onClick={handleSocialAuth}
+                                        disabled={loading}
+                                    >
+                                        <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
+                                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                                        </svg>
+                                        Induct with Google
+                                    </Button>
+                                </div>
+
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-muted-foreground font-bold">Or use mobile registry</span></div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-primary">Full Name</Label>
+                                        <Input placeholder="JUAN DELA CRUZ" className="h-12 font-bold" required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-primary">Phone Number</Label>
+                                        <Input placeholder="+639..." className="h-12 font-bold" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-primary">Email Address</Label>
+                                    <Input type="email" placeholder="juan@example.com" className="h-12 font-bold" required value={email} onChange={e => setEmail(e.target.value)} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-primary">Password</Label>
+                                    <Input type="password" required className="h-12" value={password} onChange={e => setPassword(e.target.value)} minLength={6} />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-primary">Province</Label>
+                                        <Select onValueChange={setSelectedProvince} value={selectedProvince}>
+                                            <SelectTrigger className="h-12"><SelectValue placeholder="Select" /></SelectTrigger>
+                                            <SelectContent>{provinces.map((p) => <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-primary">City</Label>
+                                        <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
+                                            <SelectTrigger className="h-12"><SelectValue placeholder="Select" /></SelectTrigger>
+                                            <SelectContent>{cities.map((c) => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start space-x-3 bg-muted/50 p-4 rounded-xl border border-dashed">
+                                    <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} className="mt-1" />
+                                    <div className="space-y-1">
+                                        <Label htmlFor="terms" className="text-xs font-bold leading-none text-primary uppercase">Accept National Registry Terms</Label>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                                            By checking this, you formally declare support for PDDS and the principles of Federalism. You agree to the official <Link href="/legal/terms" target="_blank" className="text-primary underline">Code of Conduct</Link> and <Link href="/legal/privacy" target="_blank" className="text-primary underline">Privacy Policy</Link>.
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <CardFooter className="flex flex-col gap-4">
+                                <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !agreed || !isPhoneValid || !selectedCity}>
+                                    {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Verify & Induct"}
+                                </Button>
+                                <p className="text-sm text-center text-muted-foreground font-medium">Already a member? <Link href="/login" className="text-primary font-black hover:underline uppercase text-xs tracking-widest">Sign In</Link></p>
+                            </CardFooter>
+                        </form>
+                    ) : (
+                        <div className="p-6 space-y-6">
+                            <CardHeader className="px-0 text-center">
+                                <CardTitle className="text-2xl font-headline uppercase">Verify Induction</CardTitle>
+                                <CardDescription className="font-medium text-muted-foreground">Enter the 6-digit code sent to {phoneNumber}</CardDescription>
+                            </CardHeader>
+                            <div className="space-y-4">
+                                <Input id="otp" placeholder="000000" maxLength={6} className="text-center text-3xl font-black tracking-[0.5em] h-16" value={otp} onChange={e => setOtp(e.target.value)} />
+                                <Button className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" onClick={handleVerifyAndComplete} disabled={loading || otp.length !== 6}>
+                                    {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Registry"}
                                 </Button>
                             </div>
-
-                            <div className="relative">
-                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-muted-foreground font-bold">Or use mobile registry</span></div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase text-primary">Full Name</Label>
-                                    <Input placeholder="JUAN DELA CRUZ" className="h-12 font-bold" required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase text-primary">Phone Number</Label>
-                                    <Input placeholder="+639..." className="h-12 font-bold" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-primary">Email Address</Label>
-                                <Input type="email" placeholder="juan@example.com" className="h-12 font-bold" required value={email} onChange={e => setEmail(e.target.value)} />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-primary">Password</Label>
-                                <Input type="password" required className="h-12" value={password} onChange={e => setPassword(e.target.value)} minLength={6} />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase text-primary">Province</Label>
-                                    <Select onValueChange={setSelectedProvince} value={selectedProvince}>
-                                        <SelectTrigger className="h-12"><SelectValue placeholder="Select" /></SelectTrigger>
-                                        <SelectContent>{provinces.map((p) => <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase text-primary">City</Label>
-                                    <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
-                                        <SelectTrigger className="h-12"><SelectValue placeholder="Select" /></SelectTrigger>
-                                        <SelectContent>{cities.map((c) => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="flex items-start space-x-3 bg-muted/50 p-4 rounded-xl border border-dashed">
-                                <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} className="mt-1" />
-                                <div className="space-y-1">
-                                    <Label htmlFor="terms" className="text-xs font-bold leading-none text-primary uppercase">Accept National Registry Terms</Label>
-                                    <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                        By checking this, you agree to the official PDDS Kartilya principles, our <Link href="/legal/terms" target="_blank" className="text-primary underline">Terms of Service</Link>, and the processing of your data as outlined in our <Link href="/legal/privacy" target="_blank" className="text-primary underline">Privacy Policy</Link>.
-                                    </p>
-                                </div>
-                            </div>
-                        </CardContent>
-                        <CardFooter className="flex flex-col gap-4">
-                            <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !agreed || !isPhoneValid || !selectedCity}>
-                                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Verify & Induct"}
-                            </Button>
-                            <p className="text-sm text-center text-muted-foreground font-medium">Already a member? <Link href="/login" className="text-primary font-black hover:underline uppercase text-xs tracking-widest">Sign In</Link></p>
-                        </CardFooter>
-                    </form>
-                ) : (
-                    <div className="p-6 space-y-6">
-                        <CardHeader className="px-0 text-center">
-                            <CardTitle className="text-2xl font-headline uppercase">Verify Induction</CardTitle>
-                            <CardDescription className="font-medium text-muted-foreground">Enter the 6-digit code sent to {phoneNumber}</CardDescription>
-                        </CardHeader>
-                        <div className="space-y-4">
-                            <Input id="otp" placeholder="000000" maxLength={6} className="text-center text-3xl font-black tracking-[0.5em] h-16" value={otp} onChange={e => setOtp(e.target.value)} />
-                            <Button className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" onClick={handleVerifyAndComplete} disabled={loading || otp.length !== 6}>
-                                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Registry"}
-                            </Button>
                         </div>
-                    </div>
-                )}
-            </Card>
+                    )}
+                </Card>
+            </div>
 
             <div id="recaptcha-container"></div>
         </div>
