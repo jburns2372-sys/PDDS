@@ -4,15 +4,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useFirestore, useUser, useCollection } from "@/firebase";
 import { useUserData } from "@/context/user-data-context";
-import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit, doc, deleteDoc, updateDoc, where } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit, doc, deleteDoc, updateDoc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Shield, Trash2, AlertCircle, Loader2, UserCheck, Flag, Lock, ShieldAlert, Hexagon, Pin, X, Info } from "lucide-react";
+import { Send, Shield, Trash2, AlertCircle, Loader2, UserCheck, Flag, Lock, ShieldAlert, Hexagon, Pin, X, Sparkles, Trophy, Users, Network } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import PddsLogo from "./icons/pdds-logo";
 
 type Message = {
   id: string;
@@ -24,11 +25,12 @@ type Message = {
   senderPhoto: string;
   timestamp: any;
   isReported?: boolean;
+  isSystem?: boolean;
 };
 
 /**
  * @fileOverview PatriotHub Strategy Node Interface.
- * Implements jurisdictional routing, Global Pins, and Moderator tools.
+ * Implements jurisdictional routing, Global Pins, and the celebratory Genesis Onboarding.
  */
 export function ChatInterface({ roomName }: { roomName: string }) {
   const firestore = useFirestore();
@@ -43,6 +45,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
   const [showWelcome, setShowWelcome] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Global Pin Data Stream
   const { data: globalPins } = useCollection('patriothub_pins', {
@@ -57,15 +60,15 @@ export function ChatInterface({ roomName }: { roomName: string }) {
   const canPrune = isModerator || isExecutive;
 
   useEffect(() => {
-    // Check for first-time welcome
-    const hasSeenWelcome = localStorage.getItem('patriothub_welcome_v1');
-    if (!hasSeenWelcome) {
+    // Check for first-time Genesis welcome
+    const hasSeenGenesis = localStorage.getItem('patriothub_genesis_v1');
+    if (!hasSeenGenesis) {
       setShowWelcome(true);
     }
   }, []);
 
   const closeWelcome = () => {
-    localStorage.setItem('patriothub_welcome_v1', 'true');
+    localStorage.setItem('patriothub_genesis_v1', 'true');
     setShowWelcome(false);
   };
 
@@ -98,8 +101,8 @@ export function ChatInterface({ roomName }: { roomName: string }) {
     return () => unsubscribe();
   }, [firestore, roomName]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!inputText.trim() || !user || !userData || sending) return;
 
     if (!isVerified) {
@@ -158,6 +161,11 @@ export function ChatInterface({ roomName }: { roomName: string }) {
     }
   };
 
+  const focusInput = () => {
+    closeWelcome();
+    setTimeout(() => inputRef.current?.focus(), 300);
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col h-full items-center justify-center space-y-4 bg-white">
@@ -168,17 +176,81 @@ export function ChatInterface({ roomName }: { roomName: string }) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc]">
+    <div className="flex flex-col h-full bg-[#f8fafc] relative">
+      {/* GENESIS WELCOME OVERLAY */}
+      {showWelcome && (
+        <div className="absolute inset-0 z-50 bg-primary/95 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-500">
+          <div className="max-w-xl w-full bg-white rounded-[32px] shadow-2xl overflow-hidden relative group">
+            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+              <Shield className="h-64 w-64 text-primary" />
+            </div>
+            
+            <div className="p-8 md:p-12 space-y-8 relative z-10">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="bg-accent p-4 rounded-3xl shadow-2xl animate-bounce">
+                  <Hexagon className="h-10 w-10 text-primary fill-current" />
+                </div>
+                <h2 className="text-3xl font-black text-primary font-headline uppercase tracking-tighter">
+                  PatriotHub is Live
+                </h2>
+                <div className="h-1 w-24 bg-accent rounded-full" />
+              </div>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex gap-3">
+                    <Network className="h-5 w-5 text-accent shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase text-primary">Regional Power</p>
+                      <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">Direct connection to fellow Patriots in **{roomName}**.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <ShieldCheck className="h-5 w-5 text-accent shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase text-primary">Verified Only</p>
+                      <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">Zero noise. Only vetted members can broadcast here.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-muted/30 p-6 rounded-2xl border-2 border-dashed space-y-4">
+                  <p className="text-sm font-medium text-foreground/80 leading-relaxed italic text-center">
+                    "Your command center for localized action and national strategy."
+                  </p>
+                  <Button 
+                    onClick={focusInput}
+                    className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl rounded-xl"
+                  >
+                    <Sparkles className="mr-2 h-5 w-5 text-accent" />
+                    Introduce Yourself
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-3 pt-4 border-t border-dashed">
+                <PddsLogo className="h-8 w-8" />
+                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/40 italic">
+                  Para sa Dugong Dakilang Samahan!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Global Pin Overlay */}
       {globalPins && globalPins.length > 0 && (
         <div className="bg-accent p-3 shadow-md border-b-2 border-primary/10 relative z-20 animate-in slide-in-from-top duration-500">
           {globalPins.map(pin => (
             <div key={pin.id} className="max-w-7xl mx-auto flex items-start gap-3">
               <div className="bg-primary/10 p-1.5 rounded-lg shrink-0">
-                <Pin className="h-4 w-4 text-primary" />
+                {pin.isSystem ? <Shield className="h-4 w-4 text-primary" /> : <Pin className="h-4 w-4 text-primary" />}
               </div>
               <div className="flex-1">
-                <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Global Directive: {pin.authorName}</p>
+                <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">
+                  {pin.isSystem ? "EXECUTIVE COMMAND" : `Global Directive: ${pin.authorName}`}
+                </p>
                 <p className="text-xs font-bold text-primary leading-relaxed">{pin.text}</p>
               </div>
             </div>
@@ -186,29 +258,9 @@ export function ChatInterface({ roomName }: { roomName: string }) {
         </div>
       )}
 
-      {/* Onboarding Welcome */}
-      {showWelcome && (
-        <div className="bg-primary text-white p-4 m-4 rounded-2xl shadow-2xl border-2 border-accent relative animate-in zoom-in duration-300">
-          <button onClick={closeWelcome} className="absolute top-2 right-2 p-1 hover:bg-white/10 rounded-full">
-            <X className="h-4 w-4" />
-          </button>
-          <div className="flex gap-4">
-            <div className="bg-accent p-3 rounded-xl shrink-0 shadow-lg">
-              <Hexagon className="h-6 w-6 text-primary fill-current" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="font-headline font-black uppercase text-sm">Welcome to PatriotHub</h3>
-              <p className="text-[10px] font-medium opacity-80 leading-relaxed max-w-lg">
-                This is your private, jurisdictional strategy room. Connect with fellow patriots in **{roomName}**, coordinate local missions, and stay updated with global directives.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       <ScrollArea className="flex-1 px-4 md:px-6 py-6">
         <div className="space-y-8 pb-4">
-          {messages.length === 0 && (
+          {messages.length === 0 && !loading && (
             <div className="py-24 text-center space-y-4">
               <div className="bg-primary/5 w-24 h-24 rounded-full flex items-center justify-center mx-auto border border-primary/10 shadow-inner">
                 <Hexagon className="h-12 w-12 text-primary/20" />
@@ -302,6 +354,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
           <form onSubmit={handleSendMessage} className="flex gap-4 max-w-7xl mx-auto">
             <div className="relative flex-1">
               <Input 
+                ref={inputRef}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Broadcast jurisdictional strategy..."

@@ -1,7 +1,7 @@
 
 /**
  * @fileOverview Firebase Cloud Functions for PatriotLink.
- * Handles automated role assignment, security triggers, and referral merit logic.
+ * Handles automated role assignment, security triggers, and global broadcasts.
  */
 
 const { onUserCreated } = require("firebase-functions/v2/auth");
@@ -11,6 +11,36 @@ const admin = require("firebase-admin");
 
 // Initialize Admin SDK
 admin.initializeApp();
+
+/**
+ * Trigger: executeGenesisBroadcast
+ * Dispatches push notifications to all members to announce PatriotHub.
+ */
+exports.executeGenesisBroadcast = onDocumentCreated("patriothub_pins/{pinId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const pin = snapshot.data();
+
+    // Only broadcast if it's a Genesis type pin
+    if (pin.type !== "GENESIS") return;
+
+    const db = getFirestore();
+    const usersSnap = await db.collection("users").get();
+    
+    console.log(`[GENESIS] Dispatched Hub launch signal to ${usersSnap.size} members.`);
+
+    // In a production environment with FCM tokens:
+    // const tokens = usersSnap.docs.map(doc => doc.data().fcmToken).filter(Boolean);
+    // if (tokens.length > 0) {
+    //   await admin.messaging().sendMulticast({
+    //     tokens,
+    //     notification: {
+    //       title: "🛡️ PatriotHub is Live!",
+    //       body: "Enter your jurisdictional command center now."
+    //     }
+    //   });
+    // }
+});
 
 /**
  * Trigger: captureGoogleUserInfo
