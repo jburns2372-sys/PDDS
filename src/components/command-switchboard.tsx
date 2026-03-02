@@ -18,7 +18,9 @@ import {
   Search,
   MessageSquare,
   HeartHandshake,
-  Eye
+  Eye,
+  Landmark,
+  Wallet
 } from "lucide-react";
 import Link from "next/link";
 
@@ -33,26 +35,26 @@ export function CommandSwitchboard() {
 
   const getRoleActions = () => {
     const baseActions = [
-      { label: 'Bantay Bayan', icon: Eye, href: '/bantay-bayan', color: 'text-red-700' }
+      { label: 'PatriotPondo', icon: Landmark, href: '/patriot-pondo', color: 'text-emerald-600' }
     ];
     
-    // Responders get Bayanihan Hub
     if (role === 'Coordinator' || isGold || role === 'President' || role === 'Admin') {
       baseActions.push({ label: 'Bayanihan', icon: HeartHandshake, href: '/bayanihan', color: 'text-red-600' });
+    } else {
+      baseActions.push({ label: 'Bantay Bayan', icon: Eye, href: '/bantay-bayan', color: 'text-red-700' });
     }
 
     switch (role) {
       case 'President':
         return [
           ...baseActions,
-          { label: 'Heat Map', icon: Map, href: '/admin/analytics', color: 'text-accent' },
           { label: 'Broadcast', icon: Megaphone, href: '/admin/broadcast', color: 'text-red-600' }
         ].slice(0, 3);
-      case 'VP':
+      case 'Treasurer':
         return [
           ...baseActions,
-          { label: 'Calendar', icon: Calendar, href: '/calendar', color: 'text-primary' },
-          { label: 'Briefings', icon: BookText, href: '/agendas', color: 'text-primary' }
+          { label: 'Vault Command', icon: Wallet, href: '/admin/pondo', color: 'text-red-700' },
+          { label: 'Logistics', icon: LayoutGrid, href: '/admin/logistics', color: 'text-emerald-600' }
         ].slice(0, 3);
       case 'Secretary General':
       case 'Sec Gen':
@@ -68,22 +70,14 @@ export function CommandSwitchboard() {
           { label: 'Bulletin', icon: Newspaper, href: '/admin/bulletin', color: 'text-red-600' },
           { label: 'Broadcast', icon: Megaphone, href: '/admin/broadcast', color: 'text-red-600' }
         ].slice(0, 3);
-      case 'Treasurer':
-        return [
-          ...baseActions,
-          { label: 'Logistics', icon: LayoutGrid, href: '/admin/logistics', color: 'text-emerald-600' },
-          { label: 'Resources', icon: Shield, href: '/admin/analytics', color: 'text-primary' }
-        ].slice(0, 3);
       case 'Coordinator':
         return [
           ...baseActions,
-          { label: 'Scanner', icon: QrCode, href: '/admin/scanner', color: 'text-primary' },
-          { label: 'Supporter List', icon: Search, href: '/admin/supporters', color: 'text-primary' }
+          { label: 'Scanner', icon: QrCode, href: '/admin/scanner', color: 'text-primary' }
         ].slice(0, 3);
       default:
         return [
           ...baseActions,
-          { label: 'Directory', icon: Users, href: '/directory', color: 'text-primary' },
           { label: 'Vault', icon: BookText, href: '/vault', color: 'text-primary' }
         ].slice(0, 3);
     }

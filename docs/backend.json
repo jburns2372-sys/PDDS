@@ -33,139 +33,44 @@
         "isAdmin": { "type": "boolean", "default": false },
         "isSuperAdmin": { "type": "boolean" },
         "isVerified": { "type": "boolean", "default": false },
-        "isMuted": { "type": "boolean", "default": false, "description": "Restricts chat access if true." },
+        "isMuted": { "type": "boolean", "default": false },
         "vettingLevel": {
           "type": "string",
-          "enum": ["Bronze", "Silver", "Gold"],
-          "description": "Official administrative vetting tier."
+          "enum": ["Bronze", "Silver", "Gold"]
         },
-        "idVerificationUrl": { "type": "string", "description": "Secure link to government ID scan." },
-        "verifiedAt": { "type": "string", "format": "date-time" },
-        "verifiedBy": { "type": "string" },
-        "jurisdictionLevel": {
-          "type": "string",
-          "enum": ["National", "Regional", "Provincial", "City/Municipal", "Barangay"]
-        },
-        "assignedLocation": { "type": "string" },
-        "photoURL": { "type": "string" },
-        "kartilyaAgreed": { "type": "boolean" },
-        "isApproved": { "type": "boolean" },
         "meritPoints": { "type": "number", "default": 0 },
         "referralCount": { "type": "number", "default": 0 },
-        "referredBy": { "type": "string" },
-        "fcmToken": { "type": "string" },
-        "adminNotes": { "type": "string", "description": "Internal administrative notes for leadership only." },
-        "achievements": { "type": "array", "items": { "type": "string" } },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "lastActive": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["uid", "email", "fullName", "role", "jurisdictionLevel", "kartilyaAgreed"]
+      "required": ["uid", "email", "fullName", "role"]
     },
-    "course": {
-      "title": "Academy Course",
-      "description": "A training module in the Federalismo Academy.",
+    "donation": {
+      "title": "PatriotPondo Donation",
+      "description": "A financial contribution to the movement.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "videoUrl": { "type": "string" },
-        "thumbnailUrl": { "type": "string" },
-        "category": { "type": "string", "enum": ["Leadership", "Federalism"] },
-        "duration": { "type": "string" },
-        "order": { "type": "number" }
-      },
-      "required": ["title", "videoUrl", "category"]
-    },
-    "course_progress": {
-      "title": "Course Progress",
-      "description": "User completion tracking for courses.",
-      "type": "object",
-      "properties": {
-        "status": { "type": "string", "enum": ["In Progress", "Completed"] },
-        "completedAt": { "type": "string", "format": "date-time" }
+        "uid": { "type": "string" },
+        "donorName": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending", "Successful", "Failed"] },
+        "isAnonymous": { "type": "boolean" },
+        "region": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
       }
     },
-    "chat_room": {
-      "title": "Chat Room",
-      "description": "A jurisdictional conversation hub.",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "city": { "type": "string" },
-        "isNational": { "type": "boolean" },
-        "lastMessage": { "type": "string" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["name"]
-    },
-    "chat_message": {
-      "title": "Chat Message",
-      "description": "An individual message in a town square.",
-      "type": "object",
-      "properties": {
-        "text": { "type": "string" },
-        "senderUid": { "type": "string" },
-        "senderName": { "type": "string" },
-        "senderRole": { "type": "string" },
-        "senderVetting": { "type": "string" },
-        "senderPhoto": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "isReported": { "type": "boolean" }
-      },
-      "required": ["text", "senderUid", "senderName", "timestamp"]
-    },
-    "policy": {
-      "title": "Policy manifesto",
-      "description": "Official party stand or educational material.",
+    "expense": {
+      "title": "Party Expenditure",
+      "description": "An official party expense logged by the Treasurer.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
-        "category": { "type": "string" },
-        "summary": { "type": "string" },
-        "documentUrl": { "type": "string" },
-        "fileType": { "type": "string" },
-        "shareCount": { "type": "number", "default": 0 },
-        "quiz": { "type": "array" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["title", "category", "summary", "documentUrl"]
-    },
-    "sos_alert": {
-      "title": "SOS Alert",
-      "description": "Distress signal from a member in the field.",
-      "type": "object",
-      "properties": {
-        "uid": { "type": "string" },
-        "name": { "type": "string" },
-        "phoneNumber": { "type": "string" },
-        "location": { "type": "object", "description": "GeoPoint coordinates." },
-        "message": { "type": "string" },
-        "status": { "type": "string", "enum": ["Active", "Resolved"] },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "resolvedBy": { "type": "string" }
-      },
-      "required": ["uid", "name", "location", "status", "timestamp"]
-    },
-    "civic_report": {
-      "title": "Civic Report",
-      "description": "A report of a local community issue like potholes, trash, or corruption.",
-      "type": "object",
-      "properties": {
-        "uid": { "type": "string" },
-        "authorName": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "category": { "type": "string", "enum": ["Infrastructure", "Environment", "Corruption", "Public Safety", "Others"] },
-        "photoUrl": { "type": "string" },
-        "location": { "type": "object" },
-        "address": { "type": "string" },
-        "city": { "type": "string" },
-        "province": { "type": "string" },
-        "upvotes": { "type": "array" },
-        "status": { "type": "string", "enum": ["Pending", "Verified", "Escalated", "Resolved"] },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["uid", "title", "category", "location", "status", "createdAt"]
+        "amount": { "type": "number" },
+        "category": { "type": "string", "enum": ["Rallies", "Bayanihan Aid", "Admin", "Logistics", "Marketing"] },
+        "receiptUrl": { "type": "string" },
+        "loggedBy": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -176,33 +81,13 @@
       "schema": { "$ref": "#/backend/entities/user" },
       "description": "Stores user profile information."
     },
-    "/users/{userId}/course_progress/{courseId}": {
-      "schema": { "$ref": "#/backend/entities/course_progress" },
-      "description": "User completion status for specific academy modules."
+    "/donations/{donationId}": {
+      "schema": { "$ref": "#/backend/entities/donation" },
+      "description": "Stores financial contributions."
     },
-    "/courses/{courseId}": {
-      "schema": { "$ref": "#/backend/entities/course" },
-      "description": "Educational modules for the Federalismo Academy."
-    },
-    "/chat_rooms/{roomId}": {
-      "schema": { "$ref": "#/backend/entities/chat_room" },
-      "description": "Stores chat room metadata."
-    },
-    "/chat_rooms/{roomId}/messages/{messageId}": {
-      "schema": { "$ref": "#/backend/entities/chat_message" },
-      "description": "Stores individual messages within a room."
-    },
-    "/policies/{policyId}": {
-      "schema": { "$ref": "#/backend/entities/policy" },
-      "description": "Stores official party manifestos and infographics."
-    },
-    "/sos_alerts/{alertId}": {
-      "schema": { "$ref": "#/backend/entities/sos_alert" },
-      "description": "Stores active distress signals from the Bayanihan Network."
-    },
-    "/civic_reports/{reportId}": {
-      "schema": { "$ref": "#/backend/entities/civic_report" },
-      "description": "Stores community issues reported by members (Bantay Bayan)."
+    "/expenses/{expenseId}": {
+      "schema": { "$ref": "#/backend/entities/expense" },
+      "description": "Stores verified party expenditures."
     }
   }
 }

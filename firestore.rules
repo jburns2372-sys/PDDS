@@ -4,154 +4,53 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ==========================================
-    // SECURITY KERNEL HELPERS
-    // ==========================================
-
     function isSignedIn() {
       return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
     }
 
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    function hasRole(role) {
-      return isSignedIn() && getUserData().role == role;
+    function isTreasurer() {
+      return isSignedIn() && getUserData().role in ['Treasurer', 'President', 'Admin'];
     }
-
-    function isExecutive() {
-      if (!isSignedIn()) return false;
-      let userData = getUserData();
-      return userData.role in ['President', 'Admin', 'System Admin'] || userData.get('isAdmin', false) == true;
-    }
-
-    function isSecGen() {
-      return hasRole('Secretary General') || isExecutive();
-    }
-
-    function isPRO() {
-      return hasRole('Public Relations Officer') || isExecutive();
-    }
-
-    function isResponder() {
-      if (!isSignedIn()) return false;
-      let userData = getUserData();
-      return userData.role == 'Coordinator' || userData.get('vettingLevel', 'Bronze') == 'Gold' || isExecutive();
-    }
-
-    // ==========================================
-    // COLLECTION-SPECIFIC POLICIES
-    // ==========================================
 
     match /users/{userId} {
-      allow read: if isSignedIn() && (
-        isOwner(userId) || 
-        isExecutive() || 
-        isSecGen() || 
-        (hasRole('Coordinator') && getUserData().city == resource.data.city)
-      );
-      
-      allow create: if isSignedIn();
-      
-      allow update: if isExecutive() || (
-        isSecGen() && 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isVerified', 'vettingLevel', 'verifiedAt', 'verifiedBy', 'adminNotes', 'isMuted'])
-      ) || (
-        isOwner(userId) && (
-          // Standard update without role change
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved', 'isVerified', 'vettingLevel', 'meritPoints', 'isAdmin', 'isSuperAdmin', 'idVerificationUrl']) ||
-          // Allow self-elevation from Supporter to Member if providing phone
-          (
-            resource.data.role == 'Supporter' && 
-            request.resource.data.role == 'Member' && 
-            request.resource.data.isVerified == true &&
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isApproved', 'meritPoints', 'isAdmin', 'isSuperAdmin'])
-          )
-        )
-      );
-      
-      allow delete: if isExecutive();
-
-      match /policy_engagement/{policyId} {
-        allow read, write: if isOwner(userId);
-      }
-    }
-
-    match /chat_rooms/{roomId} {
       allow read: if isSignedIn();
-      
-      match /messages/{msgId} {
-        allow read: if isSignedIn();
-        
-        allow create: if isSignedIn() && 
-          getUserData().isVerified == true && 
-          getUserData().get('isMuted', false) == false &&
-          (roomId == 'National' || getUserData().city == roomId) &&
-          request.resource.data.senderUid == request.auth.uid;
-
-        allow delete: if isExecutive() || (hasRole('Coordinator') && getUserData().city == roomId);
-        
-        allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isReported']);
-      }
+      allow write: if isSignedIn() && (request.auth.uid == userId || getUserData().role in ['Admin', 'President', 'Secretary General']);
     }
 
-    match /policies/{id} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isPRO();
-    }
-
-    match /sos_alerts/{id} {
+    match /donations/{id} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isResponder() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolvedBy']);
-      allow delete: if isExecutive();
+      allow update, delete: if isTreasurer();
     }
 
-    match /civic_reports/{id} {
+    match /expenses/{id} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && getUserData().isVerified == true;
-      allow update: if isSignedIn() && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes']) ||
-        isPRO()
-      );
-      allow delete: if isExecutive();
+      allow write: if isTreasurer();
     }
 
     match /announcements/{id} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isPRO();
+      allow write: if isSignedIn() && getUserData().role in ['Public Relations Officer', 'President', 'Admin'];
     }
 
-    match /polls/{id} {
+    match /civic_reports/{id} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isPRO();
+      allow write: if isSignedIn();
     }
 
-    match /calendar_activities/{id} {
+    match /sos_alerts/{id} {
       allow read: if isSignedIn();
-      allow create, delete: if isExecutive() || isPRO();
-      allow update: if isExecutive();
+      allow write: if isSignedIn();
     }
-
-    match /meeting_requests/{id} {
+    
+    match /chat_rooms/{roomId}/messages/{msgId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && getUserData().vettingLevel in ['Silver', 'Gold'];
-      allow update, delete: if isExecutive() || (hasRole('Coordinator') && getUserData().city == resource.data.city);
-    }
-
-    match /vault/{id} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isPRO();
-    }
-
-    match /logistics_logs/{id} {
-      allow read: if isExecutive() || hasRole('Treasurer');
-      allow write: if isExecutive() || hasRole('Treasurer');
+      allow create: if isSignedIn() && getUserData().isVerified == true;
+      allow delete: if isSignedIn() && (getUserData().role == 'Coordinator' || getUserData().role in ['Admin', 'President']);
     }
   }
 }

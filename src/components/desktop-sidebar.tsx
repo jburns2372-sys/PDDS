@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks, Gavel, Newspaper, LayoutGrid, MessageCircle, GraduationCap, Eye } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks, Gavel, Newspaper, LayoutGrid, MessageCircle, GraduationCap, Eye, Landmark, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -13,6 +13,7 @@ import { pddsLeadershipRoles } from "@/lib/data";
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
+  { href: '/patriot-pondo', label: 'PatriotPondo', icon: Landmark },
   { href: '/chat', label: 'Town Square', icon: MessageCircle },
   { href: '/academy', label: 'Academy', icon: GraduationCap },
   { href: '/bantay-bayan', label: 'Bantay Bayan', icon: Eye },
@@ -21,11 +22,11 @@ const navItems = [
   { href: '/calendar', label: 'Activities', icon: Calendar },
   { href: '/agendas', label: 'Agendas', icon: BookText },
   { href: '/vault', label: 'Document Vault', icon: Library },
-  { href: '/governance', label: 'Command Manual', icon: Gavel },
 ];
 
 const adminNavItems = [
     { href: '/admin/dashboard', label: 'Officer Panel', icon: Shield },
+    { href: '/admin/pondo', label: 'Vault Command', icon: Wallet },
     { href: '/admin/supporters', label: 'Supporter List', icon: ListChecks },
     { href: '/admin/bulletin', label: 'Bulletin', icon: Newspaper },
     { href: '/admin/logistics', label: 'Logistics', icon: LayoutGrid },
@@ -90,6 +91,7 @@ export function DesktopSidebarContent() {
                 {adminNavItems.map((item) => {
                   const isActive = pathname.startsWith(item.href);
                   if (item.href === '/admin/logistics' && !['Treasurer', 'President', 'Admin', 'System Admin'].includes(userRole)) return null;
+                  if (item.href === '/admin/pondo' && !['Treasurer', 'President', 'Admin', 'System Admin'].includes(userRole)) return null;
 
                   return (
                       <Link
