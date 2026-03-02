@@ -12,24 +12,37 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    function isTreasurer() {
-      return isSignedIn() && getUserData().role in ['Treasurer', 'President', 'Admin'];
+    function isExecutive() {
+      return isSignedIn() && getUserData().role in ['President', 'Admin', 'Secretary General', 'System Admin'];
+    }
+
+    function isSecGen() {
+      return isSignedIn() && (getUserData().role == 'Secretary General' || getUserData().role == 'Sec Gen' || getUserData().role == 'President' || getUserData().isSuperAdmin == true);
     }
 
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && (request.auth.uid == userId || getUserData().role in ['Admin', 'President', 'Secretary General']);
+      allow write: if isSignedIn() && (request.auth.uid == userId || isSecGen());
     }
 
     match /donations/{id} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isTreasurer();
+      allow update, delete: if isExecutive() && getUserData().role == 'Treasurer';
     }
 
     match /expenses/{id} {
       allow read: if isSignedIn();
-      allow write: if isTreasurer();
+      allow write: if isExecutive() && getUserData().role == 'Treasurer';
+    }
+
+    match /security_logs/{id} {
+      allow read, write: if isSecGen();
+    }
+
+    match /communication_audit/{id} {
+      allow read: if isExecutive();
+      allow write: if isExecutive();
     }
 
     match /announcements/{id} {
@@ -50,7 +63,7 @@ service cloud.firestore {
     match /patriothub_rooms/{roomId}/messages/{msgId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && getUserData().isVerified == true;
-      allow delete: if isSignedIn() && (getUserData().role == 'Coordinator' || getUserData().role in ['Admin', 'President']);
+      allow delete: if isSignedIn() && (getUserData().role == 'Coordinator' || isExecutive());
     }
 
     match /patriothub_pins/{id} {
@@ -58,10 +71,14 @@ service cloud.firestore {
       allow write: if isSignedIn() && getUserData().role in ['Public Relations Officer', 'President', 'Admin'];
     }
     
-    match /chat_rooms/{roomId}/messages/{msgId} {
+    match /vault/{id} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && getUserData().isVerified == true;
-      allow delete: if isSignedIn() && (getUserData().role == 'Coordinator' || getUserData().role in ['Admin', 'President']);
+      allow write: if isExecutive();
+    }
+
+    match /calendar_activities/{id} {
+      allow read: if isSignedIn();
+      allow write: if isExecutive();
     }
   }
 }

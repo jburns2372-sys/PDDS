@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks, Gavel, Newspaper, LayoutGrid, Hexagon, GraduationCap, Eye, Landmark, Wallet } from "lucide-react";
+import { Home, Users, BookText, UserCircle, Shield, Info, MessageSquare, Megaphone, Map, Library, QrCode, Calendar, ListChecks, Gavel, Newspaper, LayoutGrid, Hexagon, GraduationCap, Eye, Landmark, Wallet, ShieldCheck, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PddsLogo from "./icons/pdds-logo";
 import { Separator } from "./ui/separator";
@@ -35,6 +36,11 @@ const adminNavItems = [
     { href: '/admin/analytics', label: 'Heat Map', icon: Map }
 ];
 
+const secGenNavItems = [
+  { href: '/admin/vetting', label: 'National Vetting', icon: ShieldCheck },
+  { href: '/admin/security', label: 'Security Center', icon: Lock }
+];
+
 export function DesktopSidebarContent() {
   const pathname = usePathname();
   const { userData, loading: isLoadingRole } = useUserData();
@@ -42,6 +48,7 @@ export function DesktopSidebarContent() {
 
   const isOfficer = pddsLeadershipRoles.includes(userRole) || userRole === 'Officer';
   const isAdmin = userRole === 'Admin' || userRole === 'System Admin';
+  const isSecGen = userRole === 'Secretary General' || userRole === 'Sec Gen' || userRole === 'President' || userData?.isSuperAdmin;
 
   const isPrivileged = !isLoadingRole && (isOfficer || isAdmin);
 
@@ -51,7 +58,7 @@ export function DesktopSidebarContent() {
         <PddsLogo className="h-28 w-auto shadow-none" />
       </div>
       <Separator />
-      <nav className="flex flex-col flex-1 justify-between p-4">
+      <nav className="flex flex-col flex-1 justify-between p-4 overflow-y-auto">
         <div className="space-y-2">
             {navItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
@@ -82,6 +89,28 @@ export function DesktopSidebarContent() {
                 </button>
             </AboutPddsDialog>
             
+            {isSecGen && (
+              <>
+                <div className="px-4 py-2 mt-6 mb-1 text-[10px] font-black uppercase text-red-600 tracking-[0.2em]">Sec-Gen Command</div>
+                {secGenNavItems.map((item) => {
+                  const isActive = pathname.startsWith(item.href);
+                  return (
+                      <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                          "flex items-center gap-3 rounded-md px-4 py-3 text-red-400 transition-all hover:bg-red-600/10 hover:text-red-500 uppercase text-xs font-bold tracking-widest",
+                          isActive && "bg-red-600/20 text-red-500 font-bold border-l-4 border-red-600 rounded-l-none"
+                      )}
+                      >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                      </Link>
+                  );
+                })}
+              </>
+            )}
+
             {isPrivileged && (
               <>
                 <div className="px-4 py-2 mt-6 mb-1 text-[10px] font-black uppercase text-primary/40 tracking-[0.2em]">Leadership Tools</div>
