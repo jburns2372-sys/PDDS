@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Shield, Trash2, AlertCircle, Loader2, UserCheck, Flag, Lock, ShieldAlert, Hexagon, Pin, X, Sparkles, Trophy, Users, Network } from "lucide-react";
+import { Send, Shield, Trash2, AlertCircle, Loader2, UserCheck, Flag, Lock, ShieldAlert, Hexagon, Pin, X, Sparkles, Trophy, Users, Network, ShieldCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import PddsLogo from "./icons/pdds-logo";
@@ -198,13 +198,13 @@ export function ChatInterface({ roomName }: { roomName: string }) {
                   <p className="text-sm font-medium text-foreground/80 leading-relaxed italic text-center">
                     "Your command center for localized action and national strategy."
                   </p>
-                  <Button 
+                  <button 
                     onClick={closeWelcome}
                     className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl rounded-xl"
                   >
                     <Sparkles className="mr-2 h-5 w-5 text-accent" />
                     Introduce Yourself
-                  </Button>
+                  </button>
                 </div>
               </div>
 
