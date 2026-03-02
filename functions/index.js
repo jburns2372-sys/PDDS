@@ -1,7 +1,7 @@
 
 /**
  * @fileOverview Firebase Cloud Functions for PatriotLink.
- * Handles automated role assignment, security triggers, and global broadcasts.
+ * Handles automated role assignment, security triggers, and engagement rewards.
  */
 
 const { onUserCreated } = require("firebase-functions/v2/auth");
@@ -21,25 +21,12 @@ exports.executeGenesisBroadcast = onDocumentCreated("patriothub_pins/{pinId}", a
     if (!snapshot) return;
     const pin = snapshot.data();
 
-    // Only broadcast if it's a Genesis type pin
     if (pin.type !== "GENESIS") return;
 
     const db = getFirestore();
     const usersSnap = await db.collection("users").get();
     
     console.log(`[GENESIS] Dispatched Hub launch signal to ${usersSnap.size} members.`);
-
-    // In a production environment with FCM tokens:
-    // const tokens = usersSnap.docs.map(doc => doc.data().fcmToken).filter(Boolean);
-    // if (tokens.length > 0) {
-    //   await admin.messaging().sendMulticast({
-    //     tokens,
-    //     notification: {
-    //       title: "🛡️ PatriotHub is Live!",
-    //       body: "Enter your jurisdictional command center now."
-    //     }
-    //   });
-    // }
 });
 
 /**
@@ -92,12 +79,10 @@ exports.handleReferralMerit = onDocumentCreated("users/{userId}", async (event) 
     const newUser = snapshot.data();
     const db = getFirestore();
 
-    // 1. Award Joiner Bonus (10 Points)
     if (newUser.meritPoints === undefined) {
         await snapshot.ref.update({ meritPoints: 10 });
     }
 
-    // 2. Check for Recruiter
     if (!newUser.referredBy) return;
 
     const recruiterRef = db.collection("users").doc(newUser.referredBy);
@@ -107,16 +92,40 @@ exports.handleReferralMerit = onDocumentCreated("users/{userId}", async (event) 
             const recruiterDoc = await transaction.get(recruiterRef);
             if (!recruiterDoc.exists) return;
 
-            // Award 50 Points to Recruiter
             transaction.update(recruiterRef, {
                 meritPoints: admin.firestore.FieldValue.increment(50),
                 referralCount: admin.firestore.FieldValue.increment(1)
             });
 
-            console.log(`[GROWTH] Awarded 50 points to recruiter ${newUser.referredBy} for inducting ${event.params.userId}`);
+            console.log(`[GROWTH] Awarded 50 points to recruiter ${newUser.referredBy}`);
         });
     } catch (error) {
         console.error("[GROWTH ERROR] Referral transaction failed:", error);
+    }
+});
+
+/**
+ * Trigger: handleEngagementMerit
+ * Awards points for community verification actions (upvoting civic reports).
+ */
+exports.handleEngagementMerit = onDocumentUpdated("civic_reports/{reportId}", async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const db = getFirestore();
+
+    const beforeVotes = before.upvotes || [];
+    const afterVotes = after.upvotes || [];
+
+    // Award 5 points to the reporter if they get a new verification
+    if (afterVotes.length > beforeVotes.length) {
+        const reporterUid = after.uid;
+        if (!reporterUid) return;
+
+        const reporterRef = db.collection("users").doc(reporterUid);
+        await reporterRef.update({
+            meritPoints: admin.firestore.FieldValue.increment(5)
+        });
+        console.log(`[ENGAGEMENT] Awarded 5 merit points to reporter ${reporterUid} for community verification.`);
     }
 });
 
@@ -129,7 +138,6 @@ exports.aggregateRegionalDonations = onDocumentCreated("donations/{donationId}",
     if (!snapshot) return;
     const donation = snapshot.data();
 
-    // Only aggregate successful donations
     if (donation.status !== "Successful") return;
 
     const db = getFirestore();
@@ -159,12 +167,10 @@ exports.auditRegistryRoles = onDocumentUpdated("users/{userId}", async (event) =
     const after = event.data.after.data();
     const db = getFirestore();
 
-    // Check if role has changed
     if (before.role === after.role) return;
 
     console.log(`[REGISTRY AUDIT] Role change detected for ${after.fullName}: ${before.role} -> ${after.role}`);
 
-    // Log the escalation for the Auditor
     await db.collection("communication_audit").add({
         type: "Role Escalation Audit",
         userId: event.params.userId,
