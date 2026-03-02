@@ -30,7 +30,7 @@ type Message = {
 
 /**
  * @fileOverview PatriotHub Strategy Node Interface.
- * Implements jurisdictional routing, Global Pins, and the celebratory Genesis Onboarding.
+ * Implements jurisdictional routing and the non-negotiable PDDS watermark.
  */
 export function ChatInterface({ roomName }: { roomName: string }) {
   const firestore = useFirestore();
@@ -47,12 +47,10 @@ export function ChatInterface({ roomName }: { roomName: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Global Pin Data Stream
   const { data: globalPins } = useCollection('patriothub_pins', {
     queries: [{ attribute: 'isActive', operator: '==', value: true }]
   });
 
-  // Verification & Moderation Logic
   const isVerified = userData?.isVerified === true;
   const isMuted = userData?.isMuted === true;
   const isModerator = userData?.role === 'Coordinator' && userData?.city === roomName;
@@ -60,7 +58,6 @@ export function ChatInterface({ roomName }: { roomName: string }) {
   const canPrune = isModerator || isExecutive;
 
   useEffect(() => {
-    // Check for first-time Genesis welcome
     const hasSeenGenesis = localStorage.getItem('patriothub_genesis_v1');
     if (!hasSeenGenesis) {
       setShowWelcome(true);
@@ -87,14 +84,12 @@ export function ChatInterface({ roomName }: { roomName: string }) {
       setMessages(msgs);
       setLoading(false);
       
-      // Auto-scroll to bottom
       setTimeout(() => {
         if (scrollRef.current) {
           scrollRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
       }, 100);
     }, (error) => {
-      console.error("Hub sync error:", error);
       setLoading(false);
     });
 
@@ -111,25 +106,23 @@ export function ChatInterface({ roomName }: { roomName: string }) {
     }
 
     if (isMuted) {
-      toast({ variant: "destructive", title: "Transmission Rights Revoked", description: "Your account is under conduct review." });
+      toast({ variant: "destructive", title: "Transmission Rights Revoked" });
       return;
     }
 
     setSending(true);
-    const messageData = {
-      text: inputText.trim(),
-      senderUid: user.uid,
-      senderName: userData.fullName || "Member",
-      senderRole: userData.role || "Member",
-      senderVetting: userData.vettingLevel || "Bronze",
-      senderPhoto: userData.photoURL || "",
-      timestamp: serverTimestamp(),
-      isReported: false
-    };
-
     try {
       const messagesRef = collection(firestore, "patriothub_rooms", roomName, "messages");
-      await addDoc(messagesRef, messageData);
+      await addDoc(messagesRef, {
+        text: inputText.trim(),
+        senderUid: user.uid,
+        senderName: userData.fullName || "Member",
+        senderRole: userData.role || "Member",
+        senderVetting: userData.vettingLevel || "Bronze",
+        senderPhoto: userData.photoURL || "",
+        timestamp: serverTimestamp(),
+        isReported: false
+      });
       setInputText("");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Signal Lost", description: error.message });
@@ -140,30 +133,19 @@ export function ChatInterface({ roomName }: { roomName: string }) {
 
   const handlePruneMessage = async (msgId: string) => {
     if (!canPrune) return;
-    if (!confirm("Prune this signal from the Hub intelligence?")) return;
-    
     try {
       const msgRef = doc(firestore, "patriothub_rooms", roomName, "messages", msgId);
       await deleteDoc(msgRef);
       toast({ title: "Signal Pruned" });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Access Denied", description: "Moderator credentials required." });
-    }
+    } catch (error: any) {}
   };
 
   const handleReportMessage = async (msgId: string) => {
     try {
       const msgRef = doc(firestore, "patriothub_rooms", roomName, "messages", msgId);
       await updateDoc(msgRef, { isReported: true });
-      toast({ title: "Signal Flagged", description: "Hub Moderators have been notified." });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Audit Failed", description: error.message });
-    }
-  };
-
-  const focusInput = () => {
-    closeWelcome();
-    setTimeout(() => inputRef.current?.focus(), 300);
+      toast({ title: "Signal Flagged" });
+    } catch (error: any) {}
   };
 
   if (loading) {
@@ -177,12 +159,11 @@ export function ChatInterface({ roomName }: { roomName: string }) {
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] relative">
-      {/* GENESIS WELCOME OVERLAY */}
       {showWelcome && (
         <div className="absolute inset-0 z-50 bg-primary/95 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-500">
           <div className="max-w-xl w-full bg-white rounded-[32px] shadow-2xl overflow-hidden relative group">
-            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-              <Shield className="h-64 w-64 text-primary" />
+            <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+              <PddsLogo className="h-64 w-64" />
             </div>
             
             <div className="p-8 md:p-12 space-y-8 relative z-10">
@@ -219,7 +200,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
                     "Your command center for localized action and national strategy."
                   </p>
                   <Button 
-                    onClick={focusInput}
+                    onClick={closeWelcome}
                     className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl rounded-xl"
                   >
                     <Sparkles className="mr-2 h-5 w-5 text-accent" />
@@ -229,7 +210,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
               </div>
 
               <div className="flex flex-col items-center gap-3 pt-4 border-t border-dashed">
-                <PddsLogo className="h-8 w-8" />
+                <PddsLogo className="h-10 w-10" />
                 <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/40 italic">
                   Para sa Dugong Dakilang Samahan!
                 </p>
@@ -245,7 +226,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
           {globalPins.map(pin => (
             <div key={pin.id} className="max-w-7xl mx-auto flex items-start gap-3">
               <div className="bg-primary/10 p-1.5 rounded-lg shrink-0">
-                {pin.isSystem ? <Shield className="h-4 w-4 text-primary" /> : <Pin className="h-4 w-4 text-primary" />}
+                {pin.isSystem ? <PddsLogo className="h-5 w-5" /> : <Pin className="h-4 w-4 text-primary" />}
               </div>
               <div className="flex-1">
                 <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">
@@ -260,27 +241,10 @@ export function ChatInterface({ roomName }: { roomName: string }) {
 
       <ScrollArea className="flex-1 px-4 md:px-6 py-6">
         <div className="space-y-8 pb-4">
-          {messages.length === 0 && !loading && (
-            <div className="py-24 text-center space-y-4">
-              <div className="bg-primary/5 w-24 h-24 rounded-full flex items-center justify-center mx-auto border border-primary/10 shadow-inner">
-                <Hexagon className="h-12 w-12 text-primary/20" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-base font-black uppercase text-primary tracking-[0.15em]">
-                  {roomName} Node Operational
-                </p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">Jurisdictional Strategy Active</p>
-              </div>
-            </div>
-          )}
-
           {messages.map((msg) => {
             const isMe = msg.senderUid === user?.uid;
             const isMod = msg.senderRole === 'Coordinator';
-            const vettingColor = 
-              msg.senderVetting === 'Gold' ? 'bg-yellow-500' : 
-              msg.senderVetting === 'Silver' ? 'bg-slate-400' : 
-              'bg-amber-700';
+            const vettingColor = msg.senderVetting === 'Gold' ? 'bg-yellow-500' : msg.senderVetting === 'Silver' ? 'bg-slate-400' : 'bg-amber-700';
 
             return (
               <div key={msg.id} className={`flex gap-4 group ${isMe ? 'flex-row-reverse' : ''}`}>
@@ -314,18 +278,8 @@ export function ChatInterface({ roomName }: { roomName: string }) {
                     <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
                       {msg.timestamp ? formatDistanceToNow(msg.timestamp.toDate(), { addSuffix: true }) : 'Syncing...'}
                     </span>
-                    
-                    {!isMe && (
-                      <button onClick={() => handleReportMessage(msg.id)} className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[8px] font-black uppercase text-muted-foreground hover:text-red-500">
-                        <Flag className="h-2.5 w-2.5" /> Flag Signal
-                      </button>
-                    )}
-
-                    {canPrune && (
-                      <button onClick={() => handlePruneMessage(msg.id)} className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[8px] font-black uppercase text-red-600 hover:text-red-700">
-                        <Trash2 className="h-2.5 w-2.5" /> Prune Signal
-                      </button>
-                    )}
+                    {!isMe && <button onClick={() => handleReportMessage(msg.id)} className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[8px] font-black uppercase text-muted-foreground hover:text-red-500"><Flag className="h-2.5 w-2.5" /> Flag</button>}
+                    {canPrune && <button onClick={() => handlePruneMessage(msg.id)} className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[8px] font-black uppercase text-red-600 hover:text-red-700"><Trash2 className="h-2.5 w-2.5" /> Prune</button>}
                   </div>
                 </div>
               </div>
@@ -336,55 +290,25 @@ export function ChatInterface({ roomName }: { roomName: string }) {
       </ScrollArea>
 
       <div className="p-4 bg-white border-t border-primary/5 shadow-2xl relative z-10">
-        {!isVerified ? (
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-4 shadow-inner">
-            <Lock className="h-6 w-6 text-amber-600 shrink-0" />
-            <p className="text-[10px] font-bold text-amber-800 uppercase leading-snug">
-              Broadcasting restricted to **Verified Personnel**. Complete your induction vetting to participate in regional strategy.
-            </p>
+        <form onSubmit={handleSendMessage} className="flex gap-4 max-w-7xl mx-auto">
+          <div className="relative flex-1">
+            <Input 
+              ref={inputRef}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Broadcast jurisdictional strategy..."
+              className="h-16 rounded-2xl bg-[#f1f5f9] border-none shadow-inner focus-visible:ring-primary pl-6 pr-12 text-sm font-bold"
+              disabled={sending}
+            />
           </div>
-        ) : isMuted ? (
-          <div className="bg-red-50 border border-red-200 p-4 rounded-2xl flex items-center gap-4 shadow-inner">
-            <ShieldAlert className="h-6 w-6 text-red-600 shrink-0" />
-            <p className="text-[10px] font-bold text-red-800 uppercase leading-snug">
-              Your transmission rights have been suspended by Hub Moderators for conduct review.
-            </p>
-          </div>
-        ) : (
-          <form onSubmit={handleSendMessage} className="flex gap-4 max-w-7xl mx-auto">
-            <div className="relative flex-1">
-              <Input 
-                ref={inputRef}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Broadcast jurisdictional strategy..."
-                className="h-16 rounded-2xl bg-[#f1f5f9] border-none shadow-inner focus-visible:ring-primary pl-6 pr-12 text-sm font-bold placeholder:text-muted-foreground/50"
-                disabled={sending}
-              />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary/20 uppercase tracking-widest hidden md:block">
-                Secure Link
-              </div>
-            </div>
-            <Button 
-              type="submit" 
-              className="h-16 w-16 rounded-2xl bg-primary hover:bg-primary/90 shadow-2xl shrink-0 group transition-all"
-              disabled={!inputText.trim() || sending}
-            >
-              {sending ? <Loader2 className="h-6 w-6 animate-spin" /> : <Send className="h-6 w-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
-            </Button>
-          </form>
-        )}
-        <div className="mt-3 flex justify-center items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em]">Live Signal: {roomName} Node</span>
-          </div>
-          <div className="h-3 w-px bg-muted" />
-          <div className="flex items-center gap-1.5">
-            <Shield className="h-3 w-3 text-primary opacity-20" />
-            <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em]">End-to-End Encrypted</span>
-          </div>
-        </div>
+          <Button 
+            type="submit" 
+            className="h-16 w-16 rounded-2xl bg-primary hover:bg-primary/90 shadow-2xl shrink-0 transition-all"
+            disabled={!inputText.trim() || sending}
+          >
+            {sending ? <Loader2 className="h-6 w-6 animate-spin" /> : <Send className="h-6 w-6" />}
+          </Button>
+        </form>
       </div>
     </div>
   );

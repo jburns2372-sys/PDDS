@@ -11,7 +11,7 @@ import { UserDataContext, UserDataContextType, UserProfile } from "@/context/use
 import { useRouter } from "next/navigation";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { Menu, X, Loader2 } from "lucide-react";
+import { Menu, X, Loader2, ShieldCheck } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import PddsLogo from "./icons/pdds-logo";
 import { DesktopSidebarContent } from "./desktop-sidebar";
@@ -19,7 +19,7 @@ import { DesktopSidebarContent } from "./desktop-sidebar";
 /**
  * @fileOverview Application Shell & Global Route Guard.
  * Strictly manages synchronization with the National Registry.
- * Handles user profile loading and unauthorized access redirection.
+ * Enforces the Official PDDS Logo as the dominant visual on launch.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -37,10 +37,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     setIsClient(true);
   }, []);
 
-  /**
-   * Profile Synchronization Logic.
-   * Ensures every authenticated user has a corresponding record in the registry.
-   */
   useEffect(() => {
     if (!user || userLoading) {
       if (!userLoading) {
@@ -56,9 +52,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     const unsubscribe = onSnapshot(docRef, async (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-
-        // Handle Suspended Accounts
-        // Executives always have access to manage their accounts
         const isExecutive = data.role === 'President' || data.role === 'Admin' || data.role === 'System Admin';
         
         if (data.isApproved === false && !isExecutive) {
@@ -75,8 +68,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         setUserData({ id: docSnap.id, ...data });
         setUserDataLoading(false);
       } else {
-        // Redirect to induction if record is missing
-        console.log("Registry record missing, redirecting...");
         window.location.href = '/join?induction=pending';
       }
     }, (error) => {
@@ -95,16 +86,23 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
   }, [loading, user, router]);
 
-  // Global Loading Overlay for authenticated but loading profile state
   if (loading || (user && userDataLoading)) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-6">
-            <PddsLogo className="h-20 w-20 animate-pulse" />
-            <div className="flex flex-col items-center gap-2 text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">
-                    {user ? "Loading National Profile..." : "Establishing Secure Connection..."}
+        <div className="flex flex-col items-center gap-8">
+            <div className="relative">
+              <PddsLogo className="h-32 w-32 animate-pulse" />
+              <div className="absolute inset-0 border-4 border-primary/10 rounded-full animate-ping" />
+            </div>
+            <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <p className="text-sm font-black uppercase tracking-[0.3em] text-primary">
+                    Establishing Secure Link
+                  </p>
+                </div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">
+                  PDDS National Registry Synchronization
                 </p>
             </div>
         </div>
@@ -123,15 +121,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <UserDataContext.Provider value={contextValue}>
         <div className="flex min-h-screen w-full flex-col md:flex-row">
-          {/* Mobile Header */}
-          <div className="flex h-16 w-full items-center justify-between border-b bg-card px-4 md:hidden sticky top-0 z-50">
+          <div className="flex h-16 w-full items-center justify-between border-b bg-primary px-4 md:hidden sticky top-0 z-50">
             <div className="flex items-center gap-2">
-              <PddsLogo className="h-8 w-8" />
-              <span className="font-headline font-black uppercase text-[10px] tracking-widest text-primary">PatriotLink</span>
+              <PddsLogo variant="white" className="h-10 w-10" />
+              <span className="font-headline font-black uppercase text-xs tracking-[0.2em] text-white">PatriotLink</span>
             </div>
             <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
               <SheetTrigger asChild>
-                <button className="p-2 text-primary">
+                <button className="p-2 text-white">
                   <Menu className="h-6 w-6" />
                 </button>
               </SheetTrigger>

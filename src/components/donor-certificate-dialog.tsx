@@ -28,9 +28,8 @@ interface DonorCertificateDialogProps {
 }
 
 /**
- * @fileOverview Patriot Donor Certificate & Social Share Engine.
- * Generates a high-fidelity 1080x1920 vertical card for social sharing.
- * Awards 5 Merit Points on first share.
+ * @fileOverview Patriot Donor Certificate.
+ * Features the official circular emblem centrally as the source of recognition.
  */
 export function DonorCertificateDialog({ 
   isOpen, 
@@ -45,7 +44,6 @@ export function DonorCertificateDialog({
   const certRef = useRef<HTMLDivElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // If anonymous, we don't allow sharing personal details
   if (isAnonymous) return null;
 
   const handleShare = async () => {
@@ -53,31 +51,20 @@ export function DonorCertificateDialog({
     setIsProcessing(true);
 
     try {
-      // 1. Generate High-Res Image
       const dataUrl = await toPng(certRef.current, { 
         pixelRatio: 2, 
         backgroundColor: '#002366',
         cacheBust: true 
       });
 
-      // 2. Prepare Blob for sharing
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], 'PDDS-Patriot-Donor.png', { type: 'image/png' });
 
-      // 3. Award Merit Points if first share
       if (!userData?.sharedDonationReceipt) {
         const userRef = doc(firestore, "users", user.uid);
-        await updateDoc(userRef, {
-          meritPoints: increment(5),
-          sharedDonationReceipt: true
-        });
-        toast({
-          title: "Advocacy Points Earned!",
-          description: "You've earned +5 Merit Points for spreading the word.",
-        });
+        await updateDoc(userRef, { meritPoints: increment(5), sharedDonationReceipt: true });
       }
 
-      // 4. Trigger Native Share
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
@@ -85,12 +72,10 @@ export function DonorCertificateDialog({
           text: 'I just contributed to the movement for a Federal Philippines! 🇵🇭 #PDDS #Federalismo',
         });
       } else {
-        // Fallback: Just download
         const link = document.createElement('a');
         link.download = `PDDS-Patriot-Donor.png`;
         link.href = dataUrl;
         link.click();
-        toast({ title: "Certificate Downloaded", description: "Share this image on your social feed!" });
       }
     } catch (err) {
       console.error('Share error:', err);
@@ -109,32 +94,25 @@ export function DonorCertificateDialog({
               Patriot Recognition
             </DialogTitle>
             <DialogDescription className="text-white/60 text-xs font-bold uppercase">
-              Download or share your official digital receipt.
+              Official Digital Contribution Receipt
             </DialogDescription>
           </DialogHeader>
         </div>
 
         <div className="p-6 flex justify-center bg-muted/30">
-          {/* THE CERTIFICATE (1080x1920 style scale) */}
           <div 
             ref={certRef}
             className="w-[300px] aspect-[9/16] bg-[#002366] text-white p-8 flex flex-col items-center justify-between text-center relative overflow-hidden shadow-2xl rounded-xl"
           >
-            {/* Background Texture */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
-              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                <pattern id="cert-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
-                </pattern>
-                <rect width="100%" height="100%" fill="url(#cert-grid)" />
-              </svg>
+              <PddsLogo className="w-full h-full object-contain scale-150" />
             </div>
 
             <div className="space-y-4 relative z-10 w-full">
               <div className="bg-white p-2 rounded-full inline-block shadow-xl">
-                <PddsLogo className="h-14 w-14" />
+                <PddsLogo className="h-16 w-16" />
               </div>
-              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-accent">PatriotLink Portal</h2>
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-accent">PatriotLink</h2>
               <div className="h-0.5 w-16 bg-accent mx-auto" />
             </div>
 
@@ -153,23 +131,20 @@ export function DonorCertificateDialog({
 
             <div className="w-full space-y-6 relative z-10">
               <div className="flex flex-col items-center gap-2">
-                <div className="h-20 w-20 rounded-full border-4 border-accent flex items-center justify-center bg-white/5 relative">
+                <div className="h-20 w-20 rounded-full border-4 border-accent flex items-center justify-center bg-white/5">
                   <ShieldCheck className="h-10 w-10 text-accent" />
-                  <div className="absolute -top-1 -right-1 bg-accent p-1 rounded-full animate-pulse">
-                    <Sparkles className="h-3 w-3 text-primary" />
-                  </div>
                 </div>
-                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-accent">Verified Movement Donor</p>
+                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-accent">Verified Donor Badge</p>
               </div>
 
               <div className="flex justify-between items-end border-t border-white/10 pt-4">
                 <div className="text-left space-y-0.5">
-                  <p className="text-[7px] font-black uppercase text-white/40">Induction Date</p>
+                  <p className="text-[7px] font-black uppercase text-white/40">Date</p>
                   <p className="text-[10px] font-bold uppercase">{format(new Date(), 'MMM dd, yyyy')}</p>
                 </div>
                 <div className="text-right space-y-0.5">
-                  <p className="text-[7px] font-black uppercase text-white/40">Credential ID</p>
-                  <p className="text-[10px] font-mono font-bold uppercase">PDDS-PP-{user?.uid?.substring(0,6)}</p>
+                  <p className="text-[7px] font-black uppercase text-white/40">Auth ID</p>
+                  <p className="text-[10px] font-mono font-bold uppercase">PDDS-{user?.uid?.substring(0,6)}</p>
                 </div>
               </div>
             </div>
@@ -180,21 +155,10 @@ export function DonorCertificateDialog({
           <Button 
             onClick={handleShare} 
             disabled={isProcessing}
-            className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl rounded-xl group"
+            className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl rounded-xl"
           >
-            {isProcessing ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <Share2 className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-            )}
+            {isProcessing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Share2 className="mr-2 h-5 w-5" />}
             Share & Earn +5 Merit
-          </Button>
-          <Button 
-            variant="ghost" 
-            onClick={() => onOpenChange(false)} 
-            className="font-black uppercase text-[10px] tracking-widest text-muted-foreground"
-          >
-            Maybe Later
           </Button>
         </div>
       </DialogContent>

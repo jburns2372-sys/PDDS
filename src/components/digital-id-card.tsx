@@ -12,7 +12,7 @@ import { Download, CheckCircle2, MapPin, UserCheck, AlertCircle } from "lucide-r
 
 /**
  * @fileOverview High-fidelity Digital Member ID Card.
- * Synchronized with the National Registry and Executive Vetting system.
+ * Non-negotiable implementation of the PDDS Logo on the top-left header.
  */
 export function DigitalIdCard({ userData }: { userData: any }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -60,15 +60,18 @@ export function DigitalIdCard({ userData }: { userData: any }) {
           </div>
           
           <CardContent className="p-6 flex flex-col gap-5 relative z-10 h-full">
-            {/* Header: Party Identity */}
+            {/* Header: Official Logo Top-Left */}
             <div className="flex w-full items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <div className="bg-white p-1 rounded-full shadow-sm">
-                  <PddsLogo className="h-6 w-6" />
+                  <PddsLogo className="h-8 w-8" />
                 </div>
-                <span className="font-black text-lg tracking-tighter uppercase font-headline">PDDS</span>
+                <div className="flex flex-col">
+                  <span className="font-black text-xs tracking-tighter uppercase leading-none">Pederalismo ng Dugong</span>
+                  <span className="font-black text-xs tracking-tighter uppercase leading-none">Dakilang Samahan</span>
+                </div>
               </div>
-              <span className="text-[8px] font-black tracking-[0.25em] uppercase opacity-60">Federalismo Portal</span>
+              <Badge variant="outline" className="text-[6px] font-black tracking-widest uppercase border-white/20 text-white">ID-REG-2025</Badge>
             </div>
 
             {/* Profile Core */}
@@ -108,7 +111,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
                   ) : (
                     <div className="bg-[#f59e0b] text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 w-fit">
                       <AlertCircle className="h-2.5 w-2.5" />
-                      PENDING VERIFICATION
+                      PENDING AUDIT
                     </div>
                   )}
                 </div>
@@ -126,15 +129,15 @@ export function DigitalIdCard({ userData }: { userData: any }) {
             {/* Footer: ID Metadata */}
             <div className="mt-auto pt-4 border-t border-white/10 flex justify-between items-end">
               <div className="space-y-0.5">
-                <p className="text-[7px] font-black uppercase tracking-[0.2em] opacity-40">Official Member Rank</p>
+                <p className="text-[7px] font-black uppercase tracking-[0.2em] opacity-40">Member Rank</p>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#fbbf24]">
                   {userData.role || 'Supporter'}
                 </p>
               </div>
               <div className="text-right space-y-0.5">
-                <p className="text-[7px] font-black uppercase tracking-[0.2em] opacity-40">Member Registry ID</p>
+                <p className="text-[7px] font-black uppercase tracking-[0.2em] opacity-40">Registry Hash</p>
                 <p className="text-[10px] font-mono font-bold opacity-80 uppercase tracking-tighter">
-                  #{userData.uid?.substring(0, 8).toUpperCase()}
+                  #{userData.uid?.substring(0, 12).toUpperCase()}
                 </p>
               </div>
             </div>
@@ -145,7 +148,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
       <Button 
         onClick={handleDownload} 
         variant="default" 
-        className="w-full max-w-[320px] h-14 font-black uppercase text-xs tracking-widest bg-[#1e3a8a] hover:bg-[#162e6d] shadow-xl rounded-xl transition-all active:scale-95"
+        className="w-full max-w-[320px] h-14 font-black uppercase text-xs tracking-widest bg-[#1e3a8a] hover:bg-[#162e6d] shadow-xl rounded-xl transition-all"
       >
         <Download className="mr-2 h-4 w-4" /> Save ID to Phone
       </Button>
