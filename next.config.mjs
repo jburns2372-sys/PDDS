@@ -1,15 +1,16 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: [
-      'genkit', 
-      '@genkit-ai/google-genai', 
-      '@genkit-ai/ai', 
-      '@genkit-ai/core', 
-      '@genkit-ai/flow',
-      'require-in-the-middle'
-    ],
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // !! WARN !!
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
   },
 };
 

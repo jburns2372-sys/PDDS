@@ -29,7 +29,7 @@ export default function AcademyPage() {
   const [showCertificate, setShowCertificate] = useState(false);
 
   const stats = useMemo(() => {
-    // Explicitly type 'p' as any to satisfy strict compiler checks during production build
+    // Explicitly typing 'p' as 'any' satisfies the strict production compiler
     const completedIds = progress.filter((p: any) => p.status === 'Completed').map((p: any) => p.id);
     const total = courses.length;
     const completed = completedIds.length;
