@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -15,7 +16,26 @@ import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Shield, UserPlus, Users, Pencil, Trash2, Loader2, Search, ArrowRightLeft, MapPin, Database, PlusCircle, UserCheck, UserX, Smartphone, Home } from "lucide-react";
+import { 
+    Shield, 
+    UserPlus, 
+    Users, 
+    Pencil, 
+    Trash2, 
+    Loader2, 
+    Search, 
+    ArrowRightLeft, 
+    MapPin, 
+    Database, 
+    PlusCircle, 
+    UserCheck, 
+    UserX, 
+    Smartphone, 
+    Home,
+    Camera,
+    FileUp,
+    FileText
+} from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { pddsLeadershipRoles, getZipCode, getIslandGroup } from "@/lib/data";
 
@@ -39,13 +59,20 @@ export default function AdminDashboard() {
 
     const hasExecutiveAccess = userData?.role === 'President' || userData?.role === 'Admin' || userData?.isSuperAdmin;
 
-    // Registry fields (Initialized as blank)
+    // Registry fields
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
     const [password, setPassword] = useState("");
     const [role, setRole] = useState("");
+    const [about, setAbout] = useState("");
     
+    // Identity assets
+    const [photoURL, setPhotoURL] = useState<string | null>(null);
+    const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
+    const [idVerificationUrl, setIdVerificationUrl] = useState<string | null>(null);
+    const [selectedIdFile, setSelectedIdFile] = useState<File | null>(null);
+
     // Jurisdictional fields
     const [streetAddress, setStreetAddress] = useState("");
     const [zipCode, setZipCode] = useState("");
@@ -59,6 +86,9 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
+
+    const photoInputRef = useRef<HTMLInputElement>(null);
+    const idInputRef = useRef<HTMLInputElement>(null);
 
     // Initial Fetch for Provinces
     useEffect(() => {
@@ -151,6 +181,11 @@ export default function AdminDashboard() {
         setZipCode("");
         setRole("");
         setPassword("");
+        setAbout("");
+        setPhotoURL(null);
+        setSelectedPhotoFile(null);
+        setIdVerificationUrl(null);
+        setSelectedIdFile(null);
     };
 
     const handleEditClick = (user: any) => {
@@ -165,6 +200,9 @@ export default function AdminDashboard() {
         setStreetAddress(user.streetAddress || "");
         setZipCode(user.zipCode || "");
         setRole(user.role || "");
+        setAbout(user.about || "");
+        setPhotoURL(user.photoURL || null);
+        setIdVerificationUrl(user.idVerificationUrl || null);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -175,24 +213,6 @@ export default function AdminDashboard() {
         try {
             await updateUserDocument(firestore, user.id, { isApproved: newStatus }, userData);
             toast({ title: "Updated", description: `${user.fullName} status modified.` });
-        } catch (error: any) {
-             toast({ variant: "destructive", title: "Error", description: error.message });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleToggleRole = async (user: any) => {
-        if (!hasExecutiveAccess || user.id === userData?.uid) return;
-        const newRole = user.role === 'Officer' ? 'Member' : 'Officer';
-        if (!UNLIMITED_ROLES.includes(newRole) && takenRoles.includes(newRole)) {
-          toast({ variant: "destructive", title: "Position Occupied" });
-          return;
-        }
-        setLoading(true);
-        try {
-            await updateUserDocument(firestore, user.id, { role: newRole }, userData);
-            toast({ title: "Updated", description: `${user.fullName} role modified.` });
         } catch (error: any) {
              toast({ variant: "destructive", title: "Error", description: error.message });
         } finally {
@@ -234,19 +254,39 @@ export default function AdminDashboard() {
         }
 
         setLoading(true);
-        const commonData = {
-            fullName: fullName.trim().toUpperCase(), 
-            phoneNumber: phoneNumber.trim(),
-            province: selectedProvince.toUpperCase(),
-            city: selectedCity.toUpperCase(),
-            barangay: selectedBarangay.toUpperCase(),
-            streetAddress: streetAddress.toUpperCase(),
-            zipCode: zipCode.trim(),
-            islandGroup: getIslandGroup(selectedProvince),
-            role
-        };
-
+        
         try {
+            let finalPhotoURL = photoURL;
+            let finalIdURL = idVerificationUrl;
+
+            // Handle File Uploads
+            if (selectedPhotoFile && (isEditMode || !isEditMode)) {
+                const photoRef = ref(storage, `users/${selectedUser?.id || Date.now()}/profile.jpg`);
+                const result = await uploadBytes(photoRef, selectedPhotoFile);
+                finalPhotoURL = await getDownloadURL(result.ref);
+            }
+
+            if (selectedIdFile && (isEditMode || !isEditMode)) {
+                const idRef = ref(storage, `users/${selectedUser?.id || Date.now()}/verification.${selectedIdFile.name.split('.').pop()}`);
+                const result = await uploadBytes(idRef, selectedIdFile);
+                finalIdURL = await getDownloadURL(result.ref);
+            }
+
+            const commonData = {
+                fullName: fullName.trim().toUpperCase(), 
+                phoneNumber: phoneNumber.trim(),
+                province: selectedProvince.toUpperCase(),
+                city: selectedCity.toUpperCase(),
+                barangay: selectedBarangay.toUpperCase(),
+                streetAddress: streetAddress.toUpperCase(),
+                zipCode: zipCode.trim(),
+                islandGroup: getIslandGroup(selectedProvince),
+                role,
+                about: about.trim(),
+                photoURL: finalPhotoURL,
+                idVerificationUrl: finalIdURL
+            };
+
             if (isEditMode && selectedUser) {
                 await updateUserDocument(firestore, selectedUser.id, commonData, userData);
                 toast({ title: "Updated" });
@@ -257,10 +297,28 @@ export default function AdminDashboard() {
                 try {
                     const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
                     const uid = userCredential.user.uid;
+                    
+                    // Finalize IDs if new user
+                    let photoPath = finalPhotoURL;
+                    let idPath = finalIdURL;
+                    
+                    if (selectedPhotoFile) {
+                        const photoRef = ref(storage, `users/${uid}/profile.jpg`);
+                        await uploadBytes(photoRef, selectedPhotoFile);
+                        photoPath = await getDownloadURL(photoRef);
+                    }
+                    if (selectedIdFile) {
+                        const idRef = ref(storage, `users/${uid}/verification.${selectedIdFile.name.split('.').pop()}`);
+                        await uploadBytes(idRef, selectedIdFile);
+                        idPath = await getDownloadURL(idRef);
+                    }
+
                     await setDoc(doc(firestore, 'users', uid), {
                         uid,
                         email: email.toLowerCase(),
                         ...commonData,
+                        photoURL: photoPath,
+                        idVerificationUrl: idPath,
                         isApproved: true,
                         kartilyaAgreed: true,
                         createdAt: serverTimestamp(),
@@ -376,19 +434,57 @@ export default function AdminDashboard() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2 pt-2 border-t border-dashed">
-                                    <Label className="text-[10px] font-black uppercase text-primary">Organizational Rank</Label>
-                                    <Select onValueChange={setRole} value={role}>
-                                        <SelectTrigger className="h-12 border-2">
-                                            <SelectValue placeholder="Select Rank..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {allAssignableRoles.map(r => {
-                                              const isTaken = !UNLIMITED_ROLES.includes(r) && takenRoles.includes(r) && (!isEditMode || selectedUser?.role !== r);
-                                              return <SelectItem key={r} value={r} disabled={isTaken} className="font-bold uppercase text-[10px]">{r} {isTaken ? '(Taken)' : ''}</SelectItem>;
-                                            })}
-                                        </SelectContent>
-                                    </Select>
+                                <div className="space-y-4 pt-2 border-t border-dashed">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase text-primary">Profile Photo</Label>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-12 w-12 border-2">
+                                                    <AvatarImage src={photoURL || ""} />
+                                                    <AvatarFallback>{fullName?.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()}>
+                                                    <Camera className="h-4 w-4 mr-2" /> {selectedPhotoFile ? 'Changed' : 'Upload'}
+                                                </Button>
+                                                <input type="file" ref={photoInputRef} className="hidden" accept="image/*" onChange={(e) => {
+                                                    const f = e.target.files?.[0];
+                                                    if(f){ setSelectedPhotoFile(f); setPhotoURL(URL.createObjectURL(f)); }
+                                                }} />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase text-primary">Induction File</Label>
+                                            <Button type="button" variant="outline" className="w-full h-12 text-[10px] font-bold uppercase" onClick={() => idInputRef.current?.click()}>
+                                                <FileUp className="h-4 w-4 mr-2" /> {selectedIdFile ? 'File Selected' : 'Upload PDF/Doc'}
+                                            </Button>
+                                            <input type="file" ref={idInputRef} className="hidden" accept=".pdf,.doc,.docx,image/*" onChange={(e) => setSelectedIdFile(e.target.files?.[0] || null)} />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-primary">About / Biography</Label>
+                                        <Textarea 
+                                            placeholder="Short officer description for the directory tooltip..." 
+                                            value={about} 
+                                            onChange={e => setAbout(e.target.value)} 
+                                            className="min-h-[80px] text-xs font-medium border-2" 
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-primary">Organizational Rank</Label>
+                                        <Select onValueChange={setRole} value={role}>
+                                            <SelectTrigger className="h-12 border-2">
+                                                <SelectValue placeholder="Select Rank..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {allAssignableRoles.map(r => {
+                                                  const isTaken = !UNLIMITED_ROLES.includes(r) && takenRoles.includes(r) && (!isEditMode || selectedUser?.role !== r);
+                                                  return <SelectItem key={r} value={r} disabled={isTaken} className="font-bold uppercase text-[10px]">{r} {isTaken ? '(Taken)' : ''}</SelectItem>;
+                                                })}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
                             </CardContent>
                             <CardFooter className="flex flex-col gap-2 bg-muted/30 pt-6">

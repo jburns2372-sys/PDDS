@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCollection, useFirestore } from '@/firebase';
@@ -159,7 +158,7 @@ export function DirectoryClient() {
       return isSupporter && matchesSearch;
     });
 
-    const groups = {};
+    const groups = {} as any;
     supporters.forEach(u => {
       const key = `${u.province || 'Unknown'} > ${u.city || 'Unknown'}`;
       const b = u.barangay || 'Unknown Barangay';
@@ -190,7 +189,7 @@ export function DirectoryClient() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {pddsLeadershipRoles.map(role => {
                 const officer = users.find(u => u.role === role && u.jurisdictionLevel === level);
-                return <OfficerCard key={role} role={role} name={officer?.fullName || ""} photoURL={officer?.photoURL} />;
+                return <OfficerCard key={role} role={role} name={officer?.fullName || ""} photoURL={officer?.photoURL} about={officer?.about} />;
               })}
             </div>
           </TabsContent>
@@ -214,7 +213,7 @@ export function DirectoryClient() {
                       <div key={brgy} className="mb-6">
                         <h3 className="text-[9px] font-black text-primary/40 uppercase tracking-widest mb-3 border-b pb-1">Barangay: {brgy}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {groupedSupporters[loc][brgy].map(s => (
+                          {groupedSupporters[loc][brgy].map((s: any) => (
                             <Card key={s.id} className="shadow-sm border-l-4 border-l-accent group">
                               <CardContent className="p-4 space-y-2">
                                 <div className="flex justify-between items-start">
