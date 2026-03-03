@@ -27,7 +27,7 @@ const NCR_CODE = "130000000";
 
 /**
  * @fileOverview Enhanced National Member Induction Page.
- * Features biometric capture, cascading location selects, and automated zip code sync by barangay.
+ * Features biometric capture, cascading location selects, and automated zip code sync.
  */
 export default function JoinPage() {
     const auth = useAuth();
@@ -120,7 +120,7 @@ export default function JoinPage() {
 
     // AUTO-SYNC ZIP CODE TO BARANGAY / CITY
     useEffect(() => {
-        if (selectedCity) {
+        if (selectedCity && selectedBarangay) {
             setZipCode(getZipCode(selectedCity, selectedBarangay));
         }
     }, [selectedBarangay, selectedCity]);
@@ -174,7 +174,7 @@ export default function JoinPage() {
             const result = await signInWithPhoneNumber(auth, phoneNumber, verifierRef.current);
             setConfirmationResult(result);
             setShowOtpInput(true);
-            toast({ title: "SMS Sent", description: "Verify your number to continue." });
+            toast({ title: "SMS Sent", description: "Verify your number to continue induction." });
         } catch (error: any) {
             toast({ variant: "destructive", title: "Error", description: error.message });
         } finally {
@@ -285,12 +285,12 @@ export default function JoinPage() {
                                     <div className="flex flex-col items-center gap-4 p-4 bg-muted/30 rounded-2xl border-2 border-dashed">
                                         {isCameraOpen ? (
                                             <div className="w-full space-y-3">
-                                                <div className="relative aspect-square rounded-xl overflow-hidden bg-black max-w-[240px] mx-auto">
+                                                <div className="relative aspect-square rounded-xl overflow-hidden bg-black max-w-[240px] mx-auto shadow-inner">
                                                     <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <Button type="button" onClick={capturePhoto} className="flex-1 font-bold">Capture</Button>
-                                                    <Button type="button" variant="outline" onClick={stopCamera}><XCircle className="h-4 w-4" /></Button>
+                                                    <Button type="button" onClick={capturePhoto} className="flex-1 font-black uppercase text-xs">Capture</Button>
+                                                    <Button type="button" variant="outline" onClick={stopCamera} className="h-10 px-3"><XCircle className="h-4 w-4" /></Button>
                                                 </div>
                                                 <canvas ref={canvasRef} className="hidden" />
                                             </div>
@@ -301,11 +301,11 @@ export default function JoinPage() {
                                             </div>
                                         ) : (
                                             <div className="grid grid-cols-2 gap-4 w-full">
-                                                <Button type="button" variant="outline" className="h-20 flex flex-col gap-2" onClick={startCamera}>
+                                                <Button type="button" variant="outline" className="h-20 flex flex-col gap-2 border-2" onClick={startCamera}>
                                                     <Camera className="h-6 w-6" />
                                                     <span className="text-[10px] font-black uppercase">Take Selfie</span>
                                                 </Button>
-                                                <Button type="button" variant="outline" className="h-20 flex flex-col gap-2" onClick={() => document.getElementById('photo-upload')?.click()}>
+                                                <Button type="button" variant="outline" className="h-20 flex flex-col gap-2 border-2" onClick={() => document.getElementById('photo-upload')?.click()}>
                                                     <Upload className="h-6 w-6" />
                                                     <span className="text-[10px] font-black uppercase">Upload Photo</span>
                                                 </Button>
@@ -318,65 +318,65 @@ export default function JoinPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-primary">Full Name</Label>
-                                        <Input placeholder="JUAN DELA CRUZ" className="h-12 font-bold" required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} />
+                                        <Input placeholder="JUAN DELA CRUZ" className="h-12 font-bold uppercase border-2" required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-primary">Phone Number</Label>
-                                        <Input placeholder="+639..." className="h-12 font-bold" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
+                                        <Input placeholder="+639..." className="h-12 font-bold border-2" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-primary">Email Address</Label>
-                                    <Input type="email" placeholder="juan@example.com" className="h-12 font-bold" required value={email} onChange={e => setEmail(e.target.value)} />
+                                    <Input type="email" placeholder="juan@example.com" className="h-12 font-bold border-2" required value={email} onChange={e => setEmail(e.target.value)} />
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-primary">Password</Label>
-                                    <Input type="password" required className="h-12" value={password} onChange={e => setPassword(e.target.value)} minLength={6} />
+                                    <Input type="password" required className="h-12 border-2" value={password} onChange={e => setPassword(e.target.value)} minLength={6} />
                                 </div>
 
                                 <div className="space-y-4 pt-2 border-t">
                                     <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-2"><MapPin className="h-3 w-3" /> Jurisdictional Address</Label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label className="text-[9px] uppercase">Province</Label>
+                                            <Label className="text-[9px] font-black uppercase">Province</Label>
                                             <Select onValueChange={setSelectedProvince} value={selectedProvince}>
-                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
-                                                <SelectContent>{provinces.map((p) => <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
+                                                <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                <SelectContent>{provinces.map((p) => <SelectItem key={p.code} value={p.name} className="uppercase font-bold text-[10px]">{p.name}</SelectItem>)}</SelectContent>
                                             </Select>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-[9px] uppercase">City / Town</Label>
+                                            <Label className="text-[9px] font-black uppercase">City / Town</Label>
                                             <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
-                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
-                                                <SelectContent>{cities.map((c) => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                                                <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                <SelectContent>{cities.map((c) => <SelectItem key={c.code} value={c.name} className="uppercase font-bold text-[10px]">{c.name}</SelectItem>)}</SelectContent>
                                             </Select>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label className="text-[9px] uppercase">Barangay</Label>
+                                            <Label className="text-[9px] font-black uppercase">Barangay</Label>
                                             <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
-                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
-                                                <SelectContent>{barangays.map((b) => <SelectItem key={b.code} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
+                                                <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                <SelectContent>{barangays.map((b) => <SelectItem key={b.code} value={b.name} className="uppercase font-bold text-[10px]">{b.name}</SelectItem>)}</SelectContent>
                                             </Select>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-[9px] uppercase">Zip Code</Label>
-                                            <Input value={zipCode} readOnly className="h-11 font-bold bg-muted/50" />
+                                            <Label className="text-[9px] font-black uppercase">Zip Code</Label>
+                                            <Input value={zipCode} readOnly className="h-11 font-black bg-muted/50 border-2 cursor-not-allowed" />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-[9px] uppercase">Street / House No.</Label>
-                                        <Input placeholder="House #, Building, Street" value={streetAddress} onChange={e => setStreetAddress(e.target.value.toUpperCase())} className="h-11" required />
+                                        <Label className="text-[9px] font-black uppercase">Street / House No.</Label>
+                                        <Input placeholder="House #, Building, Street" value={streetAddress} onChange={e => setStreetAddress(e.target.value.toUpperCase())} className="h-11 border-2" required />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2 pt-2 border-t">
                                     <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-2"><FileUp className="h-3 w-3" /> Vetting Documents (Optional)</Label>
                                     <div className="flex flex-col gap-3">
-                                        <Input type="file" className="h-11 pt-2" onChange={e => setIdFile(e.target.files?.[0] || null)} />
+                                        <Input type="file" className="h-11 pt-2 border-2" onChange={e => setIdFile(e.target.files?.[0] || null)} />
                                         <p className="text-[8px] font-bold text-muted-foreground uppercase">Upload a government ID to fast-track your induction status.</p>
                                     </div>
                                 </div>
@@ -412,7 +412,7 @@ export default function JoinPage() {
                                 <CardDescription className="font-medium text-muted-foreground">Enter the 6-digit code sent to {phoneNumber}</CardDescription>
                             </CardHeader>
                             <div className="space-y-4">
-                                <Input id="otp" placeholder="000000" maxLength={6} className="text-center text-3xl font-black tracking-[0.5em] h-16" value={otp} onChange={e => setOtp(e.target.value)} />
+                                <Input id="otp" placeholder="000000" maxLength={6} className="text-center text-3xl font-black tracking-[0.5em] h-16 border-2" value={otp} onChange={e => setOtp(e.target.value)} />
                                 <Button className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" onClick={handleVerifyAndComplete} disabled={loading || otp.length !== 6}>
                                     {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Registry"}
                                 </Button>

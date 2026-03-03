@@ -45,7 +45,8 @@ const NCR_CODE = "130000000";
 
 /**
  * @fileOverview Member Profile & Registry Management.
- * Features automated Zip Code sync when Barangay is selected and verified Phone Number flow.
+ * Synchronizes local state with National Registry Data.
+ * Clicking "Sync Profile" overrides previous registry data with current local inputs.
  */
 export default function ProfilePage() {
     const { user, userData, loading: userLoading } = useUserData();
@@ -54,7 +55,7 @@ export default function ProfilePage() {
     const storage = useStorage();
     const { toast } = useToast();
 
-    // Profile fields
+    // Registry fields
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
@@ -72,6 +73,7 @@ export default function ProfilePage() {
     const [selectedBarangay, setSelectedBarangay] = useState<string>("");
 
     // UI State
+    const [isInitialized, setIsInitialized] = useState(false);
     const [saving, setSaving] = useState(false);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
 
@@ -93,6 +95,7 @@ export default function ProfilePage() {
     const streamRef = useRef<MediaStream | null>(null);
     const verifierRef = useRef<RecaptchaVerifier | null>(null);
 
+    // Fetch master location data once
     useEffect(() => {
         const fetchProvinces = async () => {
             try {
@@ -107,8 +110,9 @@ export default function ProfilePage() {
         fetchProvinces();
     }, []);
 
+    // Initialize local state from National Registry Data (Default Information)
     useEffect(() => {
-        if (userData) {
+        if (userData && !isInitialized) {
             setFullName(userData.fullName || "");
             setEmail(userData.email || "");
             setPhoneNumber(userData.phoneNumber || "");
@@ -119,13 +123,15 @@ export default function ProfilePage() {
             setSelectedCity(userData.city || "");
             setSelectedBarangay(userData.barangay || "");
             setIsPhoneVerified(!!userData.phoneNumber);
+            setIsInitialized(true);
         }
-    }, [userData]);
+    }, [userData, isInitialized]);
 
+    // Update cities when province changes
     useEffect(() => {
         if (!selectedProvince) { setCities([]); return; }
         const fetchCities = async () => {
-            const province = provinces.find(p => p.name === selectedProvince);
+            const province = provinces.find((p: any) => p.name === selectedProvince);
             if (province) {
                 const endpoint = province.isNCR 
                     ? `https://psgc.gitlab.io/api/regions/${NCR_CODE}/cities-municipalities/`
@@ -138,10 +144,11 @@ export default function ProfilePage() {
         fetchCities();
     }, [selectedProvince, provinces]);
 
+    // Update barangays when city changes
     useEffect(() => {
         if (!selectedCity) { setBarangays([]); return; }
         const fetchBarangays = async () => {
-            const city = cities.find(c => c.name === selectedCity);
+            const city = cities.find((c: any) => c.name === selectedCity);
             if (city) {
                 const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
                 const data = await response.json();
@@ -151,9 +158,9 @@ export default function ProfilePage() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
-    // AUTO-SYNC ZIP CODE TO BARANGAY / CITY
+    // AUTO-SYNC ZIP CODE TO BARANGAY / CITY (Pre-save sync)
     useEffect(() => {
-        if (selectedCity) {
+        if (selectedCity && selectedBarangay) {
             setZipCode(getZipCode(selectedCity, selectedBarangay));
         }
     }, [selectedBarangay, selectedCity]);
@@ -165,7 +172,7 @@ export default function ProfilePage() {
             streamRef.current = stream;
             if (videoRef.current) videoRef.current.srcObject = stream;
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Camera Error', description: 'Enable permissions.' });
+            toast({ variant: 'destructive', title: 'Camera Error', description: 'Please enable camera permissions.' });
             setIsCameraOpen(false);
         }
     };
@@ -193,7 +200,7 @@ export default function ProfilePage() {
 
     const handleSendVerificationSms = async () => {
         if (!phoneNumber || phoneNumber.length < 13) {
-            toast({ variant: "destructive", title: "Invalid Phone Number" });
+            toast({ variant: "destructive", title: "Invalid Phone Number", description: "Use +639XXXXXXXXX format." });
             return;
         }
         setSaving(true);
@@ -204,9 +211,9 @@ export default function ProfilePage() {
             const result = await signInWithPhoneNumber(auth, phoneNumber, verifierRef.current);
             setConfirmationResult(result);
             setShowOtpInput(true);
-            toast({ title: "Verification Sent" });
+            toast({ title: "Verification SMS Sent" });
         } catch (error: any) {
-            toast({ variant: "destructive", title: "SMS Failed", description: error.message });
+            toast({ variant: "destructive", title: "SMS Service Failed", description: error.message });
         } finally {
             setSaving(false);
         }
@@ -219,9 +226,9 @@ export default function ProfilePage() {
             await confirmationResult.confirm(otp);
             setIsPhoneVerified(true);
             setShowOtpInput(false);
-            toast({ title: "Phone Verified" });
+            toast({ title: "Phone Number Verified" });
         } catch (error: any) {
-            toast({ variant: "destructive", title: "Incorrect Code" });
+            toast({ variant: "destructive", title: "Incorrect OTP", description: "Verification code does not match." });
         } finally {
             setSaving(false);
         }
@@ -231,6 +238,7 @@ export default function ProfilePage() {
         e.preventDefault();
         if (!user) return;
 
+        // Ensure phone is verified if it changed
         if (phoneNumber !== userData?.phoneNumber && !isPhoneVerified) {
             handleSendVerificationSms();
             return;
@@ -243,11 +251,11 @@ export default function ProfilePage() {
                 try {
                     await updateEmail(user, email);
                 } catch (emailError: any) {
-                    toast({ variant: "destructive", title: "Email Update Error", description: "Re-login required to update email for security reasons." });
+                    console.warn("Auth email update requires recent login:", emailError);
                 }
             }
 
-            // 2. Upload Profile Photo if changed
+            // 2. Upload Profile Photo if a new one was captured/selected
             let finalPhotoURL = photoURL;
             if (selectedFile) {
                 const photoRef = ref(storage, `users/${user.uid}/profile.jpg`);
@@ -255,9 +263,9 @@ export default function ProfilePage() {
                 finalPhotoURL = await getDownloadURL(photoRef);
             }
 
-            // 3. Update Firestore Registry
+            // 3. Update National Registry Document (Override Last Information)
             const userRef = doc(firestore, "users", user.uid);
-            await updateDoc(userRef, {
+            const registryData = {
                 fullName: fullName.trim().toUpperCase(),
                 email: email.trim().toLowerCase(),
                 phoneNumber: phoneNumber.trim(),
@@ -268,12 +276,16 @@ export default function ProfilePage() {
                 islandGroup: getIslandGroup(selectedProvince),
                 zipCode: zipCode.trim(),
                 photoURL: finalPhotoURL,
-            });
+                lastActive: serverTimestamp(),
+            };
 
-            toast({ title: "Profile Updated", description: "Induction record synchronized." });
+            await updateDoc(userRef, registryData);
+
+            toast({ title: "Registry Synchronized", description: "Your information has been updated in the National Database." });
             setSelectedFile(null);
+            setIsInitialized(false); // Force re-sync with registry defaults
         } catch (error: any) {
-            toast({ variant: "destructive", title: "Update Failed", description: error.message });
+            toast({ variant: "destructive", title: "Sync Failed", description: error.message });
         } finally {
             setSaving(false);
         }
@@ -303,18 +315,18 @@ export default function ProfilePage() {
                 vettingStatus: "Pending Audit"
             });
 
-            toast({ title: "ID Uploaded", description: "Vetting queue updated for Sec-Gen audit." });
+            toast({ title: "Identification Logged", description: "Document archived for Sec-Gen review." });
             setShowConsent(false);
             setIdForUpload(null);
         } catch (error: any) {
-            toast({ variant: "destructive", title: "Upload Failed" });
+            toast({ variant: "destructive", title: "Asset Upload Failed" });
         } finally {
             setIsUploadingId(false);
         }
     };
 
     const handleRequestErasure = async () => {
-        const conf = prompt("WARNING: Type 'PURGE MY DATA' to formally request account deletion.");
+        const conf = prompt("DANGER ZONE: Type 'PURGE MY DATA' to formally request account deletion under RA 10173.");
         if (conf !== "PURGE MY DATA") return;
 
         try {
@@ -326,11 +338,18 @@ export default function ProfilePage() {
                 timestamp: serverTimestamp(),
                 systemLevel: "PRIVACY_PROTOCOL"
             });
-            toast({ title: "Request Logged", description: "The Secretary General has been notified." });
+            toast({ title: "Purge Request Logged", description: "The Secretary General has been alerted to your data rights request." });
         } catch (e) {}
     };
 
-    if (userLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+    if (userLoading) return (
+        <div className="flex h-screen items-center justify-center bg-white">
+            <div className="flex flex-col items-center gap-4">
+                <Loader2 className="animate-spin h-10 w-10 text-primary" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">Fetching Registry Defaults...</p>
+            </div>
+        </div>
+    );
 
     const needsVerification = phoneNumber !== userData?.phoneNumber && !isPhoneVerified;
 
@@ -340,10 +359,10 @@ export default function ProfilePage() {
             <div className="bg-card p-6 md:p-8 border-b shadow-sm">
                 <div className="max-w-5xl mx-auto flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-bold font-headline text-primary uppercase">Member Profile</h1>
-                        <p className="mt-1 text-sm text-muted-foreground font-medium">Manage your induction data.</p>
+                        <h1 className="text-3xl font-black font-headline text-primary uppercase tracking-tight">Member Profile</h1>
+                        <p className="mt-1 text-xs text-muted-foreground font-bold uppercase tracking-widest">National Registry Oversight</p>
                     </div>
-                    <Button onClick={() => auth.signOut()} variant="outline" size="sm" className="text-destructive font-bold uppercase text-[10px] tracking-widest">
+                    <Button onClick={() => auth.signOut()} variant="outline" size="sm" className="text-destructive font-black uppercase text-[10px] tracking-widest border-2">
                         <LogOut className="mr-2 h-3 w-3" /> Sign Out
                     </Button>
                 </div>
@@ -351,36 +370,57 @@ export default function ProfilePage() {
 
             <div className="p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8">
                 <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    {/* Left: Identity & Vetting */}
                     <div className="lg:col-span-1 space-y-6">
-                        <Card className="shadow-lg overflow-hidden">
-                            <CardHeader className="bg-primary text-primary-foreground text-center pb-8 pt-10">
-                                <Avatar className="h-32 w-32 border-4 border-white shadow-xl bg-background mx-auto">
+                        <Card className="shadow-lg overflow-hidden border-none bg-white">
+                            <CardHeader className="bg-primary text-primary-foreground text-center pb-8 pt-10 relative">
+                                <div className="absolute inset-0 opacity-10 pointer-events-none">
+                                    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                                        <pattern id="profile-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" strokeWidth="0.5"/>
+                                        </pattern>
+                                        <rect width="100%" height="100%" fill="url(#profile-grid)" />
+                                    </svg>
+                                </div>
+                                <Avatar className="h-32 w-32 border-4 border-white shadow-2xl bg-background mx-auto relative z-10">
                                     <AvatarImage src={photoURL || ""} className="object-cover" />
-                                    <AvatarFallback className="text-4xl font-bold">{fullName?.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback className="text-4xl font-black bg-muted text-primary">{fullName?.charAt(0)}</AvatarFallback>
                                 </Avatar>
-                                <div className="mt-4">
-                                    <h2 className="text-xl font-black uppercase tracking-tight">{fullName || 'PATRIOT'}</h2>
-                                    <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{userData?.role}</p>
+                                <div className="mt-4 relative z-10">
+                                    <h2 className="text-xl font-black uppercase tracking-tight leading-none">{fullName || 'PATRIOT'}</h2>
+                                    <Badge className="bg-accent text-primary font-black text-[9px] uppercase border-none mt-2">
+                                        {userData?.role}
+                                    </Badge>
                                 </div>
                             </CardHeader>
                             <CardContent className="pt-6">
                                 {isCameraOpen ? (
                                     <div className="space-y-3">
-                                        <div className="relative rounded-lg overflow-hidden bg-black aspect-square"><video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline /></div>
-                                        <div className="flex gap-2"><Button type="button" onClick={capturePhoto} className="flex-1 text-xs font-bold">Capture</Button><Button type="button" variant="outline" size="sm" onClick={stopCamera}><X className="h-3 w-3" /></Button></div>
+                                        <div className="relative rounded-2xl overflow-hidden bg-black aspect-square shadow-inner">
+                                            <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button type="button" onClick={capturePhoto} className="flex-1 font-black uppercase text-xs">Capture</Button>
+                                            <Button type="button" variant="outline" onClick={stopCamera} className="h-10 px-3"><X className="h-4 w-4" /></Button>
+                                        </div>
                                         <canvas ref={canvasRef} className="hidden" />
                                     </div>
                                 ) : (
                                     <div className="flex flex-col gap-2">
-                                        <Button type="button" variant="outline" className="w-full text-xs font-bold" onClick={startCamera}><Camera className="mr-2 h-4 w-4" /> Take Selfie</Button>
-                                        <Button type="button" variant="ghost" className="w-full text-[10px] font-bold uppercase" onClick={() => fileInputRef.current?.click()}>Upload Photo</Button>
+                                        <Button type="button" variant="outline" className="w-full font-black uppercase text-[10px] tracking-widest h-12 border-2" onClick={startCamera}>
+                                            <Camera className="mr-2 h-4 w-4" /> Capture New Selfie
+                                        </Button>
+                                        <Button type="button" variant="ghost" className="w-full text-[9px] font-black uppercase tracking-widest text-muted-foreground" onClick={() => fileInputRef.current?.click()}>
+                                            Or Upload Photo File
+                                        </Button>
                                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={e => {const f=e.target.files?.[0]; if(f){setSelectedFile(f); const r=new FileReader(); r.onloadend=()=>setPhotoURL(r.result as string); r.readAsDataURL(f);}}} />
                                     </div>
                                 )}
                             </CardContent>
                         </Card>
 
-                        <Card className="shadow-lg border-t-4 border-emerald-600">
+                        <Card className="shadow-lg border-t-4 border-emerald-600 bg-white">
                             <CardHeader>
                                 <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-800 flex items-center gap-2">
                                     <ShieldCheck className="h-4 w-4" />
@@ -388,14 +428,19 @@ export default function ProfilePage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
-                                    Upload documents to upgrade your vetting status.
-                                </p>
+                                <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                                    <p className="text-[9px] font-bold text-emerald-800 uppercase leading-relaxed">
+                                        Tier: <span className="font-black underline">{userData?.vettingLevel || 'BRONZE'}</span>
+                                    </p>
+                                    <p className="text-[8px] font-medium text-emerald-600 uppercase mt-1">
+                                        Upload documents to request Gold elevation.
+                                    </p>
+                                </div>
                                 <Button 
                                     type="button"
                                     onClick={() => idInputRef.current?.click()} 
                                     variant="outline"
-                                    className="w-full h-12 border-emerald-600 text-emerald-700 font-black uppercase text-[10px] tracking-widest"
+                                    className="w-full h-12 border-emerald-600 text-emerald-700 font-black uppercase text-[10px] tracking-widest hover:bg-emerald-50"
                                     disabled={userData?.vettingStatus === "Pending Audit"}
                                 >
                                     <FileUp className="mr-2 h-4 w-4" />
@@ -406,98 +451,123 @@ export default function ProfilePage() {
                         </Card>
                     </div>
 
+                    {/* Right: National Registry Data */}
                     <div className="lg:col-span-2 space-y-6">
-                        <Card className="shadow-xl border-t-4 border-primary">
-                            <CardHeader><CardTitle className="text-xl font-headline flex items-center gap-2 uppercase tracking-tight"><User className="h-5 w-5" /> National Registry Data</CardTitle></CardHeader>
+                        <Card className="shadow-xl border-t-4 border-primary bg-white">
+                            <CardHeader>
+                                <CardTitle className="text-xl font-headline flex items-center gap-2 uppercase tracking-tight text-primary">
+                                    <User className="h-5 w-5 text-accent" /> 
+                                    National Registry Data
+                                </CardTitle>
+                            </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Full Name</Label>
-                                        <Input value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="h-11 font-bold uppercase" />
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary/60">Full Legal Name</Label>
+                                        <Input value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="h-12 font-bold uppercase border-2 focus:border-primary transition-all" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Email Address</Label>
-                                        <div className="relative">
-                                            <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                                            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-11 pl-10" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Contact Number</Label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <Phone className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                                                <Input value={phoneNumber} onChange={e => {setPhoneNumber(e.target.value); setIsPhoneVerified(false);}} className="h-11 pl-10" placeholder="+639..." />
-                                            </div>
-                                            {needsVerification && !showOtpInput && <Button type="button" onClick={handleSendVerificationSms} variant="outline" className="border-primary text-primary font-bold">Verify</Button>}
-                                        </div>
-                                        {showOtpInput && (
-                                            <div className="mt-2 p-4 bg-muted/50 rounded-lg space-y-3">
-                                                <Label className="text-[10px] font-black">Induction Code</Label>
-                                                <div className="flex gap-2"><Input value={otp} onChange={e => setOtp(e.target.value)} placeholder="000000" maxLength={6} className="text-center font-bold" /><Button type="button" onClick={handleVerifyOtp}>Confirm</Button></div>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase text-primary">Province</Label>
-                                            <Select onValueChange={setSelectedProvince} value={selectedProvince}>
-                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
-                                                <SelectContent>{provinces.map(p => <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase text-primary">City</Label>
-                                            <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
-                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
-                                                <SelectContent>{cities.map(c => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
+                                    
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase text-primary">Barangay</Label>
-                                            <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
-                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
-                                                <SelectContent>{barangays.map(b => <SelectItem key={b.code} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
-                                            </Select>
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary/60">Email Address</Label>
+                                            <div className="relative">
+                                                <Mail className="absolute left-3 top-4 h-4 w-4 text-muted-foreground" />
+                                                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-12 pl-10 border-2" />
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase text-primary">Zip Code</Label>
-                                            <Input value={zipCode} readOnly className="h-11 font-bold bg-muted/50" />
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-primary/60">Contact Number</Label>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <Phone className="absolute left-3 top-4 h-4 w-4 text-muted-foreground" />
+                                                    <Input value={phoneNumber} onChange={e => {setPhoneNumber(e.target.value); setIsPhoneVerified(false);}} className="h-12 pl-10 border-2 font-bold" placeholder="+639..." />
+                                                </div>
+                                                {needsVerification && !showOtpInput && (
+                                                    <Button type="button" onClick={handleSendVerificationSms} variant="outline" className="h-12 border-primary text-primary font-black uppercase text-[10px] px-4">
+                                                        Verify
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            {showOtpInput && (
+                                                <div className="mt-2 p-4 bg-muted/50 rounded-xl space-y-3 border-2 border-primary/20">
+                                                    <Label className="text-[10px] font-black uppercase">Induction OTP</Label>
+                                                    <div className="flex gap-2">
+                                                        <Input value={otp} onChange={e => setOtp(e.target.value)} placeholder="000000" maxLength={6} className="h-12 text-center font-black tracking-[0.5em] text-lg" />
+                                                        <Button type="button" onClick={handleVerifyOtp} className="h-12 font-black uppercase text-xs">Confirm</Button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase text-primary">Street / House No.</Label>
-                                        <Input placeholder="House #, Building, Street" value={streetAddress} onChange={e => setStreetAddress(e.target.value.toUpperCase())} className="h-11" required />
+
+                                    <div className="pt-4 border-t border-dashed">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary mb-4 block flex items-center gap-2">
+                                            <MapPin className="h-3 w-3" /> Jurisdictional Footprint
+                                        </Label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[9px] font-black uppercase">Province</Label>
+                                                <Select onValueChange={setSelectedProvince} value={selectedProvince}>
+                                                    <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                    <SelectContent>{provinces.map((p: any) => <SelectItem key={p.code} value={p.name} className="font-bold uppercase text-[10px]">{p.name}</SelectItem>)}</SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[9px] font-black uppercase">City / Municipality</Label>
+                                                <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
+                                                    <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                    <SelectContent>{cities.map((c: any) => <SelectItem key={c.code} value={c.name} className="font-bold uppercase text-[10px]">{c.name}</SelectItem>)}</SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[9px] font-black uppercase">Barangay</Label>
+                                                <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
+                                                    <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                    <SelectContent>{barangays.map((b: any) => <SelectItem key={b.code} value={b.name} className="font-bold uppercase text-[10px]">{b.name}</SelectItem>)}</SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[9px] font-black uppercase">Zip Code (Auto-Sync)</Label>
+                                                <Input value={zipCode} readOnly className="h-11 font-black bg-muted/50 border-2 cursor-not-allowed text-primary" />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2 mt-4">
+                                            <Label className="text-[9px] font-black uppercase">Street / House No.</Label>
+                                            <Input placeholder="House #, Building, Street" value={streetAddress} onChange={e => setStreetAddress(e.target.value.toUpperCase())} className="h-11 border-2 font-medium" required />
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>
-                            <CardFooter className="bg-muted/30 border-t pt-6">
-                                <Button type="submit" className="w-full md:w-auto h-12 px-10 text-lg font-black uppercase tracking-widest" disabled={saving || (phoneNumber !== userData?.phoneNumber && !isPhoneVerified)}>
-                                    {saving ? <Loader2 className="animate-spin" /> : <><Save className="mr-2 h-4 w-4" /> Sync Profile</>}
+                            <CardFooter className="bg-muted/30 border-t pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div className="text-[8px] font-black uppercase text-muted-foreground tracking-widest text-center md:text-left">
+                                    Registry ID: {userData?.uid?.substring(0, 12).toUpperCase()}
+                                </div>
+                                <Button type="submit" className="w-full md:w-auto h-14 px-12 text-sm font-black uppercase tracking-widest shadow-2xl bg-primary hover:bg-primary/90" disabled={saving || needsVerification}>
+                                    {saving ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : <><Save className="mr-2 h-5 w-5 text-accent" /> Sync Profile</>}
                                 </Button>
                             </CardFooter>
                         </Card>
 
-                        <Card className="border-red-200 bg-red-50/30">
-                            <CardHeader>
+                        <Card className="border-red-200 bg-red-50/30 overflow-hidden">
+                            <CardHeader className="bg-red-50">
                                 <CardTitle className="text-sm font-black uppercase tracking-widest text-red-700 flex items-center gap-2">
                                     <AlertTriangle className="h-4 w-4" />
-                                    Privacy Control
+                                    Data Sovereignty Zone
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent className="space-y-4 pt-4">
                                 <p className="text-[10px] font-bold text-red-900/60 uppercase leading-relaxed">
-                                    Under **RA 10173**, you have the right to request the erasure of your personal data from the movement's digital ledger.
+                                    In accordance with **RA 10173 (Data Privacy Act of 2012)**, you may request the full erasure of your induction metadata and associated biometric assets from the National Registry.
                                 </p>
                                 <Button 
                                     type="button" 
                                     variant="outline" 
-                                    className="w-full border-red-200 text-red-700 hover:bg-red-50 font-black uppercase text-[10px] tracking-widest"
+                                    className="w-full border-red-200 text-red-700 hover:bg-red-100 font-black uppercase text-[10px] tracking-widest transition-colors h-12"
                                     onClick={handleRequestErasure}
                                 >
-                                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Request Data Erasure
+                                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Formal Data Purge Request
                                 </Button>
                             </CardContent>
                         </Card>
@@ -507,32 +577,32 @@ export default function ProfilePage() {
 
             {/* RA 10173 Consent Dialog */}
             <Dialog open={showConsent} onOpenChange={setShowConsent}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md bg-white">
                     <DialogHeader>
-                        <DialogTitle className="font-headline uppercase text-primary flex items-center gap-2">
-                            <ShieldAlert className="h-5 w-5 text-accent" />
-                            Data Consent Protocol
+                        <DialogTitle className="font-headline uppercase text-primary flex items-center gap-2 text-xl">
+                            <ShieldAlert className="h-6 w-6 text-accent" />
+                            Security Protocol
                         </DialogTitle>
                         <DialogDescription className="text-xs font-bold uppercase tracking-tight pt-2">
-                            RA 10173 Compliance Authorization
+                            RA 10173 COMPLIANCE AUTHORIZATION
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-6 space-y-4">
-                        <div className="bg-primary/5 p-4 rounded-xl border border-primary/10">
-                            <p className="text-xs font-medium text-foreground/80 leading-relaxed italic">
-                                "I hereby consent to the secure collection and processing of my identification documents by the PDDS strictly for membership vetting and organizational auditing."
+                        <div className="bg-primary/5 p-5 rounded-2xl border-2 border-dashed border-primary/20">
+                            <p className="text-xs font-medium text-foreground/80 leading-relaxed italic text-center">
+                                "I hereby authorize the PDDS National Secretariat to securely store and process my identification assets strictly for organizational vetting and jurisdictional auditing purposes."
                             </p>
                         </div>
                     </div>
                     <DialogFooter className="flex flex-col gap-3">
                         <Button 
-                            className="w-full h-14 bg-primary hover:bg-primary/90 font-black uppercase tracking-widest shadow-xl" 
+                            className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl rounded-xl" 
                             onClick={confirmIdUpload}
                             disabled={isUploadingId}
                         >
-                            {isUploadingId ? <Loader2 className="animate-spin h-5 w-5" /> : "I Consent & Upload"}
+                            {isUploadingId ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "I Consent & Archive File"}
                         </Button>
-                        <Button variant="ghost" onClick={() => {setShowConsent(false); setIdForUpload(null);}} className="text-[10px] font-black uppercase">Cancel</Button>
+                        <Button variant="ghost" onClick={() => {setShowConsent(false); setIdForUpload(null);}} className="text-[10px] font-black uppercase text-muted-foreground">Cancel Protocol</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
