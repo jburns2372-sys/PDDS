@@ -63,6 +63,7 @@ export const cityCoords: Record<string, [number, number]> = {
 
 /**
  * PDDS Regional Zip Code Directory
+ * Primary source for City/Municipality Zip Codes.
  */
 export const cityZipCodes: Record<string, string> = {
   "QUEZON CITY": "1100",
@@ -81,6 +82,45 @@ export const cityZipCodes: Record<string, string> = {
   "ANTIPOLO CITY": "1870",
   "CALOOCAN CITY": "1400",
   "MANILA": "1000",
+};
+
+/**
+ * Granular Zip Code Lookup Utility
+ * Returns barangay-specific zip code if available, otherwise falls back to city code.
+ */
+export const getZipCode = (city: string, barangay?: string): string => {
+  const cityKey = (city || "").toUpperCase().trim();
+  const brgyKey = (barangay || "").toUpperCase().trim();
+
+  // Granular mapping for complex cities (e.g., Quezon City, Manila)
+  const barangayZipCodes: Record<string, Record<string, string>> = {
+    "QUEZON CITY": {
+      "COMMONWEALTH": "1121",
+      "BATASAN HILLS": "1126",
+      "HOLY SPIRIT": "1127",
+      "BAGONG SILANGAN": "1119",
+      "PAYATAS": "1118",
+      "DILIMAN": "1101",
+      "UP CAMPUS": "1101",
+      "SAN BARTOLOME": "1116"
+    },
+    "CITY OF MANILA": {
+      "INTRAMUROS": "1002",
+      "ERMITA": "1000",
+      "MALATE": "1004",
+      "PACO": "1007",
+      "PANDACAN": "1011",
+      "QUIAPO": "1001",
+      "SAMPALOC": "1008",
+      "SAN MIGUEL": "1005"
+    }
+  };
+
+  if (brgyKey && barangayZipCodes[cityKey] && barangayZipCodes[cityKey][brgyKey]) {
+    return barangayZipCodes[cityKey][brgyKey];
+  }
+
+  return cityZipCodes[cityKey] || "";
 };
 
 export const getIslandGroup = (province: string) => {

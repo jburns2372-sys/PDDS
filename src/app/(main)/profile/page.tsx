@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -32,7 +31,7 @@ import {
     FileUp,
     Mail
 } from "lucide-react";
-import { getIslandGroup, cityZipCodes } from "@/lib/data";
+import { getIslandGroup, getZipCode } from "@/lib/data";
 import {
   Dialog,
   DialogContent,
@@ -46,8 +45,7 @@ const NCR_CODE = "130000000";
 
 /**
  * @fileOverview Member Profile & Registry Management.
- * Features editable Email and verified Phone Number flow with OTP verification.
- * Includes cascading jurisdictional address selects and biometric updates.
+ * Features automated Zip Code sync when Barangay is selected and verified Phone Number flow.
  */
 export default function ProfilePage() {
     const { user, userData, loading: userLoading } = useUserData();
@@ -148,11 +146,17 @@ export default function ProfilePage() {
                 const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
                 const data = await response.json();
                 setBarangays(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
-                setZipCode(cityZipCodes[selectedCity] || "");
             }
         };
         fetchBarangays();
     }, [selectedCity, cities]);
+
+    // AUTO-SYNC ZIP CODE TO BARANGAY / CITY
+    useEffect(() => {
+        if (selectedCity) {
+            setZipCode(getZipCode(selectedCity, selectedBarangay));
+        }
+    }, [selectedBarangay, selectedCity]);
 
     const startCamera = async () => {
         setIsCameraOpen(true);

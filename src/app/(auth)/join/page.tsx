@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -22,13 +21,13 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Loader2, XCircle, Camera, Upload, MapPin, Check, ShieldCheck, FileUp } from "lucide-react";
-import { getIslandGroup, cityZipCodes } from "@/lib/data";
+import { getIslandGroup, getZipCode } from "@/lib/data";
 
 const NCR_CODE = "130000000";
 
 /**
  * @fileOverview Enhanced National Member Induction Page.
- * Features biometric capture, cascading location selects, and verified SMS onboarding.
+ * Features biometric capture, cascading location selects, and automated zip code sync by barangay.
  */
 export default function JoinPage() {
     const auth = useAuth();
@@ -114,12 +113,17 @@ export default function JoinPage() {
                 const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
                 const data = await response.json();
                 setBarangays(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
-                // Auto-sync zip code to city
-                setZipCode(cityZipCodes[selectedCity] || "");
             }
         };
         fetchBarangays();
     }, [selectedCity, cities]);
+
+    // AUTO-SYNC ZIP CODE TO BARANGAY / CITY
+    useEffect(() => {
+        if (selectedCity) {
+            setZipCode(getZipCode(selectedCity, selectedBarangay));
+        }
+    }, [selectedBarangay, selectedCity]);
 
     const startCamera = async () => {
         setIsCameraOpen(true);
