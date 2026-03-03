@@ -2,16 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'Inter', sans-serif;
-  /* Prevent horizontal scroll and handle safe areas for mobile notches */
-  overflow-x: hidden;
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
 @layer base {
   :root {
     --background: 216 14% 95%; /* #EFF1F3 */
@@ -53,7 +43,7 @@ body {
     --secondary-foreground: 0 0% 98%;
     --muted: 213 50% 25%;
     --muted-foreground: 215 20% 65%;
-    --accent: 46 65% 52%;
+    --accent: 46 65% 52%; /* #D4AF37 - Gold */
     --accent-foreground: 219 100% 10%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
@@ -72,14 +62,38 @@ body {
   * {
     @apply border-border;
   }
+  
+  html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    @apply bg-background text-foreground antialiased;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    /* Respect safe area insets for notches and home indicators */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 }
 
-/* Custom styles for native app feel */
-@media (display-mode: standalone) {
-  .pb-24 {
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
-  }
+/* Scrollable areas within the fixed layout */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 10px;
+}
+
+/* Utility classes for platform fit */
+.h-dynamic {
+  height: 100dvh;
+}
+
+.min-h-dynamic {
+  min-height: 100dvh;
 }

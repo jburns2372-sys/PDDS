@@ -16,7 +16,7 @@ import { DesktopSidebarContent } from "./desktop-sidebar";
 
 /**
  * @fileOverview Application Shell & Global Route Guard.
- * Optimized for cross-platform compatibility (Android, Apple, Tablet, Desktop).
+ * Hardened for Android, Apple, Tablets, and Desktops to ensure a perfect fit.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (loading || (user && userDataLoading)) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
+      <div className="flex h-full w-full flex-col items-center justify-center bg-white h-dynamic">
         <div className="flex flex-col items-center gap-8">
             <div className="relative">
               <PddsLogo className="h-48 w-auto animate-pulse shadow-none" />
@@ -117,9 +117,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <UserDataContext.Provider value={contextValue}>
-        <div className="flex min-h-screen w-full flex-col md:flex-row overflow-hidden">
+        <div className="flex h-full w-full flex-col md:flex-row overflow-hidden h-dynamic">
           {/* Mobile/Tablet Header */}
-          <div className="flex h-20 w-full items-center justify-between border-b bg-primary px-4 md:hidden sticky top-0 z-50 shadow-md">
+          <div className="flex h-20 w-full items-center justify-between border-b bg-primary px-4 md:hidden shrink-0 shadow-md safe-top">
             <div className="flex items-center gap-2">
               <PddsLogo variant="white" className="h-14 w-auto" />
               <h1 className="text-white font-black uppercase text-xs tracking-widest ml-1 font-headline">PatriotLink Command</h1>
@@ -131,24 +131,26 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[85vw] max-w-72 p-0 border-r-none">
-                <div className="h-full py-4 overflow-y-auto" onClick={() => setIsDrawerOpen(false)}>
+                <div className="h-full py-4 overflow-y-auto custom-scrollbar" onClick={() => setIsDrawerOpen(false)}>
                   <DesktopSidebarContent />
                 </div>
               </SheetContent>
             </Sheet>
           </div>
 
-          {/* Desktop/Large Tablet Sidebar */}
+          {/* Desktop Sidebar (Persistent on Tablets/Desktop) */}
           {!isMobile && <DesktopSidebar />}
           
-          {/* Main Context Area */}
-          <main className="flex-1 bg-background pb-24 md:pb-0 overflow-y-auto overflow-x-hidden relative h-full">
-              <div className="max-w-[100vw] overflow-x-hidden min-h-full">
-                {children}
+          {/* Main Context Area - Strict flex containment */}
+          <main className="flex-1 bg-background overflow-hidden relative flex flex-col min-w-0 h-full">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+                <div className="max-w-full pb-20 md:pb-0">
+                  {children}
+                </div>
               </div>
           </main>
 
-          {/* Mobile Navigation Bar */}
+          {/* Mobile Bottom Navigation (Strict Bottom Pin) */}
           {isMobile && <MobileBottomNav />}
         </div>
     </UserDataContext.Provider>
