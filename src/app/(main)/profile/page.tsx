@@ -11,7 +11,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth, useFirestore, useStorage } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult, updateEmail } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, updateDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +29,8 @@ import {
     Trash2, 
     AlertTriangle, 
     ShieldAlert,
-    FileUp
+    FileUp,
+    Mail
 } from "lucide-react";
 import { getIslandGroup, cityZipCodes } from "@/lib/data";
 import {
@@ -43,6 +44,11 @@ import {
 
 const NCR_CODE = "130000000";
 
+/**
+ * @fileOverview Member Profile & Registry Management.
+ * Features editable Email and verified Phone Number flow with OTP verification.
+ * Includes cascading jurisdictional address selects and biometric updates.
+ */
 export default function ProfilePage() {
     const { user, userData, loading: userLoading } = useUserData();
     const auth = useAuth();
@@ -52,6 +58,7 @@ export default function ProfilePage() {
 
     // Profile fields
     const [fullName, setFullName] = useState("");
+    const [email, setEmail] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
     const [streetAddress, setStreetAddress] = useState("");
     const [zipCode, setZipCode] = useState("");
@@ -105,6 +112,7 @@ export default function ProfilePage() {
     useEffect(() => {
         if (userData) {
             setFullName(userData.fullName || "");
+            setEmail(userData.email || "");
             setPhoneNumber(userData.phoneNumber || "");
             setStreetAddress(userData.streetAddress || "");
             setZipCode(userData.zipCode || "");
@@ -226,6 +234,16 @@ export default function ProfilePage() {
 
         setSaving(true);
         try {
+            // 1. Update Auth Email if changed
+            if (email !== user.email) {
+                try {
+                    await updateEmail(user, email);
+                } catch (emailError: any) {
+                    toast({ variant: "destructive", title: "Email Update Error", description: "Re-login required to update email for security reasons." });
+                }
+            }
+
+            // 2. Upload Profile Photo if changed
             let finalPhotoURL = photoURL;
             if (selectedFile) {
                 const photoRef = ref(storage, `users/${user.uid}/profile.jpg`);
@@ -233,9 +251,11 @@ export default function ProfilePage() {
                 finalPhotoURL = await getDownloadURL(photoRef);
             }
 
+            // 3. Update Firestore Registry
             const userRef = doc(firestore, "users", user.uid);
             await updateDoc(userRef, {
                 fullName: fullName.trim().toUpperCase(),
+                email: email.trim().toLowerCase(),
                 phoneNumber: phoneNumber.trim(),
                 streetAddress: streetAddress.trim().toUpperCase(),
                 barangay: selectedBarangay,
@@ -392,9 +412,19 @@ export default function ProfilePage() {
                                         <Input value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="h-11 font-bold uppercase" />
                                     </div>
                                     <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Email Address</Label>
+                                        <div className="relative">
+                                            <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                                            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-11 pl-10" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Contact Number</Label>
                                         <div className="flex gap-2">
-                                            <Input value={phoneNumber} onChange={e => {setPhoneNumber(e.target.value); setIsPhoneVerified(false);}} className="h-11" placeholder="+639..." />
+                                            <div className="relative flex-1">
+                                                <Phone className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                                                <Input value={phoneNumber} onChange={e => {setPhoneNumber(e.target.value); setIsPhoneVerified(false);}} className="h-11 pl-10" placeholder="+639..." />
+                                            </div>
                                             {needsVerification && !showOtpInput && <Button type="button" onClick={handleSendVerificationSms} variant="outline" className="border-primary text-primary font-bold">Verify</Button>}
                                         </div>
                                         {showOtpInput && (

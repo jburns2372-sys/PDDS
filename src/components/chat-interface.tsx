@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -29,7 +30,7 @@ type Message = {
 
 /**
  * @fileOverview PatriotHub Strategy Node Interface.
- * Standardized PddsLogo application for the welcome overlay and executive pins.
+ * Unified visibility: All members, officers, and admins see the same content.
  */
 export function ChatInterface({ roomName }: { roomName: string }) {
   const firestore = useFirestore();
@@ -50,7 +51,6 @@ export function ChatInterface({ roomName }: { roomName: string }) {
     queries: [{ attribute: 'isActive', operator: '==', value: true }]
   });
 
-  const isVerified = userData?.isVerified === true;
   const isMuted = userData?.isMuted === true;
   const isModerator = userData?.role === 'Coordinator' && userData?.city === roomName;
   const isExecutive = ['President', 'Admin', 'System Admin'].includes(userData?.role || '');
@@ -98,11 +98,6 @@ export function ChatInterface({ roomName }: { roomName: string }) {
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputText.trim() || !user || !userData || sending) return;
-
-    if (!isVerified) {
-      toast({ variant: "destructive", title: "Access Restricted", description: "Only verified members can broadcast to the Hub." });
-      return;
-    }
 
     if (isMuted) {
       toast({ variant: "destructive", title: "Transmission Rights Revoked" });
@@ -181,29 +176,29 @@ export function ChatInterface({ roomName }: { roomName: string }) {
                   <div className="flex gap-3">
                     <Network className="h-5 w-5 text-accent shrink-0" />
                     <div className="space-y-1">
-                      <p className="text-[10px] font-black uppercase text-primary">Regional Power</p>
-                      <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">Direct connection to fellow Patriots in **{roomName}**.</p>
+                      <p className="text-[10px] font-black uppercase text-primary">Global Transmissions</p>
+                      <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">Visibility shared across all members, officers, and admins.</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <ShieldCheck className="h-5 w-5 text-accent shrink-0" />
                     <div className="space-y-1">
-                      <p className="text-[10px] font-black uppercase text-primary">Verified Only</p>
-                      <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">Zero noise. Only vetted members can broadcast here.</p>
+                      <p className="text-[10px] font-black uppercase text-primary">Strategic Unity</p>
+                      <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">Direct connection to the National Strategy Command.</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-muted/30 p-6 rounded-2xl border-2 border-dashed space-y-4">
                   <p className="text-sm font-medium text-foreground/80 leading-relaxed italic text-center">
-                    "Your command center for localized action and national strategy."
+                    "Transparency fuels our national strategy. All voices, one goal."
                   </p>
                   <button 
                     onClick={closeWelcome}
                     className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl rounded-xl"
                   >
                     <Sparkles className="mr-2 h-5 w-5 text-accent" />
-                    Introduce Yourself
+                    Join Strategy Discussion
                   </button>
                 </div>
               </div>
@@ -295,7 +290,7 @@ export function ChatInterface({ roomName }: { roomName: string }) {
               ref={inputRef}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Broadcast jurisdictional strategy..."
+              placeholder="Broadcast strategy..."
               className="h-16 rounded-2xl bg-[#f1f5f9] border-none shadow-inner focus-visible:ring-primary pl-6 pr-12 text-sm font-bold"
               disabled={sending}
             />

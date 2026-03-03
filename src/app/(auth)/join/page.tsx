@@ -26,6 +26,10 @@ import { getIslandGroup, cityZipCodes } from "@/lib/data";
 
 const NCR_CODE = "130000000";
 
+/**
+ * @fileOverview Enhanced National Member Induction Page.
+ * Features biometric capture, cascading location selects, and verified SMS onboarding.
+ */
 export default function JoinPage() {
     const auth = useAuth();
     const firestore = useFirestore();
@@ -110,6 +114,7 @@ export default function JoinPage() {
                 const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
                 const data = await response.json();
                 setBarangays(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+                // Auto-sync zip code to city
                 setZipCode(cityZipCodes[selectedCity] || "");
             }
         };
