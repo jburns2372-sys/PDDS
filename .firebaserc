@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "patriot-link-production"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }

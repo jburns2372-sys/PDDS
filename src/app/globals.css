@@ -4,6 +4,12 @@
 
 body {
   font-family: 'Inter', sans-serif;
+  /* Prevent horizontal scroll and handle safe areas for mobile notches */
+  overflow-x: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 @layer base {
@@ -68,5 +74,12 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Custom styles for native app feel */
+@media (display-mode: standalone) {
+  .pb-24 {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
   }
 }

@@ -4,20 +4,19 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { DesktopSidebar } from "./desktop-sidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { useEffect, useState, ReactNode } from "react";
-import { Skeleton } from "./ui/skeleton";
 import { useUser, useFirestore, useAuth } from "@/firebase";
 import { UserDataContext, UserDataContextType, UserProfile } from "@/context/user-data-context";
 import { useRouter } from "next/navigation";
-import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { Menu, X, Loader2, ShieldCheck } from "lucide-react";
+import { Menu, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import PddsLogo from "./icons/pdds-logo";
 import { DesktopSidebarContent } from "./desktop-sidebar";
 
 /**
  * @fileOverview Application Shell & Global Route Guard.
- * Standardized Mobile Header to use the global PddsLogo component.
+ * Optimized for cross-platform compatibility (Android, Apple, Tablet, Desktop).
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -118,7 +117,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <UserDataContext.Provider value={contextValue}>
-        <div className="flex min-h-screen w-full flex-col md:flex-row">
+        <div className="flex min-h-screen w-full flex-col md:flex-row overflow-hidden">
+          {/* Mobile/Tablet Header */}
           <div className="flex h-20 w-full items-center justify-between border-b bg-primary px-4 md:hidden sticky top-0 z-50 shadow-md">
             <div className="flex items-center gap-2">
               <PddsLogo variant="white" className="h-14 w-auto" />
@@ -126,11 +126,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
               <SheetTrigger asChild>
-                <button className="p-2 text-white">
+                <button className="p-2 text-white active:bg-white/10 rounded-lg transition-colors">
                   <Menu className="h-6 w-6" />
                 </button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-72 p-0">
+              <SheetContent side="left" className="w-[85vw] max-w-72 p-0 border-r-none">
                 <div className="h-full py-4 overflow-y-auto" onClick={() => setIsDrawerOpen(false)}>
                   <DesktopSidebarContent />
                 </div>
@@ -138,12 +138,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Sheet>
           </div>
 
+          {/* Desktop/Large Tablet Sidebar */}
           {!isMobile && <DesktopSidebar />}
           
-          <main className="flex-1 bg-background pb-24 md:pb-0 overflow-x-hidden">
-              {children}
+          {/* Main Context Area */}
+          <main className="flex-1 bg-background pb-24 md:pb-0 overflow-y-auto overflow-x-hidden relative h-full">
+              <div className="max-w-[100vw] overflow-x-hidden min-h-full">
+                {children}
+              </div>
           </main>
 
+          {/* Mobile Navigation Bar */}
           {isMobile && <MobileBottomNav />}
         </div>
     </UserDataContext.Provider>
