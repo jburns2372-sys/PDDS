@@ -40,7 +40,11 @@ const secGenNavItems = [
   { href: '/admin/security', label: 'Security Center', icon: Lock }
 ];
 
-export function DesktopSidebarContent() {
+interface DesktopSidebarContentProps {
+  onClose?: () => void;
+}
+
+export function DesktopSidebarContent({ onClose }: DesktopSidebarContentProps) {
   const pathname = usePathname();
   const { userData, loading: isLoadingRole } = useUserData();
   const userRole = userData?.role || '';
@@ -65,6 +69,7 @@ export function DesktopSidebarContent() {
                 <Link
                 key={item.href}
                 href={item.href}
+                onClick={onClose}
                 className={cn(
                     "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest",
                     isActive && "bg-primary/10 text-primary font-bold border-l-4 border-primary rounded-l-none"
@@ -77,6 +82,7 @@ export function DesktopSidebarContent() {
             })}
              <AboutPddsDialog>
                 <button
+                    type="button"
                     className={cn(
                         "flex w-full items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest"
                     )}
@@ -97,6 +103,7 @@ export function DesktopSidebarContent() {
                       <Link
                       key={item.href}
                       href={item.href}
+                      onClick={onClose}
                       className={cn(
                           "flex items-center gap-3 rounded-md px-4 py-3 text-red-400 transition-all hover:bg-red-600/10 hover:text-red-500 uppercase text-xs font-bold tracking-widest",
                           isActive && "bg-red-600/20 text-red-500 font-bold border-l-4 border-red-600 rounded-l-none"
@@ -122,6 +129,7 @@ export function DesktopSidebarContent() {
                       <Link
                       key={item.href}
                       href={item.href}
+                      onClick={onClose}
                       className={cn(
                           "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest",
                           isActive && "bg-primary/10 text-primary font-bold border-l-4 border-primary rounded-l-none"
@@ -139,6 +147,7 @@ export function DesktopSidebarContent() {
             <div className="space-y-1">
                 <Link
                   href="/profile"
+                  onClick={onClose}
                   className={cn(
                     "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest",
                     pathname.startsWith('/profile') && "bg-primary/10 text-primary font-bold"

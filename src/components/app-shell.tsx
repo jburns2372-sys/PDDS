@@ -131,8 +131,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[85vw] max-w-72 p-0 border-r-none">
-                <div className="h-full py-4 overflow-y-auto custom-scrollbar" onClick={() => setIsDrawerOpen(false)}>
-                  <DesktopSidebarContent />
+                <div className="h-full py-4 overflow-y-auto custom-scrollbar">
+                  <DesktopSidebarContent onClose={() => setIsDrawerOpen(false)} />
                 </div>
               </SheetContent>
             </Sheet>

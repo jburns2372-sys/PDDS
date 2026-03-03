@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useUserData } from "@/context/user-data-context";
@@ -9,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 
 /**
  * @fileOverview PatriotHub Digital Strategy Center.
- * Automatically identifies the user's city and connects them to their jurisdictional intelligence node.
+ * Unified Global room ensures all members, admins, and officers see and participate in the same discussion.
  */
 export default function ChatPage() {
   const { userData, loading } = useUserData();
@@ -53,8 +52,9 @@ export default function ChatPage() {
     );
   }
 
-  const roomName = userData?.city || "National Hub";
-  const cityTag = userData?.city ? `${userData.city} Intelligence Node` : "National Strategy Command";
+  // Set to unified Global room as requested
+  const roomName = "National Hub";
+  const cityTag = "National Strategy Command";
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] md:h-screen overflow-hidden bg-[#f1f5f9]">
