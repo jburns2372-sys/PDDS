@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -30,7 +29,7 @@ export default function AcademyPage() {
   const [showCertificate, setShowCertificate] = useState(false);
 
   const stats = useMemo(() => {
-    const completedIds = progress.filter(p => p.status === 'Completed').map(p => p.id);
+    const completedIds = progress.filter((p: any) => p.status === 'Completed').map((p: any) => p.id);
     const total = courses.length;
     const completed = completedIds.length;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
