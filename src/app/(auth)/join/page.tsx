@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -14,17 +15,14 @@ import {
     createUserWithEmailAndPassword, 
     RecaptchaVerifier, 
     signInWithPhoneNumber, 
-    ConfirmationResult,
-    GoogleAuthProvider,
-    signInWithPopup
+    ConfirmationResult
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Loader2, XCircle, Sparkles, Trophy, ShieldCheck, ScrollText, Camera, Upload, MapPin, Check } from "lucide-react";
+import { Loader2, XCircle, Camera, Upload, MapPin, Check, ShieldCheck, FileUp } from "lucide-react";
 import { getIslandGroup, cityZipCodes } from "@/lib/data";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const NCR_CODE = "130000000";
 
@@ -46,12 +44,12 @@ export default function JoinPage() {
     
     // Address fields
     const [streetAddress, setStreetAddress] = useState("");
-    const [barangay, setBarangay] = useState("");
     const [zipCode, setZipCode] = useState("");
     
     // Biometric / Photo State
     const [photoURL, setPhotoURL] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | Blob | null>(null);
+    const [idFile, setIdFile] = useState<File | null>(null);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -60,8 +58,10 @@ export default function JoinPage() {
     // Location Data
     const [provinces, setProvinces] = useState<any[]>([]);
     const [cities, setCities] = useState<any[]>([]);
+    const [barangays, setBarangays] = useState<any[]>([]);
     const [selectedProvince, setSelectedProvince] = useState<string>("");
     const [selectedCity, setSelectedCity] = useState<string>("");
+    const [selectedBarangay, setSelectedBarangay] = useState<string>("");
 
     // UI State
     const [loading, setLoading] = useState(false);
@@ -79,7 +79,7 @@ export default function JoinPage() {
                 const pData = await pResp.json();
                 const ncrResp = await fetch(`https://psgc.gitlab.io/api/regions/${NCR_CODE}`);
                 const ncrData = await ncrResp.json();
-                const combined = [{ ...ncrData, name: "METRO MANILA (NCR)", isNCR: true }, ...pData].sort((a: any, b: any) => a.name.localeCompare(b.name));
+                const combined = [{ ...ncrData, name: "METRO MANILA (NCR)", isNCR: true, code: NCR_CODE }, ...pData].sort((a: any, b: any) => a.name.localeCompare(b.name));
                 setProvinces(combined);
             } catch (e) {}
         };
@@ -103,10 +103,18 @@ export default function JoinPage() {
     }, [selectedProvince, provinces]);
 
     useEffect(() => {
-        if (selectedCity) {
-            setZipCode(cityZipCodes[selectedCity] || "");
-        }
-    }, [selectedCity]);
+        if (!selectedCity) { setBarangays([]); return; }
+        const fetchBarangays = async () => {
+            const city = cities.find(c => c.name === selectedCity);
+            if (city) {
+                const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
+                const data = await response.json();
+                setBarangays(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+                setZipCode(cityZipCodes[selectedCity] || "");
+            }
+        };
+        fetchBarangays();
+    }, [selectedCity, cities]);
 
     const startCamera = async () => {
         setIsCameraOpen(true);
@@ -115,7 +123,7 @@ export default function JoinPage() {
             streamRef.current = stream;
             if (videoRef.current) videoRef.current.srcObject = stream;
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Camera Error', description: 'Please allow camera access to take a selfie.' });
+            toast({ variant: 'destructive', title: 'Camera Error', description: 'Please allow camera access.' });
             setIsCameraOpen(false);
         }
     };
@@ -173,11 +181,20 @@ export default function JoinPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
+            // 1. Upload Profile Photo
             let finalPhotoURL = null;
             if (selectedFile) {
-                const storageRef = ref(storage, `users/${user.uid}/profile.jpg`);
-                await uploadBytes(storageRef, selectedFile);
-                finalPhotoURL = await getDownloadURL(storageRef);
+                const photoRef = ref(storage, `users/${user.uid}/profile.jpg`);
+                await uploadBytes(photoRef, selectedFile);
+                finalPhotoURL = await getDownloadURL(photoRef);
+            }
+
+            // 2. Upload ID File (if any)
+            let finalIdURL = null;
+            if (idFile) {
+                const idRef = ref(storage, `users/${user.uid}/id_verification.${idFile.name.split('.').pop()}`);
+                await uploadBytes(idRef, idFile);
+                finalIdURL = await getDownloadURL(idRef);
             }
 
             const memberData = {
@@ -186,12 +203,13 @@ export default function JoinPage() {
                 fullName: fullName.trim().toUpperCase(),
                 phoneNumber: phoneNumber.trim(),
                 streetAddress: streetAddress.toUpperCase(),
-                barangay: barangay.toUpperCase(),
+                barangay: selectedBarangay,
                 city: selectedCity,
                 province: selectedProvince,
                 islandGroup: getIslandGroup(selectedProvince),
                 zipCode: zipCode,
                 photoURL: finalPhotoURL,
+                idVerificationUrl: finalIdURL,
                 role: "Member",
                 jurisdictionLevel: "City/Municipal",
                 isAdmin: false,
@@ -239,7 +257,7 @@ export default function JoinPage() {
                     <h1 className="text-4xl font-black tracking-tighter text-primary font-headline uppercase">
                         PatriotLink
                     </h1>
-                    <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em] mt-1">Dugong Dakilang Samahan</p>
+                    <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em] mt-1">National Member Induction</p>
                 </div>
             </div>
 
@@ -248,7 +266,7 @@ export default function JoinPage() {
                     {!showOtpInput ? (
                         <form onSubmit={handleInitialSubmit}>
                             <CardHeader>
-                                <CardTitle className="text-2xl text-center font-headline uppercase tracking-tight">Join the Movement</CardTitle>
+                                <CardTitle className="text-2xl text-center font-headline uppercase tracking-tight">Join the movement</CardTitle>
                                 <CardDescription className="text-center font-medium text-muted-foreground italic">"One App, One Goal."</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
@@ -309,7 +327,7 @@ export default function JoinPage() {
                                     <Input type="password" required className="h-12" value={password} onChange={e => setPassword(e.target.value)} minLength={6} />
                                 </div>
 
-                                <div className="space-y-2 pt-2 border-t">
+                                <div className="space-y-4 pt-2 border-t">
                                     <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-2"><MapPin className="h-3 w-3" /> Jurisdictional Address</Label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
@@ -330,16 +348,27 @@ export default function JoinPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label className="text-[9px] uppercase">Barangay</Label>
-                                            <Input placeholder="Enter Barangay" value={barangay} onChange={e => setBarangay(e.target.value.toUpperCase())} className="h-11" required />
+                                            <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
+                                                <SelectTrigger className="h-11"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                <SelectContent>{barangays.map((b) => <SelectItem key={b.code} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
+                                            </Select>
                                         </div>
                                         <div className="space-y-2">
                                             <Label className="text-[9px] uppercase">Zip Code</Label>
-                                            <Input value={zipCode} onChange={e => setZipCode(e.target.value)} className="h-11 font-bold bg-muted/50" readOnly />
+                                            <Input value={zipCode} readOnly className="h-11 font-bold bg-muted/50" />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-[9px] uppercase">Street / House No.</Label>
                                         <Input placeholder="House #, Building, Street" value={streetAddress} onChange={e => setStreetAddress(e.target.value.toUpperCase())} className="h-11" required />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 pt-2 border-t">
+                                    <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-2"><FileUp className="h-3 w-3" /> Vetting Documents (Optional)</Label>
+                                    <div className="flex flex-col gap-3">
+                                        <Input type="file" className="h-11 pt-2" onChange={e => setIdFile(e.target.files?.[0] || null)} />
+                                        <p className="text-[8px] font-bold text-muted-foreground uppercase">Upload a government ID to fast-track your induction status.</p>
                                     </div>
                                 </div>
 
@@ -352,7 +381,7 @@ export default function JoinPage() {
                                             className="mt-1" 
                                         />
                                         <div className="space-y-1">
-                                            <Label htmlFor="terms" className="text-xs font-bold leading-none text-primary uppercase">I Accept the National Registry Terms</Label>
+                                            <Label htmlFor="terms" className="text-xs font-bold leading-none text-primary uppercase">Accept National Registry Terms</Label>
                                             <p className="text-[10px] text-muted-foreground leading-relaxed">
                                                 I confirm my alignment with PDDS principles and RA 10173 compliance.
                                             </p>
@@ -361,7 +390,7 @@ export default function JoinPage() {
                                 </div>
                             </CardContent>
                             <CardFooter className="flex flex-col gap-4">
-                                <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !agreed || !isPhoneValid || !selectedCity}>
+                                <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !agreed || !isPhoneValid || !selectedBarangay}>
                                     {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Verify & Induct"}
                                 </Button>
                                 <p className="text-sm text-center text-muted-foreground font-medium">Already a member? <Link href="/login" className="text-primary font-black hover:underline uppercase text-xs tracking-widest">Sign In</Link></p>
