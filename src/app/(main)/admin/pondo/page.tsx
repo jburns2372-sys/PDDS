@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef } from "react";
@@ -12,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Landmark, Loader2, Send, ShieldCheck, Receipt, Wallet, ArrowDownRight, Printer, Home, HeartHandshake, Megaphone, Package } from "lucide-react";
 
@@ -203,7 +203,7 @@ export default function PondoAdminPage() {
           <div className="lg:col-span-5 space-y-6">
             <Card className="shadow-lg border-l-4 border-l-accent bg-accent/5">
               <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-primary">
                   <ShieldCheck className="h-4 w-4 text-accent" />
                   Compliance Kernel
                 </CardTitle>
