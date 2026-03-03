@@ -21,6 +21,7 @@ import { Copy, Sparkles, Bell, Loader2, Megaphone, Trophy, MapPin, Share2, Hexag
 import { useToast } from "@/hooks/use-toast";
 import { useCollection } from "@/firebase";
 import PddsLogo from "@/components/icons/pdds-logo";
+import Link from "next/link";
 
 function UserHeader({userData}: {userData: any}) {
   return (

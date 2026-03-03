@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCollection } from "@/firebase";
@@ -8,6 +7,7 @@ import { CheckCircle2, MapPin, Loader2, PartyPopper, ArrowRight } from "lucide-r
 import { useMemo } from "react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 /**
  * @fileOverview Localized Impact Feed.
