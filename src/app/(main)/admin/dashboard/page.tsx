@@ -39,12 +39,12 @@ export default function AdminDashboard() {
 
     const hasExecutiveAccess = userData?.role === 'President' || userData?.role === 'Admin' || userData?.isSuperAdmin;
 
-    // Registry fields
+    // Registry fields (Initialized as blank)
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
     const [password, setPassword] = useState("");
-    const [role, setRole] = useState("Member");
+    const [role, setRole] = useState("");
     
     // Jurisdictional fields
     const [streetAddress, setStreetAddress] = useState("");
@@ -149,7 +149,7 @@ export default function AdminDashboard() {
         setSelectedBarangay("");
         setStreetAddress("");
         setZipCode("");
-        setRole("Member");
+        setRole("");
         setPassword("");
     };
 
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
         setSelectedBarangay(user.barangay || "");
         setStreetAddress(user.streetAddress || "");
         setZipCode(user.zipCode || "");
-        setRole(user.role || "Member");
+        setRole(user.role || "");
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -218,6 +218,11 @@ export default function AdminDashboard() {
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!hasExecutiveAccess) return;
+
+        if (!role) {
+            toast({ variant: "destructive", title: "Role Required" });
+            return;
+        }
 
         const isTaken = !UNLIMITED_ROLES.includes(role) && 
                         takenRoles.includes(role) && 
@@ -289,7 +294,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-4">
                     <Card className="shadow-lg border-t-4 border-accent">
-                        <form onSubmit={handleFormSubmit}>
+                        <form onSubmit={handleFormSubmit} autoComplete="off">
                             <CardHeader>
                                 <CardTitle className="text-xl font-headline flex items-center gap-2 uppercase tracking-tight text-primary">
                                     <UserPlus className="h-6 w-6 text-accent" />
@@ -299,19 +304,19 @@ export default function AdminDashboard() {
                             <CardContent className="space-y-5">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-primary">Full Name</Label>
-                                    <Input required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="h-12 text-base font-bold border-2" placeholder="JUAN DELA CRUZ" />
+                                    <Input required autoComplete="off" value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="h-12 text-base font-bold border-2" placeholder="JUAN DELA CRUZ" />
                                 </div>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-primary">Email Address</Label>
-                                        <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-12 border-2" placeholder="m.delacruz@example.com" disabled={isEditMode} />
+                                        <Input required type="email" autoComplete="new-email" value={email} onChange={e => setEmail(e.target.value)} className="h-12 border-2" placeholder="m.delacruz@example.com" disabled={isEditMode} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-primary">Phone Number</Label>
                                         <div className="relative">
                                             <Smartphone className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                                            <Input required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="h-12 pl-10 border-2 font-bold" placeholder="+639..." />
+                                            <Input required autoComplete="off" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="h-12 pl-10 border-2 font-bold" placeholder="+639..." />
                                         </div>
                                     </div>
                                 </div>
@@ -319,7 +324,7 @@ export default function AdminDashboard() {
                                 {!isEditMode && (
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-primary">Temp Password</Label>
-                                        <Input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="h-12 border-2" />
+                                        <Input required type="password" autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} className="h-12 border-2" />
                                     </div>
                                 )}
 
@@ -374,7 +379,9 @@ export default function AdminDashboard() {
                                 <div className="space-y-2 pt-2 border-t border-dashed">
                                     <Label className="text-[10px] font-black uppercase text-primary">Organizational Rank</Label>
                                     <Select onValueChange={setRole} value={role}>
-                                        <SelectTrigger className="h-12 border-2"><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="h-12 border-2">
+                                            <SelectValue placeholder="Select Rank..." />
+                                        </SelectTrigger>
                                         <SelectContent>
                                             {allAssignableRoles.map(r => {
                                               const isTaken = !UNLIMITED_ROLES.includes(r) && takenRoles.includes(r) && (!isEditMode || selectedUser?.role !== r);
