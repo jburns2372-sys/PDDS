@@ -1,3 +1,4 @@
+
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ interface PddsLogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {
  * @fileOverview Official PDDS Party Logo component.
  * Synchronized with the global constant PDDS_LOGO_URL.
  * Supports a 'white' knockout variant for primary-colored headers.
+ * Set to a high-impact default height for maximum brand visibility.
  */
 export default function PddsLogo({ className, variant = "default", ...props }: PddsLogoProps) {
   return (
@@ -19,7 +21,7 @@ export default function PddsLogo({ className, variant = "default", ...props }: P
       src={PDDS_LOGO_URL} 
       alt="PDDS Official Party Logo"
       className={cn(
-        "object-contain transition-all duration-300 bg-transparent h-16 w-auto shadow-md", 
+        "object-contain transition-all duration-300 bg-transparent h-20 w-auto", 
         variant === "white" && "brightness-0 invert",
         className
       )}
