@@ -6,11 +6,14 @@ This is the official tactical platform for the members of the **Federalismo ng D
 
 ## 🛠️ Development & Environment Setup
 
-### 1. Firebase Authentication
-To authenticate your workstation with the PDDS Firebase project in a non-interactive environment, execute the following command:
+### 1. Firebase Authentication & Project Selection
+To authenticate your workstation and set the production context, execute the following commands:
+
 ```bash
 firebase login --no-localhost
+firebase use patriot-link-production
 ```
+
 Follow the URL provided in the terminal to authorize your access.
 
 ### 2. Installation
