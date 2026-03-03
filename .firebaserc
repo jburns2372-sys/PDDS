@@ -1,15 +1,5 @@
-
 {
   "projects": {
     "default": "patriot-link-production"
-  },
-  "targets": {
-    "patriot-link-production": {
-      "hosting": {
-        "patriot-link-production": [
-          "patriot-link-production"
-        ]
-      }
-    }
   }
 }
