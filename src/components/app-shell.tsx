@@ -85,13 +85,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (loading || (user && userDataLoading)) {
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center bg-white h-dynamic">
+      <div className="flex h-dynamic w-full flex-col items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-8">
             <div className="relative">
               <PddsLogo className="h-48 w-auto animate-pulse shadow-none" />
               <div className="absolute inset-0 border-4 border-primary/10 rounded-full animate-ping" />
             </div>
-            <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex flex-col items-center gap-3 text-center px-6">
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <p className="text-sm font-black uppercase tracking-[0.3em] text-primary">
@@ -117,16 +117,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <UserDataContext.Provider value={contextValue}>
-        <div className="flex h-full w-full flex-col md:flex-row overflow-hidden h-dynamic">
+        <div className="flex h-dynamic w-full flex-col md:flex-row overflow-hidden bg-background">
           {/* Mobile/Tablet Header */}
-          <div className="flex h-20 w-full items-center justify-between border-b bg-primary px-4 md:hidden shrink-0 shadow-md safe-top">
+          <div className="flex h-20 w-full items-center justify-between border-b bg-primary px-4 md:hidden shrink-0 shadow-md safe-top relative z-50">
             <div className="flex items-center gap-2">
               <PddsLogo variant="white" className="h-14 w-auto" />
-              <h1 className="text-white font-black uppercase text-xs tracking-widest ml-1 font-headline">PatriotLink Command</h1>
+              <h1 className="text-white font-black uppercase text-[10px] tracking-widest ml-1 font-headline">PatriotLink Command</h1>
             </div>
             <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
               <SheetTrigger asChild>
-                <button className="p-2 text-white active:bg-white/10 rounded-lg transition-colors">
+                <button className="p-2 text-white active:bg-white/10 rounded-lg transition-colors outline-none">
                   <Menu className="h-6 w-6" />
                 </button>
               </SheetTrigger>
@@ -142,9 +142,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           {!isMobile && <DesktopSidebar />}
           
           {/* Main Context Area - Strict flex containment */}
-          <main className="flex-1 bg-background overflow-hidden relative flex flex-col min-w-0 h-full">
+          <main className="flex-1 relative flex flex-col min-w-0 h-full overflow-hidden">
               <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                <div className="max-w-full pb-20 md:pb-0">
+                <div className="w-full max-w-full pb-24 md:pb-8">
                   {children}
                 </div>
               </div>

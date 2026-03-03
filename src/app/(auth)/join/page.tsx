@@ -27,7 +27,7 @@ const NCR_CODE = "130000000";
 
 /**
  * @fileOverview Enhanced National Member Induction Page.
- * Features biometric capture, cascading location selects, and automated zip code sync.
+ * Optimized for horizontal/vertical alignment on all platforms.
  */
 export default function JoinPage() {
     const auth = useAuth();
@@ -118,7 +118,6 @@ export default function JoinPage() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
-    // AUTO-SYNC ZIP CODE TO BARANGAY / CITY
     useEffect(() => {
         if (selectedCity && selectedBarangay) {
             setZipCode(getZipCode(selectedCity, selectedBarangay));
@@ -190,7 +189,6 @@ export default function JoinPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // 1. Upload Profile Photo
             let finalPhotoURL = null;
             if (selectedFile) {
                 const photoRef = ref(storage, `users/${user.uid}/profile.jpg`);
@@ -198,7 +196,6 @@ export default function JoinPage() {
                 finalPhotoURL = await getDownloadURL(photoRef);
             }
 
-            // 2. Upload ID File (if any)
             let finalIdURL = null;
             if (idFile) {
                 const idRef = ref(storage, `users/${user.uid}/id_verification.${idFile.name.split('.').pop()}`);
@@ -250,7 +247,7 @@ export default function JoinPage() {
     const isPhoneValid = phoneNumber.startsWith("+63") && phoneNumber.length === 13;
 
     return (
-        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/30 p-4 pb-12 relative">
+        <div className="flex min-h-dynamic w-full flex-col items-center justify-center bg-muted/30 p-4 pb-12 relative overflow-y-auto">
             {loading && (
                 <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -260,7 +257,7 @@ export default function JoinPage() {
                 </div>
             )}
 
-            <div className="mb-8 flex flex-col items-center gap-4">
+            <div className="mb-8 flex flex-col items-center gap-4 mt-8">
                 <PddsLogo className="h-24 w-auto" />
                 <div className="text-center">
                     <h1 className="text-4xl font-black tracking-tighter text-primary font-headline uppercase">
@@ -279,7 +276,6 @@ export default function JoinPage() {
                                 <CardDescription className="text-center font-medium text-muted-foreground italic">"One App, One Goal."</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                {/* Biometric Section */}
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-primary">Identity Verification (Profile Photo)</Label>
                                     <div className="flex flex-col items-center gap-4 p-4 bg-muted/30 rounded-2xl border-2 border-dashed">
@@ -315,7 +311,7 @@ export default function JoinPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-primary">Full Name</Label>
                                         <Input placeholder="JUAN DELA CRUZ" className="h-12 font-bold uppercase border-2" required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} />
@@ -338,7 +334,7 @@ export default function JoinPage() {
 
                                 <div className="space-y-4 pt-2 border-t">
                                     <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-2"><MapPin className="h-3 w-3" /> Jurisdictional Address</Label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label className="text-[9px] font-black uppercase">Province</Label>
                                             <Select onValueChange={setSelectedProvince} value={selectedProvince}>
@@ -354,7 +350,7 @@ export default function JoinPage() {
                                             </Select>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label className="text-[9px] font-black uppercase">Barangay</Label>
                                             <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>

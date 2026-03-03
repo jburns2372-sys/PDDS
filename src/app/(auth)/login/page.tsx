@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -19,7 +18,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 
 /**
  * @fileOverview Login Page with Social and Credential access.
- * Automatically provisions Supporter profiles for Google sign-ins.
+ * Optimized for horizontal and vertical centering on all platforms.
  */
 export default function LoginPage() {
     const auth = useAuth();
@@ -39,7 +38,6 @@ export default function LoginPage() {
 
             const userRef = doc(firestore, 'users', user.uid);
             
-            // Log Engagement Activity
             updateDoc(userRef, { lastActive: serverTimestamp() }).catch(err => {
                 console.error("Activity log failed", err);
             });
@@ -74,7 +72,6 @@ export default function LoginPage() {
             const userSnap = await getDoc(userRef);
 
             if (!userSnap.exists()) {
-                // Provision new Supporter profile for Google inductions
                 await setDoc(userRef, {
                     uid: user.uid,
                     email: userEmail,
@@ -84,7 +81,7 @@ export default function LoginPage() {
                     jurisdictionLevel: "National",
                     isAdmin: false,
                     isApproved: true,
-                    isVerified: false, // Requires Admin validation
+                    isVerified: false, 
                     kartilyaAgreed: true,
                     recruitCount: 0,
                     createdAt: serverTimestamp(),
@@ -92,7 +89,6 @@ export default function LoginPage() {
                 });
                 toast({ title: "Welcome!", description: "You have been registered as a Supporter." });
             } else {
-                // Track returning member activity
                 updateDoc(userRef, { lastActive: serverTimestamp() }).catch(async (serverError) => {
                     const permissionError = new FirestorePermissionError({
                         path: userRef.path,
@@ -131,7 +127,7 @@ export default function LoginPage() {
     };
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/30 p-4 relative">
+    <div className="flex h-dynamic w-full flex-col items-center justify-center bg-muted/30 p-4 relative overflow-y-auto">
         {loading && (
             <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -151,9 +147,9 @@ export default function LoginPage() {
             </div>
         )}
 
-        <div className="mb-8 flex items-center gap-4">
+        <div className="mb-8 flex items-center gap-4 mt-4">
             <PddsLogo className="h-16 w-16" />
-            <h1 className="text-5xl font-black tracking-tighter text-primary font-headline uppercase">
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-primary font-headline uppercase">
                 PDDS Portal
             </h1>
       </div>
@@ -203,7 +199,7 @@ export default function LoginPage() {
                 </Button>
             </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter className="flex flex-col gap-4 mb-4">
             <div className="text-center w-full">
                 <p className="text-sm text-muted-foreground font-medium">
                     New to PDDS? <Link href="/join" className="text-primary font-black hover:underline uppercase text-xs tracking-widest ml-1">Join the Movement</Link>
