@@ -15,11 +15,12 @@ import { useToast } from "@/hooks/use-toast";
 import { updateUserDocument, deleteUserDocument } from "@/firebase/firestore/firestore-service";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Shield, UserPlus, Users, Pencil, Trash2, Loader2, Search, ArrowRightLeft, MapPin, Database, PlusCircle, UserCheck, UserX } from "lucide-react";
+import { Shield, UserPlus, Users, Pencil, Trash2, Loader2, Search, ArrowRightLeft, MapPin, Database, PlusCircle, UserCheck, UserX, Smartphone, Home } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc, query, where, getDocs, writeBatch } from "firebase/firestore";
-import { pddsLeadershipRoles } from "@/lib/data";
+import { pddsLeadershipRoles, getZipCode, getIslandGroup } from "@/lib/data";
 
 const UNLIMITED_ROLES = ['Member', 'Supporter', 'Volunteer', 'Coordinator', 'Moderator'];
+const NCR_CODE = "130000000";
 
 const allAssignableRoles = [
   ...pddsLeadershipRoles,
@@ -38,17 +39,79 @@ export default function AdminDashboard() {
 
     const hasExecutiveAccess = userData?.role === 'President' || userData?.role === 'Admin' || userData?.isSuperAdmin;
 
+    // Registry fields
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
-    const [province, setProvince] = useState("");
-    const [city, setCity] = useState("");
-    const [barangay, setBarangay] = useState("");
     const [password, setPassword] = useState("");
     const [role, setRole] = useState("Member");
+    
+    // Jurisdictional fields
+    const [streetAddress, setStreetAddress] = useState("");
+    const [zipCode, setZipCode] = useState("");
+    const [provinces, setProvinces] = useState<any[]>([]);
+    const [cities, setCities] = useState<any[]>([]);
+    const [barangays, setBarangays] = useState<any[]>([]);
+    const [selectedProvince, setSelectedProvince] = useState<string>("");
+    const [selectedCity, setSelectedCity] = useState<string>("");
+    const [selectedBarangay, setSelectedBarangay] = useState<string>("");
+
     const [loading, setLoading] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
+
+    // Initial Fetch for Provinces
+    useEffect(() => {
+        const fetchProvinces = async () => {
+            try {
+                const pResp = await fetch('https://psgc.gitlab.io/api/provinces/');
+                const pData = await pResp.json();
+                const ncrResp = await fetch(`https://psgc.gitlab.io/api/regions/${NCR_CODE}`);
+                const ncrData = await ncrResp.json();
+                const combined = [{ ...ncrData, name: "METRO MANILA (NCR)", isNCR: true, code: NCR_CODE }, ...pData].sort((a: any, b: any) => a.name.localeCompare(b.name));
+                setProvinces(combined);
+            } catch (e) {}
+        };
+        fetchProvinces();
+    }, []);
+
+    // Fetch Cities based on Province
+    useEffect(() => {
+        if (!selectedProvince) { setCities([]); return; }
+        const fetchCities = async () => {
+            const province = provinces.find(p => p.name === selectedProvince);
+            if (province) {
+                const endpoint = province.isNCR 
+                    ? `https://psgc.gitlab.io/api/regions/${NCR_CODE}/cities-municipalities/`
+                    : `https://psgc.gitlab.io/api/provinces/${province.code}/cities-municipalities/`;
+                const response = await fetch(endpoint);
+                const data = await response.json();
+                setCities(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+            }
+        };
+        fetchCities();
+    }, [selectedProvince, provinces]);
+
+    // Fetch Barangays based on City
+    useEffect(() => {
+        if (!selectedCity) { setBarangays([]); return; }
+        const fetchBarangays = async () => {
+            const city = cities.find(c => c.name === selectedCity);
+            if (city) {
+                const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
+                const data = await response.json();
+                setBarangays(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+            }
+        };
+        fetchBarangays();
+    }, [selectedCity, cities]);
+
+    // Auto-Sync Zip Code
+    useEffect(() => {
+        if (selectedCity && selectedBarangay) {
+            setZipCode(getZipCode(selectedCity, selectedBarangay));
+        }
+    }, [selectedBarangay, selectedCity]);
 
     useEffect(() => {
         setUsersLoading(true);
@@ -81,9 +144,11 @@ export default function AdminDashboard() {
         setFullName("");
         setEmail("");
         setPhoneNumber("");
-        setProvince("");
-        setCity("");
-        setBarangay("");
+        setSelectedProvince("");
+        setSelectedCity("");
+        setSelectedBarangay("");
+        setStreetAddress("");
+        setZipCode("");
         setRole("Member");
         setPassword("");
     };
@@ -94,9 +159,11 @@ export default function AdminDashboard() {
         setFullName(user.fullName || "");
         setEmail(user.email || "");
         setPhoneNumber(user.phoneNumber || "");
-        setProvince(user.province || "");
-        setCity(user.city || "");
-        setBarangay(user.barangay || "");
+        setSelectedProvince(user.province || "");
+        setSelectedCity(user.city || "");
+        setSelectedBarangay(user.barangay || "");
+        setStreetAddress(user.streetAddress || "");
+        setZipCode(user.zipCode || "");
         setRole(user.role || "Member");
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -148,70 +215,6 @@ export default function AdminDashboard() {
         }
     };
 
-    const handlePopulateSupporters = async () => {
-        if (!hasExecutiveAccess) return;
-        setLoading(true);
-        try {
-            const batch = writeBatch(firestore);
-            const firstNames = ["Juan", "Maria", "Jose", "Ana", "Pedro", "Elena", "Ramon", "Liza"];
-            const lastNames = ["Dela Cruz", "Santos", "Reyes", "Gomez", "Bautista", "Garcia"];
-            const locations = [
-                { province: "METRO MANILA (NCR)", city: "QUEZON CITY", brgy: "COMMONWEALTH" },
-                { province: "CEBU", city: "CEBU CITY", brgy: "MABOLO" },
-                { province: "DAVAO DEL SUR", city: "DAVAO CITY", brgy: "BUHANGIN" }
-            ];
-
-            for (let i = 0; i < 100; i++) {
-                const fName = firstNames[Math.floor(Math.random() * firstNames.length)];
-                const lName = lastNames[Math.floor(Math.random() * lastNames.length)];
-                const fullName = `${fName} ${lName} ${i + 1}`;
-                const loc = locations[Math.floor(Math.random() * locations.length)];
-                const id = `mock-supporter-${Date.now()}-${i}`;
-                const ref = doc(firestore, 'users', id);
-                
-                batch.set(ref, {
-                    uid: id,
-                    fullName: fullName.toUpperCase(),
-                    email: `supporter${i + 1}@pdds-test.com`,
-                    phoneNumber: `+639${Math.floor(100000000 + Math.random() * 900000000)}`,
-                    role: 'Supporter',
-                    province: loc.province,
-                    city: loc.city,
-                    barangay: loc.brgy,
-                    isApproved: true,
-                    kartilyaAgreed: true,
-                    recruitCount: Math.floor(Math.random() * 10),
-                    createdAt: serverTimestamp(),
-                });
-            }
-            await batch.commit();
-            toast({ title: "Success", description: "100 test supporters added." });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleBulkDeleteSupporters = async () => {
-        if (!hasExecutiveAccess) return;
-        const conf = prompt('Type DELETE to wipe all supporters');
-        if (conf !== 'DELETE') return;
-        setLoading(true);
-        try {
-            const q = query(collection(firestore, 'users'), where('role', '==', 'Supporter'));
-            const snap = await getDocs(q);
-            const batch = writeBatch(firestore);
-            snap.docs.forEach(d => batch.delete(d.ref));
-            await batch.commit();
-            toast({ title: "Success", description: "All supporters removed." });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!hasExecutiveAccess) return;
@@ -226,16 +229,21 @@ export default function AdminDashboard() {
         }
 
         setLoading(true);
+        const commonData = {
+            fullName: fullName.trim().toUpperCase(), 
+            phoneNumber: phoneNumber.trim(),
+            province: selectedProvince.toUpperCase(),
+            city: selectedCity.toUpperCase(),
+            barangay: selectedBarangay.toUpperCase(),
+            streetAddress: streetAddress.toUpperCase(),
+            zipCode: zipCode.trim(),
+            islandGroup: getIslandGroup(selectedProvince),
+            role
+        };
+
         try {
             if (isEditMode && selectedUser) {
-                await updateUserDocument(firestore, selectedUser.id, { 
-                    fullName: fullName.trim().toUpperCase(), 
-                    phoneNumber: phoneNumber.trim(),
-                    province: province.trim().toUpperCase(),
-                    city: city.trim().toUpperCase(),
-                    barangay: barangay.trim().toUpperCase(),
-                    role 
-                }, userData);
+                await updateUserDocument(firestore, selectedUser.id, commonData, userData);
                 toast({ title: "Updated" });
                 resetForm();
             } else {
@@ -247,15 +255,13 @@ export default function AdminDashboard() {
                     await setDoc(doc(firestore, 'users', uid), {
                         uid,
                         email: email.toLowerCase(),
-                        fullName: fullName.toUpperCase(),
-                        role,
-                        province: province.toUpperCase(),
-                        city: city.toUpperCase(),
+                        ...commonData,
                         isApproved: true,
                         kartilyaAgreed: true,
                         createdAt: serverTimestamp(),
+                        lastActive: serverTimestamp(),
                     });
-                    toast({ title: "Registered" });
+                    toast({ title: "Registered", description: "Member added to National Registry." });
                     resetForm();
                 } finally {
                     await deleteTemporaryApp(tempApp);
@@ -278,152 +284,170 @@ export default function AdminDashboard() {
                     </h1>
                     <p className="text-muted-foreground text-sm mt-1">Full oversight of all Officers, Members, and Supporters.</p>
                 </div>
-                {hasExecutiveAccess && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Button variant="outline" onClick={handlePopulateSupporters} className="text-[9px] uppercase font-black h-8" disabled={loading}>
-                            <PlusCircle className="h-3 w-3 mr-1" /> Populate
-                        </Button>
-                        <Button variant="destructive" onClick={handleBulkDeleteSupporters} className="text-[9px] uppercase font-black h-8" disabled={loading}>
-                            <Database className="h-3 w-3 mr-1" /> Wipe Test
-                        </Button>
-                    </div>
-                )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-4">
                     <Card className="shadow-lg border-t-4 border-accent">
                         <form onSubmit={handleFormSubmit}>
                             <CardHeader>
-                                <CardTitle className="text-lg font-headline flex items-center gap-2">
-                                    <UserPlus className="h-5 w-5" />
+                                <CardTitle className="text-xl font-headline flex items-center gap-2 uppercase tracking-tight text-primary">
+                                    <UserPlus className="h-6 w-6 text-accent" />
                                     {isEditMode ? 'Edit Profile' : 'Register Member'}
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent className="space-y-5">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-primary">Full Name</Label>
-                                    <Input required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="h-12 text-base font-bold" />
+                                    <Input required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="h-12 text-base font-bold border-2" placeholder="JUAN DELA CRUZ" />
                                 </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-primary">Email Address</Label>
+                                        <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-12 border-2" placeholder="m.delacruz@example.com" disabled={isEditMode} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-primary">Phone Number</Label>
+                                        <div className="relative">
+                                            <Smartphone className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                                            <Input required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="h-12 pl-10 border-2 font-bold" placeholder="+639..." />
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {!isEditMode && (
-                                    <>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase text-primary">Email</Label>
-                                            <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-12" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase text-primary">Temp Password</Label>
-                                            <Input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="h-12" />
-                                        </div>
-                                    </>
-                                )}
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-1">
-                                        <Label className="text-[9px] uppercase">Province</Label>
-                                        <Input value={province} onChange={e => setProvince(e.target.value.toUpperCase())} className="h-10 text-xs" />
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-primary">Temp Password</Label>
+                                        <Input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="h-12 border-2" />
                                     </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-[9px] uppercase">City</Label>
-                                        <Input value={city} onChange={e => setCity(e.target.value.toUpperCase())} className="h-10 text-xs" />
+                                )}
+
+                                <div className="pt-2 border-t border-dashed">
+                                    <Label className="text-[10px] font-black uppercase text-primary mb-3 block flex items-center gap-2">
+                                        <MapPin className="h-3 w-3" /> Jurisdictional Deployment
+                                    </Label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] uppercase font-bold">Province</Label>
+                                            <Select onValueChange={setSelectedProvince} value={selectedProvince}>
+                                                <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {provinces.map(p => <SelectItem key={p.code} value={p.name} className="uppercase font-bold text-[10px]">{p.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] uppercase font-bold">City / Town</Label>
+                                            <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
+                                                <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {cities.map(c => <SelectItem key={c.code} value={c.name} className="uppercase font-bold text-[10px]">{c.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 mt-3">
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] uppercase font-bold">Barangay</Label>
+                                            <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
+                                                <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {barangays.map(b => <SelectItem key={b.code} value={b.name} className="uppercase font-bold text-[10px]">{b.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] uppercase font-bold text-muted-foreground">Zip Code</Label>
+                                            <Input value={zipCode} readOnly className="h-11 font-black bg-muted/50 border-2 cursor-not-allowed text-primary" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1 mt-3">
+                                        <Label className="text-[9px] uppercase font-bold">Street / House No.</Label>
+                                        <div className="relative">
+                                            <Home className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                            <Input placeholder="House #, Street, Building" value={streetAddress} onChange={e => setStreetAddress(e.target.value.toUpperCase())} className="h-11 pl-10 border-2 font-medium" required />
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase text-primary">Role</Label>
+
+                                <div className="space-y-2 pt-2 border-t border-dashed">
+                                    <Label className="text-[10px] font-black uppercase text-primary">Organizational Rank</Label>
                                     <Select onValueChange={setRole} value={role}>
-                                        <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="h-12 border-2"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             {allAssignableRoles.map(r => {
                                               const isTaken = !UNLIMITED_ROLES.includes(r) && takenRoles.includes(r) && (!isEditMode || selectedUser?.role !== r);
-                                              return <SelectItem key={r} value={r} disabled={isTaken}>{r} {isTaken ? '(Taken)' : ''}</SelectItem>;
+                                              return <SelectItem key={r} value={r} disabled={isTaken} className="font-bold uppercase text-[10px]">{r} {isTaken ? '(Taken)' : ''}</SelectItem>;
                                             })}
                                         </SelectContent>
                                     </Select>
                                 </div>
                             </CardContent>
-                            <CardFooter className="flex flex-col gap-2">
-                                <Button type="submit" className="w-full h-14 text-base font-black uppercase tracking-widest" disabled={loading || !hasExecutiveAccess}>
-                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isEditMode ? 'Save Record' : 'Register Member')}
+                            <CardFooter className="flex flex-col gap-2 bg-muted/30 pt-6">
+                                <Button type="submit" className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !hasExecutiveAccess}>
+                                    {loading ? <Loader2 className="animate-spin h-6 w-6" /> : (isEditMode ? 'Commit Record' : 'Register Member')}
                                 </Button>
-                                {isEditMode && <Button variant="ghost" onClick={resetForm} className="w-full h-12 uppercase font-bold">Cancel</Button>}
+                                {isEditMode && <Button variant="ghost" onClick={resetForm} className="w-full h-12 uppercase font-bold">Cancel Elevation</Button>}
                             </CardFooter>
                         </form>
                     </Card>
                 </div>
 
-                <div className="lg:col-span-2 space-y-4">
+                <div className="lg:col-span-8 space-y-4">
                     <div className="relative">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input className="pl-12 h-14 shadow-sm uppercase font-bold text-sm" placeholder="Search database..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        <Input className="pl-12 h-14 shadow-sm uppercase font-bold text-sm bg-white border-2" placeholder="Search national database by name, email, or city..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     </div>
                     
-                    {/* Desktop Table View */}
-                    <div className="hidden md:block">
-                        <Card className="shadow-lg overflow-hidden border-none bg-white">
-                            <CardHeader className="bg-primary text-primary-foreground py-3 border-b">
-                                <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                                    <Users className="h-5 w-5" />
-                                    Registry ({filteredRegistry.length})
-                                </CardTitle>
-                            </CardHeader>
+                    <Card className="shadow-lg overflow-hidden border-none bg-white">
+                        <CardHeader className="bg-primary text-primary-foreground py-4 border-b flex flex-row items-center justify-between">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                <Users className="h-5 w-5 text-accent" />
+                                Registry Base ({filteredRegistry.length})
+                            </CardTitle>
+                            <Badge variant="outline" className="border-white/20 text-white font-black text-[10px]">AUTHORIZED ACCESS</Badge>
+                        </CardHeader>
+                        <div className="overflow-x-auto">
                             <Table>
-                                <TableHeader><TableRow className="bg-muted/50"><TableHead className="pl-6 text-[10px] font-black uppercase">Member</TableHead><TableHead className="text-[10px] font-black uppercase">Role</TableHead><TableHead className="text-[10px] font-black uppercase">Jurisdiction</TableHead><TableHead className="text-right pr-6 text-[10px] font-black uppercase">Actions</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow className="bg-muted/50"><TableHead className="pl-6 text-[10px] font-black uppercase">Member Identity</TableHead><TableHead className="text-[10px] font-black uppercase">Official Rank</TableHead><TableHead className="text-[10px] font-black uppercase">Jurisdiction</TableHead><TableHead className="text-right pr-6 text-[10px] font-black uppercase">Actions</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {usersLoading ? <TableRow><TableCell colSpan={4} className="text-center py-24"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow> :
-                                     filteredRegistry.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center py-24 text-muted-foreground italic">No results.</TableCell></TableRow> :
+                                     filteredRegistry.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center py-24 text-muted-foreground italic">Zero records found in this scope.</TableCell></TableRow> :
                                      filteredRegistry.map(member => (
                                         <TableRow key={member.id} className={member.isApproved === false ? 'bg-destructive/5' : ''}>
-                                            <TableCell className="pl-6"><div className="font-bold text-sm uppercase">{member.fullName}</div><div className="text-[10px] text-muted-foreground">{member.email}</div></TableCell>
-                                            <TableCell><Badge variant="secondary" className="bg-primary/10 text-primary text-[9px] font-black uppercase">{member.role}</Badge></TableCell>
-                                            <TableCell><div className="text-[11px] font-bold uppercase">{member.city}</div><div className="text-[9px] text-muted-foreground uppercase">{member.province}</div></TableCell>
+                                            <TableCell className="pl-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-10 w-10 border shadow-sm">
+                                                        <AvatarImage src={member.photoURL} />
+                                                        <AvatarFallback className="font-black bg-muted">{member.fullName?.charAt(0)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <div className="font-black text-sm uppercase text-primary leading-tight">{member.fullName}</div>
+                                                        <div className="text-[9px] font-bold text-muted-foreground uppercase">{member.email}</div>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell><Badge variant="secondary" className="bg-primary/5 text-primary text-[9px] font-black uppercase border-none">{member.role}</Badge></TableCell>
+                                            <TableCell>
+                                                <div className="text-[11px] font-black text-primary uppercase leading-tight">{member.city}</div>
+                                                <div className="text-[9px] font-bold text-muted-foreground uppercase">{member.province}</div>
+                                            </TableCell>
                                             <TableCell className="text-right pr-6 space-x-1">
                                                 {hasExecutiveAccess ? <>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleToggleRole(member)} className="h-8 w-8 text-primary"><ArrowRightLeft className="h-4 w-4" /></Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(member)} className={`h-8 w-8 ${member.isApproved === false ? 'text-green-600' : 'text-amber-600'}`}>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(member)} title="Toggle Status" className={`h-8 w-8 rounded-full ${member.isApproved === false ? 'text-green-600 bg-green-50' : 'text-amber-600 bg-amber-50'}`}>
                                                         {member.isApproved === false ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleEditClick(member)} className="h-8 w-8 text-primary"><Pencil className="h-4 w-4" /></Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRevoke(member)} disabled={member.id === userData?.uid}><Trash2 className="h-4 w-4" /></Button>
-                                                </> : <span className="text-[10px] italic">View Only</span>}
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEditClick(member)} title="Edit Registry" className="h-8 w-8 rounded-full text-primary bg-primary/5"><Pencil className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-destructive bg-red-50" onClick={() => handleRevoke(member)} disabled={member.id === userData?.uid} title="Remove Member"><Trash2 className="h-4 w-4" /></Button>
+                                                </> : <span className="text-[9px] font-black uppercase opacity-40">READ_ONLY</span>}
                                             </TableCell>
                                         </TableRow>
                                      ))}
                                 </TableBody>
                             </Table>
-                        </Card>
-                    </div>
-
-                    {/* Mobile Card View */}
-                    <div className="md:hidden space-y-4">
-                        {usersLoading ? <div className="py-12 flex justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div> :
-                         filteredRegistry.length === 0 ? <p className="text-center py-12 text-muted-foreground">No records found.</p> :
-                         filteredRegistry.map(member => (
-                            <Card key={member.id} className={`shadow-md border-l-4 ${member.isApproved === false ? 'border-destructive' : 'border-primary'}`}>
-                                <CardContent className="p-4 space-y-3">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-black text-sm uppercase leading-tight">{member.fullName}</p>
-                                            <p className="text-[10px] text-muted-foreground uppercase mt-1">{member.role}</p>
-                                        </div>
-                                        <Badge className="bg-primary/5 text-primary border-none text-[9px] font-black uppercase">
-                                            {member.city || 'National'}
-                                        </Badge>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground border-t pt-3">
-                                        <MapPin className="h-3 w-3" /> {member.province}
-                                    </div>
-                                    {hasExecutiveAccess && (
-                                        <div className="flex justify-around items-center pt-3 border-t border-dashed">
-                                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(member)}><Pencil className="h-5 w-5 text-primary" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(member)} className={member.isApproved === false ? 'text-green-600' : 'text-amber-600'}>
-                                                {member.isApproved === false ? <UserCheck className="h-5 w-5" /> : <UserX className="h-5 w-5" />}
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleRevoke(member)} disabled={member.id === userData?.uid}><Trash2 className="h-5 w-5" /></Button>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                         ))}
-                    </div>
+                        </div>
+                    </Card>
                 </div>
             </div>
         </div>
