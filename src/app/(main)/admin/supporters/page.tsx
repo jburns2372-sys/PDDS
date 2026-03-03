@@ -25,7 +25,8 @@ import {
   ChevronRight,
   Shield,
   Upload,
-  UserCheck
+  UserCheck,
+  Crown
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
@@ -48,11 +49,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useUserData } from "@/context/user-data-context";
 
-const PROMOTABLE_ROLES = ["Supporter", "Volunteer", "Coordinator", "Moderator", "Member", "Officer"];
+const PROMOTABLE_ROLES = ["Supporter", "Volunteer", "Coordinator", "Moderator", "Member", "Officer", "Admin", "President"];
 
 /**
  * @fileOverview Recruitment & Regional Command Dashboard.
- * Optimized with Single-Instance Dialogs for high performance.
+ * Optimized for President Visibility: Shows ALL users if President is logged in.
  */
 export default function AdminSupporterDashboard() {
   const firestore = useFirestore();
@@ -77,23 +78,26 @@ export default function AdminSupporterDashboard() {
   const [noteContent, setNoteContent] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
 
-  // STRICT FILTER: Supporter role only
-  const supporters = useMemo(() => {
+  const isPresident = currentAdmin?.role === 'President' || currentAdmin?.isSuperAdmin;
+
+  // Visibility Logic: President sees everyone, others see only Supporters
+  const baseUsers = useMemo(() => {
+    if (isPresident) return allUsers;
     return allUsers.filter(u => u.role === 'Supporter');
-  }, [allUsers]);
+  }, [allUsers, isPresident]);
 
   const uniqueDistricts = useMemo(() => {
-    const districts = new Set(supporters.map(u => u.islandGroup).filter(Boolean));
+    const districts = new Set(baseUsers.map(u => u.islandGroup).filter(Boolean));
     return Array.from(districts).sort();
-  }, [supporters]);
+  }, [baseUsers]);
 
   const uniqueCities = useMemo(() => {
-    const cities = new Set(supporters.map(u => u.city).filter(Boolean));
+    const cities = new Set(baseUsers.map(u => u.city).filter(Boolean));
     return Array.from(cities).sort();
-  }, [supporters]);
+  }, [baseUsers]);
 
-  const filteredSupporters = useMemo(() => {
-    return supporters.filter(s => {
+  const filteredUsers = useMemo(() => {
+    return baseUsers.filter(s => {
       const matchesSearch = 
         (s.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (s.email || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -107,20 +111,20 @@ export default function AdminSupporterDashboard() {
       const dateB = b.lastActive?.seconds || b.joinedAt?.seconds || b.createdAt?.seconds || 0;
       return dateB - dateA;
     });
-  }, [supporters, searchTerm, filterDistrict, filterCity]);
+  }, [baseUsers, searchTerm, filterDistrict, filterCity]);
 
   const stats = useMemo(() => {
-    const total = filteredSupporters.length;
-    const verified = filteredSupporters.filter(s => s.isVerified === true).length;
+    const total = filteredUsers.length;
+    const verified = filteredUsers.filter(s => s.isVerified === true).length;
     const pending = total - verified;
     return { total, verified, pending };
-  }, [filteredSupporters]);
+  }, [filteredUsers]);
 
   const handleRoleChange = (userId: string, newRole: string) => {
     const userRef = doc(firestore, "users", userId);
     updateDoc(userRef, { role: newRole })
       .then(() => {
-        toast({ title: "Rank Updated", description: `Supporter promoted to ${newRole}.` });
+        toast({ title: "Rank Updated", description: `User promoted to ${newRole}.` });
       })
       .catch(async () => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -188,13 +192,13 @@ export default function AdminSupporterDashboard() {
   };
 
   const exportToCSV = () => {
-    const headers = ["Full Name", "Email", "District", "City", "Verified"];
-    const rows = filteredSupporters.map(u => [
-      `"${u.fullName || 'Anonymous'}"`, `"${u.email || ''}"`, `"${u.islandGroup || ''}"`, `"${u.city || ''}"`, `"${u.isVerified ? 'Yes' : 'No'}"`
+    const headers = ["Full Name", "Email", "Role", "District", "City", "Verified"];
+    const rows = filteredUsers.map(u => [
+      `"${u.fullName || 'Anonymous'}"`, `"${u.email || ''}"`, `"${u.role || ''}"`, `"${u.islandGroup || ''}"`, `"${u.city || ''}"`, `"${u.isVerified ? 'Yes' : 'No'}"`
     ].join(","));
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n")));
-    link.setAttribute("download", `Supporters_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.setAttribute("download", `National_Registry_Export_${format(new Date(), 'yyyy-MM-dd')}.csv`);
     link.click();
   };
 
@@ -209,10 +213,12 @@ export default function AdminSupporterDashboard() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-primary pb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-primary font-headline flex items-center gap-3 uppercase tracking-tight">
-              <Globe className="h-6 w-6 md:h-8 md:w-8" />
-              Supporter Command Center
+              {isPresident ? <Crown className="h-6 w-6 md:h-8 md:w-8 text-accent animate-pulse" /> : <Globe className="h-6 w-6 md:h-8 md:w-8" />}
+              {isPresident ? "National Executive Registry" : "Supporter Command Center"}
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">Managing recruitment pulse and regional inductions.</p>
+            <p className="text-muted-foreground text-sm mt-1">
+              {isPresident ? "Full organizational oversight and jurisdictional auditing active." : "Managing recruitment pulse and regional inductions."}
+            </p>
           </div>
           <Button onClick={exportToCSV} className="h-12 font-black uppercase text-[10px] tracking-widest bg-green-600 hover:bg-green-700 shadow-lg px-6">
             <Download className="mr-2 h-4 w-4" /> Export Report
@@ -240,13 +246,13 @@ export default function AdminSupporterDashboard() {
           </Select>
           <div className="flex items-center justify-center bg-primary/5 rounded-lg border px-4 h-12">
             <span className="text-[10px] font-black uppercase text-primary/60 mr-2">Count:</span>
-            <span className="text-lg font-black text-primary">{filteredSupporters.length}</span>
+            <span className="text-lg font-black text-primary">{filteredUsers.length}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="shadow-lg border-l-4 border-l-primary bg-white"><CardContent className="p-6">
-            <p className="text-[10px] font-black uppercase text-primary/60">Total Base</p>
+            <p className="text-[10px] font-black uppercase text-primary/60">Registry Base</p>
             <p className="text-3xl font-black text-primary">{stats.total}</p>
           </CardContent></Card>
           <Card className="shadow-lg border-l-4 border-l-emerald-600 bg-white"><CardContent className="p-6">
@@ -261,8 +267,10 @@ export default function AdminSupporterDashboard() {
 
         <Card className="shadow-2xl overflow-hidden border-none bg-white">
           <CardHeader className="bg-primary text-primary-foreground py-4 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Induction Log</CardTitle>
-            <Badge variant="outline" className="border-white/20 text-white text-[9px] uppercase">Role: Supporters</Badge>
+            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Active Induction Log</CardTitle>
+            <Badge variant="outline" className="border-white/20 text-white text-[9px] uppercase">
+              {isPresident ? "ROLE: NATIONAL OVERVIEW" : "ROLE: SUPPORTERS"}
+            </Badge>
           </CardHeader>
           <div className="overflow-x-auto">
             <Table>
@@ -271,14 +279,14 @@ export default function AdminSupporterDashboard() {
                 <TableHead className="text-[10px] font-black uppercase">Location</TableHead>
                 <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
                 <TableHead className="text-[10px] font-black uppercase">Engagement</TableHead>
-                <TableHead className="text-[10px] font-black uppercase">Promotion</TableHead>
+                <TableHead className="text-[10px] font-black uppercase">Role Management</TableHead>
                 <TableHead className="text-right pr-6 text-[10px] font-black uppercase">Actions</TableHead>
               </TableRow></TableHeader>
               <TableBody>
-                {filteredSupporters.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-24 text-muted-foreground italic">No active supporters found.</TableCell></TableRow>
+                {filteredUsers.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-24 text-muted-foreground italic">No active records found in this scope.</TableCell></TableRow>
                 ) : (
-                  filteredSupporters.map((user: any) => (
+                  filteredUsers.map((user: any) => (
                     <TableRow key={user.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="pl-6">
                         <div className="flex items-center gap-3">

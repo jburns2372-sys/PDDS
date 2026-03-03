@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -24,8 +23,8 @@ const UNLIMITED_ROLES = ['Member', 'Supporter', 'Volunteer', 'Coordinator', 'Mod
 
 const allAssignableRoles = [
   ...pddsLeadershipRoles,
-  "Member", "Admin", "Volunteer", "Coordinator", "Moderator"
-].filter(r => r !== 'Supporter' && r !== 'System Admin');
+  "Member", "Admin", "Volunteer", "Coordinator", "Moderator", "Supporter"
+].filter(r => r !== 'System Admin');
 
 export default function AdminDashboard() {
     const firestore = useFirestore();
@@ -275,9 +274,9 @@ export default function AdminDashboard() {
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-primary flex items-center gap-2 font-headline uppercase tracking-tight">
                         <Shield className="h-6 w-6 md:h-8 md:w-8" />
-                        Member Registry
+                        National Command Registry
                     </h1>
-                    <p className="text-muted-foreground text-sm mt-1">Command center for national organizational management.</p>
+                    <p className="text-muted-foreground text-sm mt-1">Full oversight of all Officers, Members, and Supporters.</p>
                 </div>
                 {hasExecutiveAccess && (
                     <div className="flex flex-wrap items-center gap-2">
