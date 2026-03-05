@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef } from "react";
@@ -10,9 +11,9 @@ import { toPng } from "html-to-image";
 import { Download, CheckCircle2, MapPin, UserCheck, ShieldCheck } from "lucide-react";
 
 /**
- * @fileOverview High-fidelity Digital Member ID Card.
- * Optimized for horizontal identity alignment and maximum name readability.
- * Features absolute synchronization with user-submitted profile pictures.
+ * @fileOverview Hardened Digital Member ID Card.
+ * Ensures absolute visibility of the PDDS Logo and Member Profile Picture.
+ * Optimized for high-fidelity exports and real-time registry synchronization.
  */
 export function DigitalIdCard({ userData }: { userData: any }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -49,7 +50,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
             id="pdds-id-card"
             className="w-full max-w-[320px] aspect-[1/1.58] overflow-hidden rounded-[32px] shadow-2xl bg-[#002366] text-white relative flex flex-col"
         >
-          {/* Enhanced Security Pattern Overlay */}
+          {/* Security Pattern Overlay */}
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
               <pattern id="id-hex-grid" width="30" height="30" patternUnits="userSpaceOnUse">
@@ -60,10 +61,12 @@ export function DigitalIdCard({ userData }: { userData: any }) {
           </div>
 
           <CardContent className="p-6 flex flex-col gap-6 relative z-10 h-full">
-            {/* Header: Fixed Logo Visibility */}
+            {/* Header: Hardened Logo Visibility */}
             <div className="flex w-full items-center justify-between border-b border-white/20 pb-4">
               <div className="flex items-center gap-3">
-                <PddsLogo variant="white" className="h-10 w-auto shadow-none" />
+                <div className="bg-white p-1 rounded-lg shadow-md flex items-center justify-center">
+                  <PddsLogo className="h-10 w-auto" />
+                </div>
                 <div className="flex flex-col">
                   <span className="font-black text-[8px] tracking-widest uppercase leading-none opacity-60">Pederalismo ng</span>
                   <span className="font-black text-[10px] tracking-tighter uppercase leading-tight text-accent">Dugong Dakila</span>
@@ -72,22 +75,21 @@ export function DigitalIdCard({ userData }: { userData: any }) {
               <Badge variant="outline" className="text-[7px] font-black tracking-widest uppercase border-white/30 text-white bg-white/5">REGISTRY ID</Badge>
             </div>
 
-            {/* Identity Node: Profile Pic next to Highly Readable Name */}
+            {/* Identity Node: Forced Image Loading */}
             <div className="flex items-center gap-4 bg-white/10 p-4 rounded-3xl border border-white/20 shadow-2xl backdrop-blur-sm">
               <div className="relative shrink-0">
-                <div className="h-20 w-20 rounded-2xl border-2 border-white overflow-hidden bg-white shadow-xl">
+                <div className="h-20 w-20 rounded-2xl border-2 border-white overflow-hidden bg-white shadow-xl flex items-center justify-center">
                   {userData.photoURL ? (
                     <img 
-                      key={userData.photoURL} // Forces refresh on URL change
+                      key={userData.photoURL} // Forces refresh on URL update
                       src={userData.photoURL} 
                       alt={userData.fullName} 
                       className="h-full w-full object-cover" 
-                      crossOrigin="anonymous" 
+                      crossOrigin="anonymous"
+                      loading="eager"
                     />
                   ) : (
-                    <div className="flex items-center justify-center h-full w-full bg-[#002366]/20">
-                      <UserCheck className="h-10 w-10 text-[#002366]/40" />
-                    </div>
+                    <UserCheck className="h-10 w-10 text-primary/20" />
                   )}
                 </div>
                 {isVerified && (
@@ -110,7 +112,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
 
             {/* Verification Zone */}
             <div className="flex-1 flex flex-col items-center justify-center gap-4">
-              <div className="bg-white p-3 rounded-2xl shadow-2xl relative">
+              <div className="bg-white p-3 rounded-2xl shadow-2xl relative border-4 border-accent/20">
                 <QRCodeSVG value={userData.uid || 'null'} size={110} level="H" fgColor="#002366" />
                 <div className="absolute inset-0 border-4 border-[#002366]/5 rounded-2xl pointer-events-none" />
               </div>
