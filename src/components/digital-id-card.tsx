@@ -11,8 +11,7 @@ import { Download, CheckCircle2, MapPin, UserCheck, AlertCircle } from "lucide-r
 
 /**
  * @fileOverview High-fidelity Digital Member ID Card.
- * Displays the official profile photo from the National Registry.
- * Optimized for high-resolution export and cross-platform alignment.
+ * Centered on the PDDS Logo as the primary source of authority.
  */
 export function DigitalIdCard({ userData }: { userData: any }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -23,7 +22,6 @@ export function DigitalIdCard({ userData }: { userData: any }) {
     if (cardRef.current === null) return;
     
     try {
-      // Ensure the export captures the latest biometric data with high pixel ratio
       const dataUrl = await toPng(cardRef.current, { 
         cacheBust: true, 
         pixelRatio: 3,
@@ -59,6 +57,11 @@ export function DigitalIdCard({ userData }: { userData: any }) {
               <rect width="100%" height="100%" fill="url(#id-hex)" />
             </svg>
           </div>
+
+          {/* Logo Watermark */}
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
+            <PddsLogo variant="white" className="w-[150%] h-auto rotate-12 scale-150 shadow-none" />
+          </div>
           
           <CardContent className="p-6 flex flex-col gap-5 relative z-10 h-full">
             {/* Header: Official Logo and Identity Branding */}
@@ -73,7 +76,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
               <Badge variant="outline" className="text-[6px] font-black tracking-widest uppercase border-white/20 text-white">OFFICIAL ID</Badge>
             </div>
 
-            {/* Profile Core: The actual profile pic reflecting the user's biometric data */}
+            {/* Profile Core */}
             <div className="flex flex-col items-center gap-4 py-2">
               <div className="relative">
                 <div className="h-32 w-32 rounded-3xl border-4 border-white overflow-hidden bg-white shadow-[0_0_25px_rgba(0,0,0,0.3)]">
@@ -122,7 +125,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
               </div>
             </div>
 
-            {/* Verification Key (QR Code) for mobilization scanning */}
+            {/* Verification Key */}
             <div className="flex-1 flex items-center justify-center py-1">
               <div className="bg-white p-3 rounded-2xl shadow-2xl border border-black/5 relative group">
                 <QRCodeSVG value={userData.uid || 'null'} size={100} level="H" fgColor="#002366" />
@@ -130,7 +133,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
               </div>
             </div>
 
-            {/* Footer: ID Metadata and Security Stamp */}
+            {/* Footer */}
             <div className="mt-auto pt-4 border-t border-white/10 flex justify-between items-end">
               <div className="space-y-0.5">
                 <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/40">Member Rank</p>
