@@ -11,7 +11,7 @@ import { Download, CheckCircle2, MapPin, UserCheck, AlertCircle } from "lucide-r
 
 /**
  * @fileOverview High-fidelity Digital Member ID Card.
- * Updated: Logo visibility hardened and profile photo sync optimized.
+ * Synchronized with National Registry profile photo and official branding.
  */
 export function DigitalIdCard({ userData }: { userData: any }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -65,17 +65,15 @@ export function DigitalIdCard({ userData }: { userData: any }) {
           
           <CardContent className="p-6 flex flex-col gap-6 relative z-10 h-full">
             {/* Header: Official Logo Left of Party Name */}
-            <div className="flex w-full items-center justify-between border-b border-white/10 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/10 p-1.5 rounded-xl border border-white/10">
-                  <PddsLogo variant="white" className="h-10 w-auto shadow-none brightness-200" />
-                </div>
-                <div className="flex flex-col justify-center">
-                  <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Federalismo ng Dugong</span>
-                  <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Dakilang Samahan</span>
-                </div>
+            <div className="flex w-full items-center justify-start border-b border-white/10 pb-4 gap-3">
+              <div className="bg-white/10 p-1.5 rounded-xl border border-white/10 shrink-0">
+                <PddsLogo variant="white" className="h-10 w-auto shadow-none" />
               </div>
-              <Badge variant="outline" className="text-[6px] font-black tracking-widest uppercase border-white/20 text-white shrink-0">OFFICIAL ID</Badge>
+              <div className="flex flex-col justify-center">
+                <span className="font-black text-[10px] tracking-tighter uppercase leading-tight">Federalismo ng Dugong</span>
+                <span className="font-black text-[10px] tracking-tighter uppercase leading-tight">Dakilang Samahan</span>
+              </div>
+              <Badge variant="outline" className="ml-auto text-[6px] font-black tracking-widest uppercase border-white/20 text-white shrink-0">OFFICIAL ID</Badge>
             </div>
 
             {/* Profile Core: Automatically Syncs with Registry Photo */}
