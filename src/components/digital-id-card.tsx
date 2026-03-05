@@ -11,7 +11,7 @@ import { Download, CheckCircle2, MapPin, UserCheck, AlertCircle } from "lucide-r
 
 /**
  * @fileOverview High-fidelity Digital Member ID Card.
- * Centered on the PDDS Logo as the primary source of authority.
+ * Updated: Logo on the left of the party name as per command directive.
  */
 export function DigitalIdCard({ userData }: { userData: any }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -46,7 +46,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
         <div 
             ref={cardRef} 
             id="pdds-id-card"
-            className="w-full max-w-[320px] aspect-[1/1.58] overflow-hidden rounded-[24px] shadow-2xl bg-gradient-to-br from-[#002366] to-[#003399] text-white relative flex flex-col"
+            className="w-full max-w-[320px] aspect-[1/1.58] overflow-hidden rounded-[32px] shadow-2xl bg-[#002366] text-white relative flex flex-col"
         >
           {/* Internal Security Pattern Overlay */}
           <div className="absolute inset-0 opacity-5 pointer-events-none">
@@ -63,23 +63,23 @@ export function DigitalIdCard({ userData }: { userData: any }) {
             <PddsLogo variant="white" className="w-[150%] h-auto rotate-12 scale-150 shadow-none" />
           </div>
           
-          <CardContent className="p-6 flex flex-col gap-5 relative z-10 h-full">
-            {/* Header: Official Logo and Identity Branding */}
-            <div className="flex w-full items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <PddsLogo variant="white" className="h-10 w-auto shadow-none" />
-                <div className="flex flex-col">
-                  <span className="font-black text-[9px] tracking-tighter uppercase leading-none">Pederalismo ng Dugong</span>
-                  <span className="font-black text-[9px] tracking-tighter uppercase leading-none">Dakilang Samahan</span>
+          <CardContent className="p-6 flex flex-col gap-6 relative z-10 h-full">
+            {/* Header: Logo on Left of Party Name */}
+            <div className="flex w-full items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <PddsLogo variant="white" className="h-12 w-auto shadow-none" />
+                <div className="flex flex-col justify-center">
+                  <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Federalismo ng Dugong</span>
+                  <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Dakilang Samahan</span>
                 </div>
               </div>
-              <Badge variant="outline" className="text-[6px] font-black tracking-widest uppercase border-white/20 text-white">OFFICIAL ID</Badge>
+              <Badge variant="outline" className="text-[6px] font-black tracking-widest uppercase border-white/20 text-white shrink-0">OFFICIAL ID</Badge>
             </div>
 
             {/* Profile Core */}
-            <div className="flex flex-col items-center gap-4 py-2">
+            <div className="flex flex-col items-center gap-4 py-1">
               <div className="relative">
-                <div className="h-32 w-32 rounded-3xl border-4 border-white overflow-hidden bg-white shadow-[0_0_25px_rgba(0,0,0,0.3)]">
+                <div className="h-32 w-32 rounded-[24px] border-4 border-white overflow-hidden bg-white shadow-[0_0_25px_rgba(0,0,0,0.3)]">
                   {userData.photoURL ? (
                     <img 
                       src={userData.photoURL} 
@@ -109,16 +109,16 @@ export function DigitalIdCard({ userData }: { userData: any }) {
                   {userData.city || 'National'}
                 </p>
                 
-                <div className="flex justify-center pt-2">
+                <div className="flex justify-center pt-3">
                   {isVerified ? (
-                    <div className="bg-[#10b981] text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5">
+                    <div className="bg-[#10b981] text-white text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
                       <UserCheck className="h-3 w-3" />
                       VETTED: {vettingTier.toUpperCase()}
                     </div>
                   ) : (
-                    <div className="bg-[#f59e0b] text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5">
+                    <div className="bg-[#f59e0b] text-white text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 uppercase tracking-wide">
                       <AlertCircle className="h-3 w-3" />
-                      PENDING REGISTRY AUDIT
+                      Pending Registry Audit
                     </div>
                   )}
                 </div>
@@ -126,9 +126,9 @@ export function DigitalIdCard({ userData }: { userData: any }) {
             </div>
 
             {/* Verification Key */}
-            <div className="flex-1 flex items-center justify-center py-1">
+            <div className="flex-1 flex items-center justify-center">
               <div className="bg-white p-3 rounded-2xl shadow-2xl border border-black/5 relative group">
-                <QRCodeSVG value={userData.uid || 'null'} size={100} level="H" fgColor="#002366" />
+                <QRCodeSVG value={userData.uid || 'null'} size={110} level="H" fgColor="#002366" />
                 <div className="absolute inset-0 bg-[#002366]/5 rounded-2xl pointer-events-none border border-white/20" />
               </div>
             </div>
