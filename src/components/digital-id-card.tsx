@@ -11,7 +11,7 @@ import { Download, CheckCircle2, MapPin, UserCheck, AlertCircle } from "lucide-r
 
 /**
  * @fileOverview High-fidelity Digital Member ID Card.
- * Updated: Logo on the left of the party name as per command directive.
+ * Updated: Logo visibility hardened and profile photo sync optimized.
  */
 export function DigitalIdCard({ userData }: { userData: any }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -60,14 +60,16 @@ export function DigitalIdCard({ userData }: { userData: any }) {
 
           {/* Logo Watermark */}
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
-            <PddsLogo variant="white" className="w-[150%] h-auto rotate-12 scale-150 shadow-none" />
+            <PddsLogo variant="white" className="w-[150%] h-auto rotate-12 scale-150 shadow-none grayscale" />
           </div>
           
           <CardContent className="p-6 flex flex-col gap-6 relative z-10 h-full">
-            {/* Header: Logo on Left of Party Name */}
+            {/* Header: Official Logo Left of Party Name */}
             <div className="flex w-full items-center justify-between border-b border-white/10 pb-4">
               <div className="flex items-center gap-3">
-                <PddsLogo variant="white" className="h-12 w-auto shadow-none" />
+                <div className="bg-white/10 p-1.5 rounded-xl border border-white/10">
+                  <PddsLogo variant="white" className="h-10 w-auto shadow-none brightness-200" />
+                </div>
                 <div className="flex flex-col justify-center">
                   <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Federalismo ng Dugong</span>
                   <span className="font-black text-[10px] tracking-tighter uppercase leading-none">Dakilang Samahan</span>
@@ -76,12 +78,13 @@ export function DigitalIdCard({ userData }: { userData: any }) {
               <Badge variant="outline" className="text-[6px] font-black tracking-widest uppercase border-white/20 text-white shrink-0">OFFICIAL ID</Badge>
             </div>
 
-            {/* Profile Core */}
+            {/* Profile Core: Automatically Syncs with Registry Photo */}
             <div className="flex flex-col items-center gap-4 py-1">
               <div className="relative">
                 <div className="h-32 w-32 rounded-[24px] border-4 border-white overflow-hidden bg-white shadow-[0_0_25px_rgba(0,0,0,0.3)]">
                   {userData.photoURL ? (
                     <img 
+                      key={userData.photoURL} // Ensures instant refresh on photo update
                       src={userData.photoURL} 
                       alt={userData.fullName} 
                       className="h-full w-full object-cover" 
@@ -155,7 +158,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
       <Button 
         onClick={handleDownload} 
         variant="default" 
-        className="w-full max-w-[320px] h-14 font-black uppercase text-xs tracking-widest bg-[#002366] hover:bg-[#001a4d] shadow-xl rounded-xl transition-all"
+        className="w-full h-14 font-black uppercase text-xs tracking-widest bg-[#002366] hover:bg-[#001a4d] shadow-xl rounded-xl transition-all"
       >
         <Download className="mr-2 h-4 w-4" /> Save Official ID
       </Button>
