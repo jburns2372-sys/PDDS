@@ -61,27 +61,25 @@ export function DigitalIdCard({ userData }: { userData: any }) {
           </div>
 
           <CardContent className="p-6 flex flex-col gap-6 relative z-10 h-full">
-            {/* Header: Hardened Logo Visibility */}
-            <div className="flex w-full items-center justify-between border-b border-white/20 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-white p-1 rounded-lg shadow-md flex items-center justify-center">
-                  <PddsLogo className="h-10 w-auto" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-black text-[8px] tracking-widest uppercase leading-none opacity-60">Pederalismo ng</span>
-                  <span className="font-black text-[10px] tracking-tighter uppercase leading-tight text-accent">Dugong Dakila</span>
-                </div>
+            {/* Header: Hardened Logo Visibility & Shape */}
+            <div className="flex w-full items-center gap-3 border-b border-white/20 pb-4">
+              <div className="h-12 w-12 shrink-0 bg-white p-1 rounded-xl shadow-md flex items-center justify-center overflow-hidden">
+                <PddsLogo className="h-full w-full object-contain" />
               </div>
-              <Badge variant="outline" className="text-[7px] font-black tracking-widest uppercase border-white/30 text-white bg-white/5">REGISTRY ID</Badge>
+              <div className="flex flex-col min-w-0">
+                <span className="font-black text-[7px] tracking-[0.2em] uppercase leading-none opacity-60 truncate">Pederalismo ng</span>
+                <span className="font-black text-[10px] tracking-tight uppercase leading-tight text-accent break-words">Dugong Dakilang Samahan</span>
+              </div>
+              <Badge variant="outline" className="ml-auto text-[6px] font-black tracking-widest uppercase border-white/30 text-white bg-white/5 whitespace-nowrap">REGISTRY ID</Badge>
             </div>
 
-            {/* Identity Node: Forced Image Loading */}
+            {/* Identity Node: Forced Image Loading & Visibility */}
             <div className="flex items-center gap-4 bg-white/10 p-4 rounded-3xl border border-white/20 shadow-2xl backdrop-blur-sm">
               <div className="relative shrink-0">
                 <div className="h-20 w-20 rounded-2xl border-2 border-white overflow-hidden bg-white shadow-xl flex items-center justify-center">
                   {userData.photoURL ? (
                     <img 
-                      key={userData.photoURL} // Forces refresh on URL update
+                      key={userData.photoURL}
                       src={userData.photoURL} 
                       alt={userData.fullName} 
                       className="h-full w-full object-cover" 
