@@ -19,7 +19,7 @@ export default function PddsLogo({ className, variant = "default", ...props }: P
       src={PDDS_LOGO_URL} 
       alt="PDDS Official Party Logo"
       className={cn(
-        "object-contain aspect-square transition-all duration-300 bg-transparent", 
+        "object-contain aspect-square shrink-0 transition-all duration-300 bg-transparent", 
         className
       )}
       crossOrigin="anonymous"
