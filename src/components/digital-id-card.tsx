@@ -11,7 +11,8 @@ import { Download, CheckCircle2, MapPin, UserCheck, AlertCircle } from "lucide-r
 
 /**
  * @fileOverview High-fidelity Digital Member ID Card.
- * Synchronized with National Registry profile photo and official branding.
+ * Re-engineered for horizontal identity alignment (photo next to name).
+ * Features hardened logo visibility and official PDDS branding.
  */
 export function DigitalIdCard({ userData }: { userData: any }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -25,7 +26,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
       const dataUrl = await toPng(cardRef.current, { 
         cacheBust: true, 
         pixelRatio: 3,
-        backgroundColor: 'transparent'
+        backgroundColor: '#002366'
       });
       
       const link = document.createElement('a');
@@ -58,28 +59,23 @@ export function DigitalIdCard({ userData }: { userData: any }) {
             </svg>
           </div>
 
-          {/* Logo Watermark */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
-            <PddsLogo variant="white" className="w-[150%] h-auto rotate-12 scale-150 shadow-none grayscale" />
-          </div>
-          
           <CardContent className="p-6 flex flex-col gap-6 relative z-10 h-full">
             {/* Header: Official Logo Left of Party Name */}
             <div className="flex w-full items-center justify-start border-b border-white/10 pb-4 gap-3">
-              <div className="bg-white/10 p-1.5 rounded-xl border border-white/10 shrink-0">
-                <PddsLogo variant="white" className="h-10 w-auto shadow-none" />
+              <div className="bg-white p-1 rounded-lg shrink-0 shadow-lg">
+                <PddsLogo className="h-8 w-auto shadow-none" />
               </div>
               <div className="flex flex-col justify-center">
-                <span className="font-black text-[10px] tracking-tighter uppercase leading-tight">Federalismo ng Dugong</span>
-                <span className="font-black text-[10px] tracking-tighter uppercase leading-tight">Dakilang Samahan</span>
+                <span className="font-black text-[9px] tracking-tighter uppercase leading-tight">Federalismo ng Dugong</span>
+                <span className="font-black text-[9px] tracking-tighter uppercase leading-tight text-accent">Dakilang Samahan</span>
               </div>
               <Badge variant="outline" className="ml-auto text-[6px] font-black tracking-widest uppercase border-white/20 text-white shrink-0">OFFICIAL ID</Badge>
             </div>
 
-            {/* Profile Core: Automatically Syncs with Registry Photo */}
-            <div className="flex flex-col items-center gap-4 py-1">
-              <div className="relative">
-                <div className="h-32 w-32 rounded-[24px] border-4 border-white overflow-hidden bg-white shadow-[0_0_25px_rgba(0,0,0,0.3)]">
+            {/* Profile Core: Horizontal Layout (Photo next to Name) */}
+            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 shadow-inner">
+              <div className="relative shrink-0">
+                <div className="h-24 w-24 rounded-2xl border-2 border-white overflow-hidden bg-white shadow-xl">
                   {userData.photoURL ? (
                     <img 
                       key={userData.photoURL} // Ensures instant refresh on photo update
@@ -90,61 +86,54 @@ export function DigitalIdCard({ userData }: { userData: any }) {
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full w-full bg-[#002366]/10">
-                      <PddsLogo className="h-16 w-auto opacity-20 shadow-none" />
+                      <PddsLogo className="h-12 w-auto opacity-20 shadow-none grayscale" />
                     </div>
                   )}
                 </div>
                 {isVerified && (
-                  <div className="absolute -bottom-2 -right-2 bg-[#10b981] rounded-full p-1.5 border-4 border-[#002366] shadow-lg">
-                    <CheckCircle2 className="h-4 w-4 text-white" />
+                  <div className="absolute -bottom-1 -right-1 bg-[#10b981] rounded-full p-1 border-2 border-[#002366] shadow-lg">
+                    <CheckCircle2 className="h-3 w-3 text-white" />
                   </div>
                 )}
               </div>
 
-              <div className="text-center space-y-1 w-full">
-                <h2 className="text-2xl font-black uppercase tracking-tight leading-none font-headline">
+              <div className="flex-1 min-w-0 space-y-1">
+                <h2 className="text-xl font-black uppercase tracking-tight leading-tight font-headline truncate">
                   {userData.fullName}
                 </h2>
-                <p className="text-xs font-bold text-accent uppercase flex items-center justify-center gap-1">
-                  <MapPin className="h-3 w-3" />
+                <div className="flex items-center gap-1.5 text-[9px] font-bold text-accent uppercase">
+                  <MapPin className="h-2.5 w-2.5" />
                   {userData.city || 'National'}
-                </p>
+                </div>
                 
-                <div className="flex justify-center pt-3">
-                  {isVerified ? (
-                    <div className="bg-[#10b981] text-white text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
-                      <UserCheck className="h-3 w-3" />
-                      VETTED: {vettingTier.toUpperCase()}
-                    </div>
-                  ) : (
-                    <div className="bg-[#f59e0b] text-white text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 uppercase tracking-wide">
-                      <AlertCircle className="h-3 w-3" />
-                      Pending Registry Audit
-                    </div>
-                  )}
+                <div className="pt-2">
+                  <Badge className={isVerified ? "bg-emerald-600 border-none h-5 px-2 text-[7px] font-black" : "bg-orange-500 border-none h-5 px-2 text-[7px] font-black uppercase"}>
+                    {isVerified ? `VETTED: ${vettingTier.toUpperCase()}` : "PENDING AUDIT"}
+                  </Badge>
                 </div>
               </div>
             </div>
 
             {/* Verification Key */}
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex flex-col items-center justify-center gap-3">
               <div className="bg-white p-3 rounded-2xl shadow-2xl border border-black/5 relative group">
-                <QRCodeSVG value={userData.uid || 'null'} size={110} level="H" fgColor="#002366" />
+                <QRCodeSVG value={userData.uid || 'null'} size={100} level="H" fgColor="#002366" />
                 <div className="absolute inset-0 bg-[#002366]/5 rounded-2xl pointer-events-none border border-white/20" />
               </div>
+              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40">Scan to Verify Registry Status</p>
             </div>
 
             {/* Footer */}
             <div className="mt-auto pt-4 border-t border-white/10 flex justify-between items-end">
               <div className="space-y-0.5">
                 <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/40">Member Rank</p>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-accent">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-accent">
                   {userData.role || 'Supporter'}
                 </p>
               </div>
               <div className="text-right space-y-0.5">
                 <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/40">Registry Hash</p>
-                <p className="text-[10px] font-mono font-bold opacity-80 uppercase tracking-tighter">
+                <p className="text-[9px] font-mono font-bold opacity-80 uppercase tracking-tighter">
                   #{userData.uid?.substring(0, 12).toUpperCase()}
                 </p>
               </div>
