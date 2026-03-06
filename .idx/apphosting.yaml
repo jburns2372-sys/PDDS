@@ -1,0 +1,9 @@
+# PatriotLink Production Configuration
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  maxInstances: 10
+
+env:
+  - variable: NODE_VERSION
+    value: "20"
