@@ -47,6 +47,7 @@ const NCR_CODE = "130000000";
 /**
  * @fileOverview Member Profile & Registry Management.
  * REFACTORED: Fluid full-width 12-column tactical interface.
+ * FIXED: Default value persistence for cascading dropdowns.
  */
 export default function ProfilePage() {
     const { user, userData, loading: userLoading } = useUserData();
@@ -95,6 +96,7 @@ export default function ProfilePage() {
     const streamRef = useRef<MediaStream | null>(null);
     const verifierRef = useRef<RecaptchaVerifier | null>(null);
 
+    // Fetch Provinces on load
     useEffect(() => {
         const fetchProvinces = async () => {
             try {
@@ -109,24 +111,31 @@ export default function ProfilePage() {
         fetchProvinces();
     }, []);
 
+    // Initialize Form from Firestore Data
     useEffect(() => {
         if (userData && !isInitialized) {
-            setFullName(userData.fullName || "");
-            setEmail(userData.email || "");
+            setFullName(userData.fullName?.toUpperCase() || "");
+            setEmail(userData.email?.toLowerCase() || "");
             setPhoneNumber(userData.phoneNumber || "");
-            setStreetAddress(userData.streetAddress || "");
+            setStreetAddress(userData.streetAddress?.toUpperCase() || "");
             setZipCode(userData.zipCode || "");
             setPhotoURL(userData.photoURL || null);
-            setSelectedProvince(userData.province || "");
-            setSelectedCity(userData.city || "");
-            setSelectedBarangay(userData.barangay || "");
+            
+            // Normalize names to match API capitalization
+            setSelectedProvince(userData.province?.toUpperCase() || "");
+            setSelectedCity(userData.city?.toUpperCase() || "");
+            setSelectedBarangay(userData.barangay?.toUpperCase() || "");
+            
             setIsPhoneVerified(!!userData.phoneNumber);
             setIsInitialized(true);
         }
     }, [userData, isInitialized]);
 
+    // Cascading City Fetch
     useEffect(() => {
         if (!selectedProvince) { setCities([]); return; }
+        if (provinces.length === 0) return; // Wait for provinces list
+
         const fetchCities = async () => {
             const province = provinces.find((p: any) => p.name === selectedProvince);
             if (province) {
@@ -141,8 +150,11 @@ export default function ProfilePage() {
         fetchCities();
     }, [selectedProvince, provinces]);
 
+    // Cascading Barangay Fetch
     useEffect(() => {
         if (!selectedCity) { setBarangays([]); return; }
+        if (cities.length === 0) return; // Wait for cities list
+
         const fetchBarangays = async () => {
             const city = cities.find((c: any) => c.name === selectedCity);
             if (city) {
@@ -500,14 +512,26 @@ export default function ProfilePage() {
                                                 <Label className="text-[9px] font-black uppercase">Province</Label>
                                                 <Select onValueChange={setSelectedProvince} value={selectedProvince}>
                                                     <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
-                                                    <SelectContent>{provinces.map((p: any) => <SelectItem key={p.code} value={p.name} className="font-bold uppercase text-[10px]">{p.name}</SelectItem>)}</SelectContent>
+                                                    <SelectContent>
+                                                        {provinces.length > 0 ? (
+                                                            provinces.map((p: any) => <SelectItem key={p.code} value={p.name} className="font-bold uppercase text-[10px]">{p.name}</SelectItem>)
+                                                        ) : selectedProvince ? (
+                                                            <SelectItem value={selectedProvince} className="font-bold uppercase text-[10px]">{selectedProvince}</SelectItem>
+                                                        ) : null}
+                                                    </SelectContent>
                                                 </Select>
                                             </div>
                                             <div className="space-y-2">
                                                 <Label className="text-[9px] font-black uppercase">City / Municipality</Label>
                                                 <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
                                                     <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
-                                                    <SelectContent>{cities.map((c: any) => <SelectItem key={c.code} value={c.name} className="font-bold uppercase text-[10px]">{c.name}</SelectItem>)}</SelectContent>
+                                                    <SelectContent>
+                                                        {cities.length > 0 ? (
+                                                            cities.map((c: any) => <SelectItem key={c.code} value={c.name} className="font-bold uppercase text-[10px]">{c.name}</SelectItem>)
+                                                        ) : selectedCity ? (
+                                                            <SelectItem value={selectedCity} className="font-bold uppercase text-[10px]">{selectedCity}</SelectItem>
+                                                        ) : null}
+                                                    </SelectContent>
                                                 </Select>
                                             </div>
                                         </div>
@@ -516,7 +540,13 @@ export default function ProfilePage() {
                                                 <Label className="text-[9px] font-black uppercase">Barangay</Label>
                                                 <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
                                                     <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
-                                                    <SelectContent>{barangays.map((b: any) => <SelectItem key={b.code} value={b.name} className="font-bold uppercase text-[10px]">{b.name}</SelectItem>)}</SelectContent>
+                                                    <SelectContent>
+                                                        {barangays.length > 0 ? (
+                                                            barangays.map((b: any) => <SelectItem key={b.code} value={b.name} className="font-bold uppercase text-[10px]">{b.name}</SelectItem>)
+                                                        ) : selectedBarangay ? (
+                                                            <SelectItem value={selectedBarangay} className="font-bold uppercase text-[10px]">{selectedBarangay}</SelectItem>
+                                                        ) : null}
+                                                    </SelectContent>
                                                 </Select>
                                             </div>
                                             <div className="space-y-2">
