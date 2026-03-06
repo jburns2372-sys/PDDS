@@ -45,6 +45,7 @@
     "firebase": "^11.9.1",
     "genkit": "^1.28.0",
     "html-to-image": "^1.11.11",
+    "html2canvas": "^1.4.1",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
     "lucide-react": "^0.475.0",
