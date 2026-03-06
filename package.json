@@ -6,7 +6,7 @@
     "dev": "next dev",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "next build",
+    "build": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
@@ -72,7 +72,7 @@
     "typescript": "^5"
   },
   "engines": {
-    "node": "20"
+    "node": "20.x"
   },
   "overrides": {
     "require-in-the-middle": "7.3.0"
