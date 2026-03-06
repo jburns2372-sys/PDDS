@@ -105,7 +105,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
 
         {/* Top Header: Brand Lockdown Implementation */}
         <div className="flex justify-between items-start relative z-10">
-          <div className="flex items-center gap-3 bg-white/5 p-2 rounded-xl border border-white/10 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
           <img 
               src={PDDS_LOGO_URL} 
               alt="PDDS Official Logo" 
@@ -118,7 +118,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
               <h1 className="text-[9px] font-black uppercase tracking-tighter leading-none text-[#D4AF37]">Dakilang Samahan</h1>
             </div>
           </div>
-          <Badge variant="outline" className="text-[7px] font-black tracking-[0.2em] uppercase border-[#D4AF37] text-[#D4AF37] bg-white/5">
+          <Badge variant="outline" className="text-[7px] font-black tracking-[0.2em] uppercase border-[#D4AF37] text-[#D4AF37] bg-transparent">
             Verified Registry
           </Badge>
         </div>
