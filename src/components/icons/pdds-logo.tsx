@@ -23,13 +23,13 @@ export default function PddsLogo({ className, variant = "default", style, ...pro
         className
       )}
       style={{
-        height: '55px',
+        height: '50px',
         width: 'auto',
-        filter: 'drop-shadow(0px 0px 12px rgba(212, 175, 55, 0.6))',
+        filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.5))',
         ...style
       }}
       crossOrigin="anonymous"
-      onError={(e) => console.error("Branding Error: Official Logo failed to load.")}
+      onError={(e) => console.error("Branding Error: Official Logo failed to load. Check Firebase Rules.")}
       {...props}
     />
   );

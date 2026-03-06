@@ -18,23 +18,27 @@ export default function PatriotLayout({ children }: { children: React.ReactNode 
       <header className="fixed top-0 left-0 right-0 h-20 bg-[#001f3f] border-b-[3px] border-[#D4AF37] z-[9999] flex items-center px-6 shadow-2xl safe-top">
         
         {/* FORCE-FIX: PDDS OFFICIAL LOGO BRANDING BOX */}
-        <div className="flex items-center gap-4">
-          <div className="relative" style={{ minWidth: '55px' }}>
+        <div 
+          className="flex items-center gap-4" 
+          style={{ position: 'absolute', top: '10px', left: '15px', zIndex: 1000 }}
+        >
+          <div className="relative" style={{ minWidth: '50px' }}>
             {!logoError ? (
               <img 
                 src={PDDS_LOGO_URL} 
-                alt="PDDS Official Logo"
+                alt="PDDS Official"
                 style={{
-                  height: '55px',
+                  height: '50px',
                   width: 'auto',
-                  filter: 'drop-shadow(0px 0px 12px rgba(212, 175, 55, 0.6))',
+                  display: 'block',
+                  filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.5))',
                   pointerEvents: 'auto'
                 }}
                 className="object-contain cursor-pointer transition-transform hover:scale-105"
                 onClick={() => window.location.href = '/'}
                 onLoad={() => console.log("✅ PDDS Logo successfully anchored.")}
                 onError={(e) => {
-                  console.error("❌ Branding Error: Firebase access denied.");
+                  console.error("Logo still blocked. Check if 'Publish' was clicked in Firebase Rules.");
                   setLogoError(true);
                 }}
                 crossOrigin="anonymous"
@@ -45,7 +49,7 @@ export default function PatriotLayout({ children }: { children: React.ReactNode 
             )}
           </div>
 
-          {/* FULL PARTY NAME TYPOGRAPHY (PEDERALISMO CORRECTED) */}
+          {/* FULL PARTY NAME TYPOGRAPHY */}
           <div className="flex flex-col justify-center border-l border-white/20 pl-4 h-12">
             <span className="text-white font-black text-[10px] sm:text-xs leading-none uppercase tracking-tight">
               Pederalismo ng Dugong

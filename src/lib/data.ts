@@ -4,7 +4,7 @@ import { Landmark, Scale, Building2, Shield, HeartHandshake, BookOpen } from "lu
  * PDDS Party Configuration & Official References
  */
 
-// Official Logo Source of Truth (HTTPS format for browser compatibility)
+// Official Logo Source of Truth (Direct HTTPS Token Fix)
 export const PDDS_LOGO_URL = "https://firebasestorage.googleapis.com/v0/b/patriot-link-production.firebasestorage.app/o/PDDS_1024x1024.png?alt=media";
 
 export const pddsLeadershipRoles = [
@@ -102,8 +102,6 @@ export const getZipCode = (city: string, barangay?: string): string => {
       "ERMITA": "1000",
       "MALATE": "1004",
       "PACO": "1007",
-      "PANDACAN": "1011",
-      "QUIAPO": "1001",
       "SAMPALOC": "1008",
       "SAN MIGUEL": "1005"
     }
