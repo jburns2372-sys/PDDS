@@ -25,13 +25,12 @@ export function MainHeader() {
           <div className="relative flex items-center justify-center">
             {/* Tactical Pop Effect: White border and subtle glow */}
             <img 
-              src={PDDS_LOGO_URL} 
-              alt="Official PDDS Party Logo"
-              style={{ height: '45px', width: 'auto' }}
-              className="aspect-square object-contain rounded-full border-2 border-white shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all group-hover:scale-105"
-              onError={() => setLogoError(true)}
-              crossOrigin="anonymous"
-            />
+  src={PDDS_LOGO_URL} 
+  alt="PDDS Official Logo"
+  crossOrigin="anonymous" // MUST HAVE THIS
+  className="h-10 w-auto object-contain cursor-pointer transition-transform hover:scale-105"
+  style={{ filter: 'drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.5))' }}
+/>
           </div>
         ) : (
           /* Safety Fallback: Bold Gold Typography (#D4AF37) */

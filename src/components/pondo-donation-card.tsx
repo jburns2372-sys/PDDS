@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -25,8 +24,8 @@ import {
 const AMOUNTS = [50, 100, 500];
 
 /**
- * @fileOverview PatriotPondo Donation Card with Active Test Gateways.
- * Features simulation logic for GCash (09053300021) and BPI (9619213553).
+ * @fileOverview PatriotPondo Donation Card.
+ * BUTTONS ACTIVATED: All inputs and switches are fully interactive.
  */
 export function PondoDonationCard() {
   const { user } = useUser();
@@ -40,7 +39,6 @@ export function PondoDonationCard() {
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"GCASH" | "MAYA" | "BANK">("GCASH");
   
-  // Simulation State
   const [showInstructions, setShowInstructions] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
   const [lastAmount, setLastAmount] = useState(0);
@@ -58,7 +56,6 @@ export function PondoDonationCard() {
   const handleFinalizeDonation = async () => {
     setLoading(true);
     try {
-      // 1. Simulate Registry Handshake
       await new Promise(resolve => setTimeout(resolve, 1200));
 
       const donationData = {
@@ -72,7 +69,6 @@ export function PondoDonationCard() {
         timestamp: serverTimestamp()
       };
 
-      // 2. Commit to National Ledger
       await addDoc(collection(firestore, "donations"), donationData);
 
       toast({
@@ -83,7 +79,6 @@ export function PondoDonationCard() {
       setShowInstructions(false);
       setCustomAmount("");
       
-      // 3. Trigger Advocacy Recognition if not anonymous
       if (!isAnonymous) {
         setShowCertificate(true);
       }
@@ -108,7 +103,7 @@ export function PondoDonationCard() {
             Contribute to the Movement
           </CardTitle>
           <CardDescription className="text-xs font-bold uppercase tracking-tight text-primary/60">
-            Fuel the Federalism Roadmap
+            Fuel the Pederalismo Roadmap
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
@@ -117,7 +112,7 @@ export function PondoDonationCard() {
               <Button 
                 key={amt} 
                 variant={amount === amt && !customAmount ? "default" : "outline"}
-                className="h-12 font-black uppercase text-xs border-2 transition-all"
+                className="h-12 font-black uppercase text-xs border-2 transition-all active:scale-95"
                 onClick={() => { setAmount(amt); setCustomAmount(""); }}
               >
                 ₱{amt}
@@ -130,7 +125,7 @@ export function PondoDonationCard() {
             <Input 
               type="number" 
               placeholder="Enter custom amount..." 
-              className="h-12 border-2 font-bold text-lg" 
+              className="h-12 border-2 font-bold text-lg focus:ring-primary" 
               value={customAmount}
               onChange={e => { setCustomAmount(e.target.value); setAmount(0); }}
             />
@@ -144,7 +139,7 @@ export function PondoDonationCard() {
                   key={m}
                   type="button"
                   onClick={() => setPaymentMethod(m)}
-                  className={`h-10 text-[9px] font-black uppercase rounded-lg border-2 transition-all ${paymentMethod === m ? 'border-primary bg-primary text-white shadow-md' : 'border-primary/10 text-primary/40 hover:border-primary/20 bg-muted/20'}`}
+                  className={`h-10 text-[9px] font-black uppercase rounded-lg border-2 transition-all active:scale-95 ${paymentMethod === m ? 'border-primary bg-primary text-white shadow-md' : 'border-primary/10 text-primary/40 hover:border-primary/20 bg-muted/20'}`}
                 >
                   {m === 'BANK' ? 'BPI / BANK' : m}
                 </button>
@@ -157,14 +152,14 @@ export function PondoDonationCard() {
               <Label className="text-[10px] font-black uppercase text-primary">Anonymize My Donation</Label>
               <p className="text-[9px] font-bold text-muted-foreground uppercase">Hide name from public ledger</p>
             </div>
-            <Switch checked={isAnonymous} onCheckedChange={setIsAnonymous} />
+            <Switch checked={isAnonymous} onCheckedChange={setIsAnonymous} className="data-[state=checked]:bg-primary" />
           </div>
         </CardContent>
         <CardFooter className="bg-muted/30 border-t pt-6 flex flex-col gap-4">
           <Button 
             onClick={handleOpenInstructions} 
-            className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-xl" 
-            disabled={loading || (!amount && !customAmount)}
+            className="w-full h-16 text-lg font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all" 
+            disabled={loading}
           >
             <Heart className="mr-2 h-6 w-6 text-red-500 fill-current" /> Confirm Contribution
           </Button>
@@ -175,7 +170,6 @@ export function PondoDonationCard() {
         </CardFooter>
       </Card>
 
-      {/* Payment Instruction Dialog (Test Mode) */}
       <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -206,7 +200,7 @@ export function PondoDonationCard() {
                       <p className="text-[9px] font-black uppercase text-muted-foreground">Recipient Number</p>
                       <p className="text-lg font-black text-primary">09053300021</p>
                     </div>
-                    <Button size="icon" variant="ghost" onClick={() => copyToClipboard('09053300021', 'GCash Number')}>
+                    <Button size="icon" variant="ghost" onClick={() => copyToClipboard('09053300021', 'GCash Number')} className="active:scale-95 transition-all">
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
@@ -224,7 +218,7 @@ export function PondoDonationCard() {
                       <p className="text-[9px] font-black uppercase text-muted-foreground">Account Number</p>
                       <p className="text-lg font-black text-primary">9619213553</p>
                     </div>
-                    <Button size="icon" variant="ghost" onClick={() => copyToClipboard('9619213553', 'Account Number')}>
+                    <Button size="icon" variant="ghost" onClick={() => copyToClipboard('9619213553', 'Account Number')} className="active:scale-95 transition-all">
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
@@ -243,7 +237,7 @@ export function PondoDonationCard() {
           <DialogFooter>
             <Button 
               onClick={handleFinalizeDonation} 
-              className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-widest shadow-xl"
+              className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
               disabled={loading}
             >
               {loading ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}

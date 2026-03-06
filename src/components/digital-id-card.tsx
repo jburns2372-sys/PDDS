@@ -106,11 +106,12 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         {/* Top Header: Brand Lockdown Implementation (PEDERALISMO CORRECTED) */}
         <div className="flex justify-between items-start relative z-10">
           <div className="flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/10 backdrop-blur-sm">
-            <img 
+          <img 
               src={PDDS_LOGO_URL} 
-              alt="PDDS" 
-              className="h-[45px] w-auto border border-white shadow-sm rounded-full" 
+              alt="PDDS Official Logo" 
+              className="h-[45px] w-auto object-contain" 
               crossOrigin="anonymous"
+              style={{ filter: 'drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.5))' }}
             />
             <div className="flex flex-col">
               <h1 className="text-[9px] font-black uppercase tracking-tighter leading-none text-white">Pederalismo ng Dugong</h1>
@@ -125,20 +126,20 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         {/* Center: Forced-Fit Biometric Node (120px Precision) */}
         <div className="flex flex-col items-center justify-center mt-10 relative z-10">
           <div className="relative">
-            <div className={cn(
-              "w-[120px] h-[120px] rounded-full overflow-hidden bg-[#001a4d] border-4 transition-all duration-500",
+          <div className={cn(
+              "w-[140px] h-[140px] rounded-2xl overflow-hidden bg-[#001a4d] border-4 transition-all duration-500 shadow-2xl",
               getBorderStyles()
             )}>
               {fetching ? (
                 <div className="flex items-center justify-center w-full h-full">
-                  <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]/40" />
+                  <Loader2 className="h-8 w-8 animate-spin text-[#D4AF37]/40" />
                 </div>
               ) : (
                 <img 
                   key={idPhoto}
                   src={loadError || !idPhoto ? DEFAULT_SILHOUETTE : idPhoto} 
                   alt={displayName} 
-                  className="w-full h-full object-cover" 
+                  className="w-full h-full object-cover scale-105"
                   crossOrigin="anonymous"
                   loading="eager"
                   onError={() => setLoadError(true)}

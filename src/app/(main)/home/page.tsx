@@ -44,7 +44,7 @@ function UserHeader({userData}: {userData: any}) {
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Induction Status</p>
               <p className="text-sm font-bold text-green-600 uppercase">Registry Verified</p>
            </div>
-           <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-2 relative">
+           <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-2 relative active:scale-95 transition-all">
               <Bell className="h-5 w-5 text-primary" />
               <span className="absolute top-2 right-2 h-2 w-2 bg-red-600 rounded-full border-2 border-white" />
            </Button>
@@ -103,32 +103,30 @@ export default function HomePage() {
       <UserHeader userData={userData} />
       
       <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-        {/* Launch Special Banner */}
-        {!userData?.isVerified && (
-          <Card className="bg-gradient-to-r from-primary to-blue-900 text-white border-none shadow-2xl overflow-hidden relative group mb-8 rounded-3xl">
-            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-              <Sparkles className="h-32 w-32" />
-            </div>
-            <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-              <div className="flex items-center gap-6">
-                <div className="bg-accent p-4 rounded-2xl shadow-2xl animate-bounce">
-                  <ShieldCheck className="h-8 w-8 text-primary" />
-                </div>
-                <div className="text-center md:text-left">
-                  <h3 className="text-2xl font-black uppercase font-headline tracking-tighter leading-tight">
-                    Launch Special: <span className="text-accent">First 1,000 Push</span>
-                  </h3>
-                  <p className="text-sm font-medium opacity-80 mt-1 max-w-lg leading-relaxed">
-                    Complete your ID verification now to secure the exclusive **"Founding Patriot"** Digital Badge and a permanent **+100 Merit Point** headstart!
-                  </p>
-                </div>
+        {/* Launch Special Banner - ALWAYS ACTIVE */}
+        <Card className="bg-gradient-to-r from-primary to-blue-900 text-white border-none shadow-2xl overflow-hidden relative group mb-8 rounded-3xl">
+          <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+            <Sparkles className="h-32 w-32" />
+          </div>
+          <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            <div className="flex items-center gap-6">
+              <div className="bg-accent p-4 rounded-2xl shadow-2xl animate-bounce">
+                <ShieldCheck className="h-8 w-8 text-primary" />
               </div>
-              <Button asChild className="h-14 px-10 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0">
-                <Link href="/profile">Claim Badge Now</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+              <div className="text-center md:text-left">
+                <h3 className="text-2xl font-black uppercase font-headline tracking-tighter leading-tight">
+                  Launch Special: <span className="text-accent">First 1,000 Push</span>
+                </h3>
+                <p className="text-sm font-medium opacity-80 mt-1 max-w-lg leading-relaxed">
+                  Complete your ID verification now to secure the exclusive **"Founding Patriot"** Digital Badge and a permanent **+100 Merit Point** headstart!
+                </p>
+              </div>
+            </div>
+            <Button asChild className="h-14 px-10 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0 active:scale-95 transition-all">
+              <Link href="/profile">Claim Badge Now</Link>
+            </Button>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-8 lg:grid-cols-12 items-start">
             
@@ -160,7 +158,7 @@ export default function HomePage() {
                       <Label className="text-[9px] font-black uppercase text-primary/60">Your Referral Link</Label>
                       <div className="flex gap-2">
                         <Input value={`${domain}/join?ref=${userData?.uid}`} readOnly className="text-[10px] bg-muted h-10 font-mono" />
-                        <Button size="icon" variant="outline" className="h-10 w-10 shrink-0" onClick={() => {
+                        <Button size="icon" variant="outline" className="h-10 w-10 shrink-0 active:scale-95 transition-all" onClick={() => {
                           navigator.clipboard.writeText(`${domain}/join?ref=${userData?.uid}`);
                           toast({ title: "Copied!", description: "Earn 50 Merit Points per recruit!" });
                         }}>

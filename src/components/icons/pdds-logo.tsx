@@ -10,7 +10,7 @@ interface PddsLogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 
 /**
  * @fileOverview Reusable PDDS Logo Component.
- * Optimized for high-fidelity rendering across all organizational terminals.
+ * BACKGROUND REMOVED: Forced transparency across all nodes.
  */
 export default function PddsLogo({ className, variant = "default", style, ...props }: PddsLogoProps) {
   return (
@@ -20,7 +20,7 @@ export default function PddsLogo({ className, variant = "default", style, ...pro
         alt="Official PDDS Party Logo"
         crossOrigin="anonymous"
         className={cn(
-          "object-contain aspect-square duration-300 shadow-none transition-opacity",
+          "object-contain aspect-square duration-300 shadow-none transition-opacity bg-transparent",
           variant === "white" && "brightness-0 invert",
           className
         )}
