@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    typescript: { ignoreBuildErrors: true },
-    eslint: { ignoreDuringBuilds: true }
-  };
-  export default nextConfig;
+  /* This helps Firebase handle large AI packages like Genkit */
+  serverExternalPackages: ["@genkit-ai/core", "genkit"],
+  
+  // This allows your Digital ID to load images from Firebase Storage
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      },
+    ],
+  },
+};
+
+module.exports = nextConfig;

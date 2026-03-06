@@ -63,9 +63,9 @@ export default function AdminAnalyticsPage() {
     const sevenDaysAgo = subDays(new Date(), 7);
     let newRegistrations = 0;
     let verifiedOfficers = 0;
-    const supporters = users.filter(u => u.role === 'Supporter');
+    const supporters = users.filter((u: any) => u.role === 'Supporter');
 
-    users.forEach(user => {
+    users.forEach((user: any) => {
       const prov = user.province || "Unknown Region";
       provinceMap[prov] = (provinceMap[prov] || 0) + 1;
 
@@ -88,7 +88,7 @@ export default function AdminAnalyticsPage() {
 
     let totalShirts = 0;
     let totalFlags = 0;
-    logistics.forEach(log => {
+    logistics.forEach((log: any) => {
       if (log.item === "Shirts") totalShirts += (log.quantity || 0);
       if (log.item === "Flags") totalFlags += (log.quantity || 0);
     });

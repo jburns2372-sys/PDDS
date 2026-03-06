@@ -113,7 +113,8 @@ export default function AcademyPage() {
 
       {/* Main Grid - Refactored to 4-column desktop logic */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
-        {courses.sort((a, b) => (a.order || 0) - (b.order || 0)).map((course: any) => {
+      {/* We added ': any' to 'a' and 'b' to stop the TypeScript build error */}
+{courses.sort((a: any, b: any) => (a.order || 0) - (b.order || 0)).map((course: any) => {
           const isCompleted = stats.completedIds.includes(course.id);
           const isActive = activeCourse?.id === course.id;
 
