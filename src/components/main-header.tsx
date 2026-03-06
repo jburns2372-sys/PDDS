@@ -2,37 +2,45 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import PddsLogo from "./icons/pdds-logo";
+import { PDDS_LOGO_URL } from "@/lib/data";
 import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DesktopSidebarContent } from "./desktop-sidebar";
 import { cn } from "@/lib/utils";
 
 /**
- * @fileOverview Global Tactical Header for PatriotLink.
- * Features fixed logo geometry, z-index hardening, and fail-safe branding.
+ * @fileOverview Global MainHeader Protocol.
+ * features fixed height logo, z-index hardening, and a Gold text safety fallback.
+ * Optimized for horizontal and vertical visibility on all platforms.
  */
 export function MainHeader() {
   const [logoError, setLogoError] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   return (
-    <header className="flex h-16 w-full items-center justify-between border-b border-white/10 bg-primary px-4 shrink-0 shadow-xl safe-top relative z-[50]">
-      {/* Clickable Brand Area */}
+    <header className="sticky top-0 z-[50] flex h-16 w-full items-center justify-between border-b border-white/10 bg-[#002366] px-4 shrink-0 shadow-2xl safe-top">
+      {/* Clickable Brand Anchor */}
       <Link href="/home" className="flex items-center gap-3 active:scale-95 transition-all group">
         {!logoError ? (
-          <PddsLogo 
-            className="h-[45px] w-auto border border-white/20 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.15)] group-hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-shadow" 
-            onError={() => setLogoError(true)}
-          />
+          <div className="relative flex items-center justify-center">
+            {/* Tactical Pop Effect: White border and subtle glow */}
+            <img 
+              src={PDDS_LOGO_URL} 
+              alt="Official PDDS Party Logo"
+              className="h-[45px] w-auto aspect-square object-contain rounded-full border-2 border-white shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all group-hover:scale-105"
+              onError={() => setLogoError(true)}
+              crossOrigin="anonymous"
+            />
+          </div>
         ) : (
-          <span className="text-accent font-black text-sm md:text-lg tracking-tighter uppercase italic drop-shadow-md animate-in fade-in duration-500">
-            PDDS PatriotLink
+          /* Safety Fallback: Bold Gold Typography */
+          <span className="text-[#D4AF37] font-black text-lg tracking-tighter uppercase italic drop-shadow-md animate-in fade-in duration-500">
+            PDDS PATRIOTLINK
           </span>
         )}
       </Link>
 
-      {/* Mobile Drawer Trigger */}
+      {/* Mobile Command Toggle */}
       <div className="md:hidden">
         <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
           <SheetTrigger asChild>
@@ -48,10 +56,10 @@ export function MainHeader() {
         </Sheet>
       </div>
 
-      {/* Connection Indicator (Visual Polish) */}
+      {/* Connectivity Status (Strategic Visual Only) */}
       <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
         <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-        <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">Secure Node Active</span>
+        <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">National Command Active</span>
       </div>
     </header>
   );

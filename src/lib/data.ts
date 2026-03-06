@@ -4,7 +4,7 @@ import { Landmark, Scale, Building2, Shield, HeartHandshake, BookOpen } from "lu
  * PDDS Party Configuration & Official References
  */
 
-// Official Logo Source of Truth
+// Official Logo Source of Truth (HTTPS format for browser compatibility)
 export const PDDS_LOGO_URL = "https://firebasestorage.googleapis.com/v0/b/patriot-link-production.firebasestorage.app/o/PDDS_1024x1024.png?alt=media";
 
 export const pddsLeadershipRoles = [
@@ -63,7 +63,6 @@ export const cityCoords: Record<string, [number, number]> = {
 
 /**
  * PDDS Regional Zip Code Directory
- * Primary source for City/Municipality Zip Codes.
  */
 export const cityZipCodes: Record<string, string> = {
   "QUEZON CITY": "1100",
@@ -84,15 +83,9 @@ export const cityZipCodes: Record<string, string> = {
   "MANILA": "1000",
 };
 
-/**
- * Granular Zip Code Lookup Utility
- * Returns barangay-specific zip code if available, otherwise falls back to city code.
- */
 export const getZipCode = (city: string, barangay?: string): string => {
   const cityKey = (city || "").toUpperCase().trim();
   const brgyKey = (barangay || "").toUpperCase().trim();
-
-  // Granular mapping for complex cities (e.g., Quezon City, Manila)
   const barangayZipCodes: Record<string, Record<string, string>> = {
     "QUEZON CITY": {
       "COMMONWEALTH": "1121",
@@ -115,11 +108,9 @@ export const getZipCode = (city: string, barangay?: string): string => {
       "SAN MIGUEL": "1005"
     }
   };
-
   if (brgyKey && barangayZipCodes[cityKey] && barangayZipCodes[cityKey][brgyKey]) {
     return barangayZipCodes[cityKey][brgyKey];
   }
-
   return cityZipCodes[cityKey] || "";
 };
 

@@ -9,8 +9,8 @@ interface PddsLogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 }
 
 /**
- * @fileOverview Official PDDS Party Logo component.
- * Hardened for brand lockdown with standardized source and layout integrity.
+ * @fileOverview Standardized PDDS Logo Component.
+ * Optimized for brand lockdown with fixed square geometry.
  */
 export default function PddsLogo({ className, variant = "default", ...props }: PddsLogoProps) {
   return (
@@ -18,7 +18,7 @@ export default function PddsLogo({ className, variant = "default", ...props }: P
       src={PDDS_LOGO_URL} 
       alt="Official PDDS Party Logo"
       className={cn(
-        "object-contain aspect-square shrink-0 transition-all duration-300", 
+        "h-12 w-12 object-contain aspect-square shrink-0 transition-all duration-300", 
         variant === "white" && "brightness-0 invert",
         className
       )}
