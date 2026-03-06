@@ -23,7 +23,7 @@
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 46 65% 52%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 }
 
@@ -43,17 +43,24 @@
 
   body {
     font-family: 'Inter', sans-serif;
+    font-size: 16px; /* Increased from default */
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight text-primary;
+    line-height: 1.2;
   }
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.2);
+  background: hsl(var(--muted-foreground) / 0.3);
   border-radius: 10px;
 }
 

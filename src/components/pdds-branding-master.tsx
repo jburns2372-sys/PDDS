@@ -6,7 +6,7 @@ import { PDDS_LOGO_URL } from '@/lib/data';
 /**
  * @fileOverview Master PDDS Branding Component.
  * Established as the single source of authority for the top header branding.
- * REFACTORED: Full-width fluid header with edge-to-edge coverage.
+ * REFACTORED: Full-width fluid header with edge-to-edge coverage and maximized text.
  */
 export function PDDSBrandingMaster() {
   return (
@@ -27,19 +27,19 @@ export function PDDSBrandingMaster() {
           />
         </div>
 
-        {/* TYPOGRAPHIC NODE - SPELLING: PEDERALISMO */}
+        {/* TYPOGRAPHIC NODE - Maximized Readability */}
         <div className="flex flex-col justify-center border-l border-white/10 pl-4 h-12">
-          <span className="text-white font-black text-[10px] sm:text-xs leading-none uppercase tracking-tight">
+          <span className="text-white font-black text-xs sm:text-sm leading-none uppercase tracking-tight">
             Pederalismo ng Dugong
           </span>
-          <span className="text-accent font-black text-[10px] sm:text-xs leading-none uppercase tracking-tight mt-0.5">
+          <span className="text-accent font-black text-xs sm:text-sm leading-none uppercase tracking-tight mt-1">
             Dakilang Samahan
           </span>
         </div>
 
         {/* STRATEGIC CONTEXT */}
         <div className="ml-auto hidden md:block">
-          <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] opacity-40">
+          <span className="text-xs font-black text-white/60 uppercase tracking-[0.3em]">
             National Command Center
           </span>
         </div>

@@ -25,28 +25,28 @@ import Link from "next/link";
 
 function UserHeader({userData}: {userData: any}) {
   return (
-    <div className="bg-card p-6 md:p-8 lg:px-10 border-b shadow-sm">
+    <div className="bg-card p-6 md:p-10 lg:px-12 border-b shadow-sm">
       <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <PddsLogo className="h-16 w-auto" />
+        <div className="flex items-center gap-6">
+          <PddsLogo className="h-20 w-auto" />
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary uppercase tracking-tight leading-none">
+            <h1 className="text-4xl md:text-5xl font-black font-headline text-primary uppercase tracking-tight leading-none">
               Mabuhay, {userData?.fullName?.split(' ')[0] || 'Patriot'}!
             </h1>
-            <div className="mt-2 flex items-center gap-2">
-              <Badge className="bg-primary/10 text-primary font-black uppercase text-[9px] border-none">{userData?.role}</Badge>
-              <Badge className="bg-accent/20 text-accent-foreground font-black uppercase text-[9px] border-none">{userData?.city || 'National'}</Badge>
+            <div className="mt-3 flex items-center gap-3">
+              <Badge className="bg-primary/10 text-primary font-black uppercase text-xs px-3 py-1 border-none">{userData?.role}</Badge>
+              <Badge className="bg-accent/20 text-accent-foreground font-black uppercase text-xs px-3 py-1 border-none">{userData?.city || 'National'}</Badge>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
            <div className="text-right hidden md:block">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Induction Status</p>
-              <p className="text-sm font-bold text-green-600 uppercase">Registry Verified</p>
+              <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Induction Status</p>
+              <p className="text-base font-black text-green-600 uppercase">Registry Verified</p>
            </div>
-           <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-2 relative active:scale-95 transition-all">
-              <Bell className="h-5 w-5 text-primary" />
-              <span className="absolute top-2 right-2 h-2 w-2 bg-red-600 rounded-full border-2 border-white" />
+           <Button variant="outline" size="icon" className="rounded-full h-14 w-14 border-2 relative active:scale-95 transition-all">
+              <Bell className="h-6 w-6 text-primary" />
+              <span className="absolute top-2 right-2 h-3 w-3 bg-red-600 rounded-full border-2 border-white" />
            </Button>
         </div>
       </div>
@@ -102,30 +102,29 @@ export default function HomePage() {
     <div className="flex flex-col min-h-screen pb-20 md:pb-0 bg-slate-50/50">
       <UserHeader userData={userData} />
       
-      <div className="p-4 md:p-8 lg:p-10 w-full">
+      <div className="p-4 md:p-10 lg:p-12 w-full">
         {/* Launch Special Banner - Fluid Full Width */}
-        <Card className="bg-gradient-to-r from-primary to-blue-900 text-white border-none shadow-2xl overflow-hidden relative group mb-8 rounded-3xl">
+        <Card className="bg-gradient-to-r from-primary to-blue-900 text-white border-none shadow-2xl overflow-hidden relative group mb-10 rounded-3xl">
           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-            <Sparkles className="h-32 w-32" />
+            <Sparkles className="h-40 w-40" />
           </div>
-          <CardContent className="p-6 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-            <div className="flex items-center gap-6">
-              <div className="bg-accent p-4 rounded-2xl shadow-2xl animate-bounce">
-                <ShieldCheck className="h-8 w-8 text-primary" />
+          <CardContent className="p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+            <div className="flex items-center gap-8">
+              <div className="bg-accent p-5 rounded-2xl shadow-2xl animate-bounce shrink-0">
+                <ShieldCheck className="h-10 w-10 text-primary" />
               </div>
               <div className="text-center md:text-left">
-                <h3 className="text-2xl md:text-3xl font-black uppercase font-headline tracking-tighter leading-tight">
+                <h3 className="text-3xl md:text-4xl font-black uppercase font-headline tracking-tighter leading-tight">
                   Launch Special: <span className="text-accent">First 1,000 Push</span>
                 </h3>
-                <p className="text-sm md:text-base font-medium opacity-80 mt-1 max-w-2xl leading-relaxed">
+                <p className="text-base md:text-lg font-medium opacity-90 mt-2 max-w-3xl leading-relaxed">
                   Complete your ID verification now to secure the exclusive **"Founding Patriot"** Digital Badge and a permanent **+100 Merit Point** headstart!
                 </p>
               </div>
             </div>
             <Button 
               asChild={!userData?.isVerified} 
-              disabled={userData?.isVerified}
-              className="h-14 md:h-16 px-12 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0 active:scale-95 transition-all disabled:opacity-50"
+              className="h-16 md:h-20 px-14 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0 active:scale-95 transition-all text-lg"
             >
               {userData?.isVerified ? (
                 <span>Badge Secured</span>
@@ -136,14 +135,14 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        {/* REFACTORED: 12-Column Fluid Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* 12-Column Fluid Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             
             {/* LEFT COLUMN: Patriot Progress & Profile (4/12) */}
-            <div className="lg:col-span-4 space-y-8 order-last lg:order-first">
-                <section id="patriot-progress" className="space-y-4">
-                  <h2 className="text-lg font-black uppercase text-primary tracking-tight flex items-center gap-2 px-1">
-                    <Trophy className="h-5 w-5 text-accent" />
+            <div className="lg:col-span-4 space-y-10 order-last lg:order-first">
+                <section id="patriot-progress" className="space-y-6">
+                  <h2 className="text-2xl font-black uppercase text-primary tracking-tight flex items-center gap-3 px-1">
+                    <Trophy className="h-6 w-6 text-accent" />
                     Patriot Progress
                   </h2>
                   <DigitalIdCard userData={userData} />
@@ -153,25 +152,25 @@ export default function HomePage() {
 
                 <Card className="shadow-lg border-t-4 border-primary overflow-hidden">
                   <CardHeader className="bg-primary/5 pb-4">
-                    <CardTitle className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                      <Share2 className="h-4 w-4 text-accent" />
+                    <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <Share2 className="h-5 w-5 text-accent" />
                       Growth Directive
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-4 space-y-4">
-                    <div className="text-center py-2">
-                      <p className="text-3xl font-black text-primary">{userData?.referralCount || 0}</p>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Recruits Inducted</p>
+                  <CardContent className="pt-6 space-y-6 text-center">
+                    <div className="py-2">
+                      <p className="text-5xl font-black text-primary">{userData?.referralCount || 0}</p>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Recruits Inducted</p>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-[9px] font-black uppercase text-primary/60">Your Referral Link</Label>
+                    <div className="space-y-3 text-left">
+                      <Label className="text-xs font-black uppercase text-primary/60">Your Referral Link</Label>
                       <div className="flex gap-2">
-                        <Input value={`${domain}/join?ref=${userData?.uid}`} readOnly className="text-[10px] bg-muted h-10 font-mono" />
-                        <Button size="icon" variant="outline" className="h-10 w-10 shrink-0 active:scale-95 transition-all" onClick={() => {
+                        <Input value={`${domain}/join?ref=${userData?.uid}`} readOnly className="text-xs bg-muted h-12 font-mono" />
+                        <Button size="icon" variant="outline" className="h-12 w-12 shrink-0 active:scale-95 transition-all" onClick={() => {
                           navigator.clipboard.writeText(`${domain}/join?ref=${userData?.uid}`);
                           toast({ title: "Copied!", description: "Earn 50 Merit Points per recruit!" });
                         }}>
-                          <CapitalCopy className="h-4 w-4" />
+                          <CapitalCopy className="h-5 w-5" />
                         </Button>
                       </div>
                     </div>
@@ -180,40 +179,40 @@ export default function HomePage() {
             </div>
 
             {/* RIGHT COLUMN: Daily Actions & Mission Feed (8/12) */}
-            <div className="lg:col-span-8 space-y-10">
+            <div className="lg:col-span-8 space-y-12">
                 
                 {/* Daily Action Center */}
-                <section id="action-center" className="space-y-4">
-                  <h2 className="text-xl font-black uppercase text-primary tracking-tight flex items-center gap-2 px-1">
-                    <Target className="h-6 w-6 text-red-600" />
+                <section id="action-center" className="space-y-6">
+                  <h2 className="text-2xl font-black uppercase text-primary tracking-tight flex items-center gap-3 px-1">
+                    <Target className="h-8 w-8 text-red-600" />
                     Daily Action Center
                   </h2>
                   <DailyActionGrid />
                 </section>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="bg-primary/5 p-1 border border-primary/10 h-14 w-full justify-start overflow-x-auto gap-2">
-                    <TabsTrigger value="newsfeed" className="px-8 h-full font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-                      <Newspaper className="h-4 w-4 mr-2" /> Bulletin
+                  <TabsList className="bg-primary/5 p-1 border border-primary/10 h-16 w-full justify-start overflow-x-auto gap-3">
+                    <TabsTrigger value="newsfeed" className="px-10 h-full font-black uppercase text-xs tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+                      <Newspaper className="h-5 w-5 mr-2" /> Bulletin
                     </TabsTrigger>
-                    <TabsTrigger value="missions" className="px-8 h-full font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-                      <Trophy className="h-4 w-4 mr-2" /> Missions
+                    <TabsTrigger value="missions" className="px-10 h-full font-black uppercase text-xs tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+                      <Trophy className="h-5 w-5 mr-2" /> Missions
                     </TabsTrigger>
-                    <TabsTrigger value="impact" className="px-8 h-full font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-                      <Sparkles className="h-4 w-4 mr-2" /> Local Impact
+                    <TabsTrigger value="impact" className="px-10 h-full font-black uppercase text-xs tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+                      <Sparkles className="h-5 w-5 mr-2" /> Local Impact
                     </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="newsfeed" className="pt-6 space-y-6 animate-in fade-in duration-500">
+                  <TabsContent value="newsfeed" className="pt-8 space-y-8 animate-in fade-in duration-500">
                     {announcementsLoading ? (
-                        <div className="space-y-4">
-                          <Skeleton className="h-48 w-full" />
-                          <Skeleton className="h-48 w-full" />
+                        <div className="space-y-6">
+                          <Skeleton className="h-64 w-full" />
+                          <Skeleton className="h-64 w-full" />
                         </div>
                     ) : filteredAnnouncements.length === 0 ? (
-                        <Card className="p-12 text-center border-dashed border-2 bg-muted/20">
-                            <Megaphone className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
-                            <p className="text-muted-foreground font-medium uppercase text-xs tracking-widest">No national directives broadcasted yet.</p>
+                        <Card className="p-20 text-center border-dashed border-2 bg-muted/20">
+                            <Megaphone className="h-16 w-16 text-muted-foreground/20 mx-auto mb-6" />
+                            <p className="text-sm font-bold text-muted-foreground uppercase text-xs tracking-[0.2em]">No national directives broadcasted yet.</p>
                         </Card>
                     ) : (
                         filteredAnnouncements.map((item: any) => (
@@ -228,11 +227,11 @@ export default function HomePage() {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="missions" className="pt-6 animate-in fade-in duration-500">
+                  <TabsContent value="missions" className="pt-8 animate-in fade-in duration-500">
                     <MissionBoard />
                   </TabsContent>
 
-                  <TabsContent value="impact" className="pt-6 animate-in fade-in duration-500">
+                  <TabsContent value="impact" className="pt-8 animate-in fade-in duration-500">
                     <ImpactFeed city={userData?.city} />
                   </TabsContent>
                 </Tabs>

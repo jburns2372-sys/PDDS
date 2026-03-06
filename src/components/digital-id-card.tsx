@@ -13,7 +13,7 @@ import { PDDS_LOGO_URL } from "@/lib/data";
 
 /**
  * @fileOverview Master Patriot Digital ID.
- * Features async force-load biometric node and integrated transparent branding.
+ * Features maximized typography for ultimate field readability.
  */
 export function DigitalIdCard({ userData: initialUserData }: { userData: any }) {
   const { user } = useUser();
@@ -74,59 +74,59 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
 
   const getBorderStyles = () => {
     switch (vettingTier) {
-      case 'Gold': return "border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.6)] animate-pulse";
-      case 'Silver': return "border-[#C0C0C0] shadow-lg";
+      case 'Gold': return "border-[#D4AF37] shadow-[0_0_30px_rgba(212,175,55,0.6)] animate-pulse";
+      case 'Silver': return "border-[#C0C0C0] shadow-xl";
       case 'Bronze':
-      default: return "border-[#8B4513] shadow-md";
+      default: return "border-[#8B4513] shadow-lg";
     }
   };
 
   return (
-    <div className="flex flex-col gap-6 items-center w-full max-w-sm mx-auto">
+    <div className="flex flex-col gap-8 items-center w-full max-w-sm mx-auto">
       <div 
         ref={cardRef} 
-        className="w-full aspect-[1/1.58] overflow-hidden rounded-[32px] shadow-2xl bg-white text-slate-900 relative flex flex-col p-6 border border-slate-200"
+        className="w-full aspect-[1/1.58] overflow-hidden rounded-[40px] shadow-2xl bg-white text-slate-900 relative flex flex-col p-8 border-2 border-slate-200"
       >
         {/* Security Watermark */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+        <div className="absolute inset-0 opacity-[0.04] pointer-events-none">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <pattern id="id-grid" width="30" height="30" patternUnits="userSpaceOnUse">
-              <path d="M 30 0 L 0 0 0 30" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+            <pattern id="id-grid-max" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1"/>
             </pattern>
-            <rect width="100%" height="100%" fill="url(#id-grid)" />
+            <rect width="100%" height="100%" fill="url(#id-grid-max)" />
           </svg>
         </div>
   
-        {/* Top Header - REDO: Background Removed */}
+        {/* Top Header */}
         <div className="flex justify-between items-start relative z-10">
-          <div className="flex items-center gap-3 bg-transparent shrink-0">
+          <div className="flex items-center gap-4 bg-transparent shrink-0">
             <img 
               src={PDDS_LOGO_URL} 
               alt="PDDS" 
-              className="h-[45px] w-auto object-contain" 
+              className="h-[55px] w-auto object-contain" 
               crossOrigin="anonymous"
-              style={{ filter: 'drop-shadow(0px 0px 8px rgba(212, 175, 55, 0.4))' }}
+              style={{ filter: 'drop-shadow(0px 0px 10px rgba(212, 175, 55, 0.5))' }}
             />
             <div className="flex flex-col">
-              <h1 className="text-[9px] font-black uppercase tracking-tighter leading-none text-[#002366]">Pederalismo ng Dugong</h1>
-              <h1 className="text-[9px] font-black uppercase tracking-tighter leading-none text-[#B8860B]">Dakilang Samahan</h1>
+              <h1 className="text-[10px] font-black uppercase tracking-tighter leading-none text-[#002366]">Pederalismo ng Dugong</h1>
+              <h1 className="text-[10px] font-black uppercase tracking-tighter leading-none text-[#B8860B]">Dakilang Samahan</h1>
             </div>
           </div>
-          <Badge variant="outline" className="text-[7px] font-black tracking-[0.2em] uppercase border-[#B8860B] text-[#B8860B] bg-white">
+          <Badge variant="outline" className="text-[8px] font-black tracking-[0.2em] uppercase border-[#B8860B] text-[#B8860B] bg-white px-2 py-1">
             Verified Registry
           </Badge>
         </div>
   
         {/* Center: Photo Node */}
-        <div className="flex flex-col items-center justify-center mt-10 relative z-10">
+        <div className="flex flex-col items-center justify-center mt-12 relative z-10">
           <div className="relative">
             <div className={cn(
-              "w-[140px] h-[140px] rounded-2xl overflow-hidden bg-slate-50 border-4 transition-all duration-500 shadow-xl",
+              "w-[160px] h-[160px] rounded-3xl overflow-hidden bg-slate-50 border-[6px] transition-all duration-500 shadow-2xl",
               getBorderStyles()
             )}>
               {fetching ? (
                 <div className="flex items-center justify-center w-full h-full">
-                  <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
+                  <Loader2 className="h-10 w-10 animate-spin text-slate-300" />
                 </div>
               ) : (
                 <img 
@@ -141,50 +141,50 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
               )}
             </div>
             {isVerified && (
-              <div className="absolute -bottom-2 -right-2 bg-blue-600 rounded-full p-2 border-4 border-white shadow-xl">
-                <ShieldCheck className="h-5 w-5 text-white" />
+              <div className="absolute -bottom-3 -right-3 bg-blue-600 rounded-full p-2.5 border-4 border-white shadow-2xl">
+                <ShieldCheck className="h-6 w-6 text-white" />
               </div>
             )}
           </div>
-          <p className="mt-4 text-[8px] font-black uppercase text-[#B8860B] tracking-[0.3em]">Patriot Identity</p>
+          <p className="mt-6 text-[10px] font-black uppercase text-[#B8860B] tracking-[0.4em]">Patriot Identity</p>
         </div>
   
-        {/* Bottom Data */}
-        <div className="mt-auto flex items-end justify-between relative z-10 border-t border-slate-100 pt-6">
-          <div className="space-y-2 flex-1 pr-4">
-            <h2 className="text-2xl font-black uppercase tracking-tighter leading-none text-[#002366]">
+        {/* Bottom Data - Maximized Text */}
+        <div className="mt-auto flex items-end justify-between relative z-10 border-t-2 border-slate-100 pt-8">
+          <div className="space-y-3 flex-1 pr-4">
+            <h2 className="text-3xl font-black uppercase tracking-tighter leading-none text-[#002366] break-words">
               {displayName}
             </h2>
-            <div className="flex flex-col items-start gap-1">
-              <Badge className="bg-[#B8860B] text-white font-black text-[10px] uppercase tracking-widest border-none px-3 py-0.5">
+            <div className="flex flex-col items-start gap-2">
+              <Badge className="bg-[#B8860B] text-white font-black text-xs uppercase tracking-widest border-none px-4 py-1 shadow-md">
                 {patriotRank}
               </Badge>
-              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.25em]">
                 {dbUserData?.city || initialUserData?.city || 'National'} Chapter
               </p>
             </div>
           </div>
           
-          <div className="flex flex-col items-center gap-2">
-            <div className="bg-white p-1.5 rounded-xl shadow-md border border-slate-200">
+          <div className="flex flex-col items-center gap-3">
+            <div className="bg-white p-2 rounded-2xl shadow-xl border-2 border-slate-100">
               <QRCodeSVG 
                 value={user?.uid || 'PDDS-GUEST'} 
-                size={52} 
+                size={64} 
                 level="H" 
                 fgColor="#002366" 
                 includeMargin={false}
               />
             </div>
-            <p className="text-[6px] font-black uppercase tracking-widest text-slate-300">UID Verified</p>
+            <p className="text-[8px] font-black uppercase tracking-widest text-slate-300">UID Verified</p>
           </div>
         </div>
       </div>
 
       <Button 
         onClick={handleSaveToGallery} 
-        className="w-full h-14 bg-[#002366] hover:bg-[#001a3d] text-white font-black uppercase tracking-widest shadow-xl rounded-xl active:scale-95 transition-all"
+        className="w-full h-16 bg-[#002366] hover:bg-[#001a3d] text-white font-black uppercase tracking-widest shadow-2xl rounded-2xl active:scale-95 transition-all text-lg"
       >
-        <Download className="mr-2 h-5 w-5 text-accent" /> Save to Gallery
+        <Download className="mr-3 h-6 w-6 text-accent" /> Save to Gallery
       </Button>
     </div>
   );
