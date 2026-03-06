@@ -13,6 +13,7 @@ import { PDDS_LOGO_URL } from "@/lib/data";
 /**
  * @fileOverview Master Patriot Digital ID (White Max Edition).
  * REFACTORED: Fluid spacing, maximized typography, and synchronized high-fidelity export.
+ * NOMENCLATURE: Updated to full party name "PEDERALISMO NG DUGONG DAKILANG SAMAHAN".
  */
 export function DigitalIdCard({ userData: initialUserData }: { userData: any }) {
   const { user } = useUser();
@@ -56,7 +57,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
       const canvas = await html2canvas(cardRef.current, {
         scale: 3,
         useCORS: true,
-        backgroundColor: "#ffffff", // SYNCED: Ensures the exported image is White Edition
+        backgroundColor: "#ffffff",
         logging: false,
       });
       const image = canvas.toDataURL("image/png", 1.0);
@@ -99,7 +100,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           </svg>
         </div>
   
-        {/* Top Header: Responsive Alignment */}
+        {/* Top Header: Balanced Typography */}
         <div className="flex justify-between items-start relative z-10 w-full mb-4">
           <div className="flex items-center gap-2">
             <img 
@@ -112,9 +113,9 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
                 filter: 'drop-shadow(0px 0px 10px rgba(0, 35, 102, 0.1))' 
               }} 
             />
-            <div className="flex flex-col">
-              <h1 className="text-[10px] sm:text-[14px] font-black uppercase tracking-tighter leading-none text-[#002366]">Pederalismo ng</h1>
-              <h1 className="text-[10px] sm:text-[14px] font-black uppercase tracking-tighter leading-none text-[#B8860B]">Dugong Dakila</h1>
+            <div className="flex flex-col justify-center">
+              <h1 className="text-[10px] sm:text-[14px] font-black uppercase tracking-tighter leading-none text-[#002366]">Pederalismo ng Dugong</h1>
+              <h1 className="text-[10px] sm:text-[14px] font-black uppercase tracking-tighter leading-none text-[#B8860B] mt-1">Dakilang Samahan</h1>
             </div>
           </div>
           <Badge variant="outline" className="text-[8px] sm:text-[10px] font-black tracking-widest uppercase border-[#B8860B] text-[#B8860B] bg-slate-50 px-2 py-1 rounded-lg shrink-0">
@@ -122,7 +123,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           </Badge>
         </div>
   
-        {/* Center: Biometric Node (Responsive calibration) */}
+        {/* Center: Biometric Node */}
         <div className="flex flex-col items-center justify-center mt-4 sm:mt-8 relative z-10 w-full">
           <div className="relative">
             <div className={cn(
@@ -154,7 +155,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           <p className="mt-4 sm:mt-8 text-[10px] sm:text-[13px] font-black uppercase text-[#B8860B] tracking-[0.4em] sm:tracking-[0.6em]">Patriot Identity</p>
         </div>
   
-        {/* Bottom Data: Maximized Font Scale with overflow protection */}
+        {/* Bottom Data */}
         <div className="mt-auto flex items-end justify-between relative z-10 border-t-2 border-slate-50 pt-[8%] w-full">
           <div className="space-y-3 sm:space-y-5 flex-1 pr-4">
             <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-[0.85] text-[#002366] break-words drop-shadow-sm">
