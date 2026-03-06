@@ -12,8 +12,8 @@ import { doc, getDoc } from "firebase/firestore";
 import { PDDS_LOGO_URL } from "@/lib/data";
 
 /**
- * @fileOverview Master Patriot Digital ID (Senior Architect Overhaul).
- * Features async force-load biometric node, tier-based borders, and high-res export.
+ * @fileOverview Master Patriot Digital ID (Senior Full-Stack Overhaul).
+ * Features async force-load biometric node from Firestore, bypassing Auth lag.
  */
 export function DigitalIdCard({ userData: initialUserData }: { userData: any }) {
   const { user } = useUser();
@@ -26,13 +26,11 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   const [fetching, setFetching] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
-  // Official PDDS Palette Constants
-  const NAVY = "#002366";
-  const GOLD = "#D4AF37";
   const DEFAULT_SILHOUETTE = "https://firebasestorage.googleapis.com/v0/b/patriot-link-production.firebasestorage.app/o/assets%2Fpatriot-silhouette.png?alt=media";
 
   /**
    * ASYNC FORCE-LOAD: Fetches photoURL directly from Firestore users collection
+   * This ensures the identity is always synchronized with the submitted registry photo.
    */
   useEffect(() => {
     async function forceLoadIdentity() {
@@ -47,7 +45,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           setIdPhoto(data.photoURL || null);
         }
       } catch (err) {
-        console.error("Biometric fetch failed:", err);
+        console.error("Registry identity fetch failed:", err);
       } finally {
         setFetching(false);
       }
@@ -61,7 +59,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
       const canvas = await html2canvas(cardRef.current, {
         scale: 3,
         useCORS: true,
-        backgroundColor: NAVY,
+        backgroundColor: "#002366",
         logging: false,
       });
       const image = canvas.toDataURL("image/png", 1.0);
@@ -70,11 +68,11 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
       link.href = image;
       link.click();
     } catch (err) {
-      console.error('Export error:', err);
+      console.error('ID Export failed:', err);
     }
   };
 
-  const displayName = dbUserData?.fullName || initialUserData?.fullName || "ANONYMOUS PATRIOT";
+  const displayName = (dbUserData?.fullName || initialUserData?.fullName || "ANONYMOUS PATRIOT").toUpperCase();
   const vettingTier = dbUserData?.vettingLevel || initialUserData?.vettingLevel || "Bronze";
   const patriotRank = dbUserData?.role || initialUserData?.role || "Regional Member";
   const isVerified = dbUserData?.isVerified || initialUserData?.isVerified;
@@ -137,6 +135,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
                 </div>
               ) : (
                 <img 
+                  key={idPhoto}
                   src={loadError || !idPhoto ? DEFAULT_SILHOUETTE : idPhoto} 
                   alt={displayName} 
                   className="w-full h-full object-cover" 

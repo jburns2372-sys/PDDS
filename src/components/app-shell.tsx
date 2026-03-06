@@ -3,7 +3,6 @@
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DesktopSidebar } from "./desktop-sidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
-import { MainHeader } from "./main-header";
 import { useEffect, useState, ReactNode } from "react";
 import { useUser, useFirestore, useAuth } from "@/firebase";
 import { UserDataContext, UserDataContextType, UserProfile } from "@/context/user-data-context";
@@ -15,7 +14,7 @@ import PddsLogo from "./icons/pdds-logo";
 
 /**
  * @fileOverview Application Shell & Global Route Guard.
- * Standardized with MainHeader for universal branding.
+ * Standardized with PatriotLayout for fixed global branding.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -115,10 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <UserDataContext.Provider value={contextValue}>
-        <div className="flex h-dynamic w-full flex-col overflow-hidden bg-background">
-          {/* Universal Brand Header */}
-          <MainHeader />
-
+        <div className="flex h-full w-full flex-col overflow-hidden bg-background">
           <div className="flex flex-1 overflow-hidden">
             {/* Desktop/Tablet Sidebar */}
             {!isMobile && <DesktopSidebar />}
