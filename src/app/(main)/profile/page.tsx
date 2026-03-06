@@ -48,6 +48,7 @@ const NCR_CODE = "130000000";
  * @fileOverview Member Profile & Registry Management.
  * REFACTORED: Fluid full-width 12-column tactical interface.
  * FIXED: Persistent selection logic for jurisdictional dropdowns (Ghost Items).
+ * ACTIVATED: Barangay selection enabled by default if City is present.
  */
 export default function ProfilePage() {
     const { user, userData, loading: userLoading } = useUserData();
@@ -121,10 +122,14 @@ export default function ProfilePage() {
             setZipCode(userData.zipCode || "");
             setPhotoURL(userData.photoURL || null);
             
-            // Normalize names to match API capitalization
-            setSelectedProvince(userData.province?.toUpperCase() || "");
-            setSelectedCity(userData.city?.toUpperCase() || "");
-            setSelectedBarangay(userData.barangay?.toUpperCase() || "");
+            // Normalize names to match API capitalization (UPPERCASE)
+            const prov = userData.province?.toUpperCase() || "";
+            const city = userData.city?.toUpperCase() || "";
+            const brgy = userData.barangay?.toUpperCase() || "";
+
+            setSelectedProvince(prov);
+            setSelectedCity(city);
+            setSelectedBarangay(brgy);
             
             setIsPhoneVerified(!!userData.phoneNumber);
             setIsInitialized(true);
@@ -137,7 +142,7 @@ export default function ProfilePage() {
         if (provinces.length === 0) return;
 
         const fetchCities = async () => {
-            const province = provinces.find((p: any) => p.name === selectedProvince);
+            const province = provinces.find((p: any) => p.name.toUpperCase() === selectedProvince.toUpperCase());
             if (province) {
                 const endpoint = province.isNCR 
                     ? `https://psgc.gitlab.io/api/regions/${NCR_CODE}/cities-municipalities/`
@@ -153,10 +158,11 @@ export default function ProfilePage() {
     // Cascading Barangay Fetch
     useEffect(() => {
         if (!selectedCity) { setBarangays([]); return; }
+        // Wait until cities list is available to find the correct city code
         if (cities.length === 0) return;
 
         const fetchBarangays = async () => {
-            const city = cities.find((c: any) => c.name === selectedCity);
+            const city = cities.find((c: any) => c.name.toUpperCase() === selectedCity.toUpperCase());
             if (city) {
                 const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
                 const data = await response.json();
@@ -530,7 +536,7 @@ export default function ProfilePage() {
                                                 <Select 
                                                     onValueChange={(val) => { setSelectedCity(val); setSelectedBarangay(""); setZipCode(""); }} 
                                                     value={selectedCity} 
-                                                    disabled={!selectedProvince}
+                                                    disabled={!selectedProvince && !userData?.province}
                                                 >
                                                     <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                     <SelectContent>
@@ -547,7 +553,11 @@ export default function ProfilePage() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                             <div className="space-y-2">
                                                 <Label className="text-[9px] font-black uppercase">Barangay</Label>
-                                                <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
+                                                <Select 
+                                                    onValueChange={setSelectedBarangay} 
+                                                    value={selectedBarangay} 
+                                                    disabled={!selectedCity && !userData?.city}
+                                                >
                                                     <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                     <SelectContent>
                                                         {barangays.map((b: any) => (
