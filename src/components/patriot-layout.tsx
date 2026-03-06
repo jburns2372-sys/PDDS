@@ -1,52 +1,30 @@
 "use client";
 
-import React, { useState } from 'react';
-import { PDDS_LOGO_URL } from '@/lib/data';
+import React from 'react';
+import PddsLogo from './icons/pdds-logo';
 
 /**
  * @fileOverview Global Patriot Layout Wrapper.
- * Features a fixed brand header with a North Star logo placement and full party name.
+ * Features a fixed brand header with absolute-positioned branding anchor.
  * Strictly follows the Senior Architect's branding force-fix protocol.
  */
 export default function PatriotLayout({ children }: { children: React.ReactNode }) {
-  const [logoError, setLogoError] = useState(false);
-
   return (
     <div className="min-h-screen flex flex-col font-sans bg-slate-100">
       
       {/* --- THE MASTER HEADER (BRAND LOCKDOWN) --- */}
       <header className="fixed top-0 left-0 right-0 h-20 bg-[#001f3f] border-b-[3px] border-[#D4AF37] z-[9999] flex items-center px-6 shadow-2xl safe-top">
         
-        {/* FORCE-FIX: PDDS OFFICIAL LOGO BRANDING BOX */}
+        {/* FORCE-FIX: PDDS OFFICIAL BRANDING BOX */}
         <div 
           className="flex items-center gap-4" 
           style={{ position: 'absolute', top: '10px', left: '15px', zIndex: 1000 }}
         >
-          <div className="relative" style={{ minWidth: '50px' }}>
-            {!logoError ? (
-              <img 
-                src={PDDS_LOGO_URL} 
-                alt="PDDS Official"
-                style={{
-                  height: '50px',
-                  width: 'auto',
-                  display: 'block',
-                  filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.5))',
-                  pointerEvents: 'auto'
-                }}
-                className="object-contain cursor-pointer transition-transform hover:scale-105"
-                onClick={() => window.location.href = '/'}
-                onLoad={() => console.log("✅ PDDS Logo successfully anchored.")}
-                onError={(e) => {
-                  console.error("Logo still blocked. Check if 'Publish' was clicked in Firebase Rules.");
-                  setLogoError(true);
-                }}
-                crossOrigin="anonymous"
-              />
-            ) : (
-              /* EMERGENCY FALLBACK */
-              <span className="text-[#D4AF37] font-black text-2xl tracking-tighter uppercase italic">PDDS</span>
-            )}
+          <div className="relative">
+            <PddsLogo 
+              className="cursor-pointer transition-transform hover:scale-105"
+              onClick={() => window.location.href = '/'}
+            />
           </div>
 
           {/* FULL PARTY NAME TYPOGRAPHY */}
