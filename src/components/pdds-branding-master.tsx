@@ -5,11 +5,11 @@ import { PDDS_LOGO_URL } from '@/lib/data';
 
 /**
  * @fileOverview Master PDDS Branding Component.
- * Implements "North Star" architectural rules: 50px fixed height, cache-busting, 
- * and absolute visual prestige. No typographic fallbacks are permitted.
+ * Implements Senior Architect "North Star" rules: 50px fixed height, 
+ * mandatory cache-busting, absolute image-only node, and CORS compliance.
  */
 export function PDDSBrandingMaster() {
-  // Append timestamp to bust old broken browser cache on mount
+  // FORCE-FIX: Cache-busting protocol to ensure fresh logo load
   const finalLogoUrl = useMemo(() => {
     return `${PDDS_LOGO_URL}&t=${Date.now()}`;
   }, []);
@@ -17,7 +17,7 @@ export function PDDSBrandingMaster() {
   return (
     <header className="fixed top-0 left-0 right-0 h-20 bg-[#001f3f] border-b-[3px] border-[#D4AF37] z-[9999] flex items-center px-6 shadow-2xl safe-top">
       <div className="flex items-center gap-4">
-        {/* THE NORTH STAR ANCHOR */}
+        {/* THE NORTH STAR ANCHOR (IMAGE ONLY) */}
         <div 
           className="relative flex items-center justify-center"
           style={{ width: 'auto', height: '50px' }}
@@ -28,9 +28,12 @@ export function PDDSBrandingMaster() {
             crossOrigin="anonymous"
             className="h-[50px] w-auto object-contain cursor-pointer transition-transform hover:scale-105 active:scale-95"
             style={{ 
-              filter: 'drop-shadow(0px 0px 10px rgba(255, 215, 0, 0.5))' 
+              filter: 'drop-shadow(0px 0px 12px rgba(212, 175, 55, 0.6))' 
             }}
             onClick={() => window.location.href = '/'}
+            onError={(e) => {
+              console.error("❌ Branding Protocol: Logo failed to resolve from Storage.");
+            }}
           />
         </div>
 
