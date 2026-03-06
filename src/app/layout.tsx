@@ -14,7 +14,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'PatriotLink | PDDS Official App',
-  description: 'Dugong Dakilang Samahan. Isang App, Isang Layunin. Join the movement to build a Federal Philippines.',
+  description: 'Dugong Dakilang Samahan. Isang App, Isang Layunin. Join the movement to build a Pederal Philippines.',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
@@ -47,7 +47,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased selection:bg-accent selection:text-accent-foreground h-full w-full">
         <FirebaseClientProvider>
-          {children}
+          {children} 
         </FirebaseClientProvider>
         <Toaster />
       </body>

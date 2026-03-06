@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ["@genkit-ai/google-genai", "genkit"],
+  serverExternalPackages: ["wav"],
   images: {
     remotePatterns: [
       {
@@ -14,10 +14,6 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "firebasestorage.googleapis.com",
-      },
-      {
-        protocol: "https",
-        hostname: "via.placeholder.com",
       },
     ],
   },
