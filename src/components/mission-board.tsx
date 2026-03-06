@@ -31,7 +31,7 @@ export function MissionBoard() {
       icon: GraduationCap, 
       status: "Active", 
       href: "/academy",
-      desc: "Level up your ideology at the Federalismo Academy."
+      desc: "Level up your ideology at the PDDS Academy."
     },
     { 
       id: "vetting",

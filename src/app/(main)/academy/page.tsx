@@ -13,7 +13,7 @@ import { AcademyPlayer } from "@/components/academy-player";
 import { CertificateDialog } from "@/components/certificate-dialog";
 
 /**
- * @fileOverview Pederalismo Academy Training Center.
+ * @fileOverview PDDS Academy Training Center.
  * REFACTORED: 4-column fluid layout for maximum desktop utilization.
  */
 export default function AcademyPage() {
@@ -87,7 +87,7 @@ export default function AcademyPage() {
             <GraduationCap className="h-16 w-16" />
           </div>
           <div>
-            <h1 className="text-5xl md:text-7xl font-black text-primary font-headline uppercase tracking-tighter">Pederalismo Academy</h1>
+            <h1 className="text-5xl md:text-7xl font-black text-primary font-headline uppercase tracking-tighter">PDDS Academy</h1>
             <div className="flex items-center gap-4 mt-4">
               <Badge className="bg-emerald-100 text-emerald-700 font-black text-sm uppercase px-4 py-1.5 border-none">Officer Training</Badge>
               <Badge variant="outline" className="text-sm font-black uppercase border-primary/20 px-4 py-1.5">Jurisdiction: National</Badge>
@@ -113,7 +113,6 @@ export default function AcademyPage() {
 
       {/* Main Grid - Refactored to 4-column desktop logic */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
-      {/* We added ': any' to 'a' and 'b' to stop the TypeScript build error */}
 {courses.sort((a: any, b: any) => (a.order || 0) - (b.order || 0)).map((course: any) => {
           const isCompleted = stats.completedIds.includes(course.id);
           const isActive = activeCourse?.id === course.id;

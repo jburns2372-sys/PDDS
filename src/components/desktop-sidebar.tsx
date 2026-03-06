@@ -14,7 +14,7 @@ const navItems = [
   { href: '/home', label: 'Home', icon: Home },
   { href: '/patriot-pondo', label: 'PatriotPondo', icon: Landmark },
   { href: '/chat', label: 'PatriotHub', icon: Hexagon },
-  { href: '/academy', label: 'Academy', icon: GraduationCap },
+  { href: '/academy', label: 'PDDS Academy', icon: GraduationCap },
   { href: '/bantay-bayan', label: 'Bantay Bayan', icon: Eye },
   { href: '/policies', label: 'Manifestos', icon: GraduationCap },
   { href: '/directory', label: 'Directory', icon: Users },

@@ -33,7 +33,7 @@ export function SkillsProgress() {
           <div className="space-y-1">
             <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-800 flex items-center gap-2">
               <GraduationCap className="h-4 w-4" />
-              Pederalismo Academy
+              PDDS Academy
             </CardTitle>
             <CardDescription className="text-[9px] font-bold uppercase">
               Operational Readiness & Ideology
