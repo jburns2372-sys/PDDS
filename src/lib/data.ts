@@ -84,8 +84,12 @@ export const cityZipCodes: Record<string, string> = {
 };
 
 export const getZipCode = (city: string, barangay?: string): string => {
-  const cityKey = (city || "").toUpperCase().trim();
-  const brgyKey = (barangay || "").toUpperCase().trim().replace(/^BARANGAY\s+/, "");
+  const cityKey = (city || "").toUpperCase().trim().replace(/^(CITY OF|CITY)\s+/, "").replace(/\s+CITY$/, "").trim();
+  
+  // Normalize "QUEZON CITY" specifically since it's a primary hub
+  const normalizedCityKey = cityKey === "QUEZON" ? "QUEZON CITY" : cityKey === "MANILA" ? "CITY OF MANILA" : (city || "").toUpperCase().trim();
+
+  const brgyKey = (barangay || "").toUpperCase().trim().replace(/^(BARANGAY|BRGY)\s+/, "").trim();
   
   const barangayZipCodes: Record<string, Record<string, string>> = {
     "QUEZON CITY": {
@@ -110,6 +114,7 @@ export const getZipCode = (city: string, barangay?: string): string => {
       "PROJECT 8": "1106",
       "BAHAY TORO": "1106",
       "FAIRVIEW": "1118",
+      "NORTH FAIRVIEW": "1121",
       "GREATER LAGRO": "1123",
       "NOVALICHES PROPER": "1121",
       "GULOD": "1117",
@@ -187,12 +192,15 @@ export const getZipCode = (city: string, barangay?: string): string => {
     }
   };
 
-  if (brgyKey && barangayZipCodes[cityKey] && barangayZipCodes[cityKey][brgyKey]) {
-    return barangayZipCodes[cityKey][brgyKey];
+  const lookupCity = normalizedCityKey.toUpperCase();
+  const lookupBrgy = brgyKey.toUpperCase();
+
+  if (lookupBrgy && barangayZipCodes[lookupCity] && barangayZipCodes[lookupCity][lookupBrgy]) {
+    return barangayZipCodes[lookupCity][lookupBrgy];
   }
   
-  // Fallback to the general city code if specific barangay is not found or empty
-  return cityZipCodes[cityKey] || "";
+  // Fallback to the general city code
+  return cityZipCodes[lookupCity] || "";
 };
 
 export const getIslandGroup = (province: string) => {

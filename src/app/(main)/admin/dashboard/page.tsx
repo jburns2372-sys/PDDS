@@ -24,7 +24,6 @@ import {
     Trash2, 
     Loader2, 
     Search, 
-    ArrowRightLeft, 
     MapPin, 
     Database, 
     PlusCircle, 
@@ -33,8 +32,7 @@ import {
     Smartphone, 
     Home,
     Camera,
-    FileUp,
-    FileText
+    FileUp
 } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { pddsLeadershipRoles, getZipCode, getIslandGroup } from "@/lib/data";
@@ -109,7 +107,7 @@ export default function AdminDashboard() {
     useEffect(() => {
         if (!selectedProvince) { setCities([]); return; }
         const fetchCities = async () => {
-            const province = provinces.find(p => p.name === selectedProvince);
+            const province = provinces.find(p => p.name.toUpperCase() === selectedProvince.toUpperCase());
             if (province) {
                 const endpoint = province.isNCR 
                     ? `https://psgc.gitlab.io/api/regions/${NCR_CODE}/cities-municipalities/`
@@ -126,7 +124,7 @@ export default function AdminDashboard() {
     useEffect(() => {
         if (!selectedCity) { setBarangays([]); return; }
         const fetchBarangays = async () => {
-            const city = cities.find(c => c.name === selectedCity);
+            const city = cities.find(c => c.name.toUpperCase() === selectedCity.toUpperCase());
             if (city) {
                 const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${city.code}/barangays/`);
                 const data = await response.json();
@@ -136,10 +134,11 @@ export default function AdminDashboard() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
-    // FIXED: Automatic Zip Code Sync
+    // HARDENED: Dynamic Zip Code Sync - Responsive to both City and Barangay
     useEffect(() => {
         if (selectedCity) {
-            setZipCode(getZipCode(selectedCity, selectedBarangay));
+            const code = getZipCode(selectedCity, selectedBarangay);
+            setZipCode(code);
         }
     }, [selectedBarangay, selectedCity]);
 
@@ -260,13 +259,13 @@ export default function AdminDashboard() {
             let finalIdURL = idVerificationUrl;
 
             // Handle File Uploads
-            if (selectedPhotoFile && (isEditMode || !isEditMode)) {
+            if (selectedPhotoFile) {
                 const photoRef = ref(storage, `users/${selectedUser?.id || Date.now()}/profile.jpg`);
                 const result = await uploadBytes(photoRef, selectedPhotoFile);
                 finalPhotoURL = await getDownloadURL(result.ref);
             }
 
-            if (selectedIdFile && (isEditMode || !isEditMode)) {
+            if (selectedIdFile) {
                 const idRef = ref(storage, `users/${selectedUser?.id || Date.now()}/verification.${selectedIdFile.name.split('.').pop()}`);
                 const result = await uploadBytes(idRef, selectedIdFile);
                 finalIdURL = await getDownloadURL(result.ref);
@@ -397,6 +396,9 @@ export default function AdminDashboard() {
                                                 <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                 <SelectContent>
                                                     {provinces.map(p => <SelectItem key={p.code} value={p.name} className="uppercase font-bold text-[10px]">{p.name}</SelectItem>)}
+                                                    {selectedProvince && !provinces.some(p => p.name === selectedProvince) && (
+                                                        <SelectItem value={selectedProvince} className="font-bold uppercase text-[10px]">{selectedProvince}</SelectItem>
+                                                    )}
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -406,6 +408,9 @@ export default function AdminDashboard() {
                                                 <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                 <SelectContent>
                                                     {cities.map(c => <SelectItem key={c.code} value={c.name} className="uppercase font-bold text-[10px]">{c.name}</SelectItem>)}
+                                                    {selectedCity && !cities.some(c => c.name === selectedCity) && (
+                                                        <SelectItem value={selectedCity} className="font-bold uppercase text-[10px]">{selectedCity}</SelectItem>
+                                                    )}
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -417,6 +422,9 @@ export default function AdminDashboard() {
                                                 <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                 <SelectContent>
                                                     {barangays.map(b => <SelectItem key={b.code} value={b.name} className="uppercase font-bold text-[10px]">{b.name}</SelectItem>)}
+                                                    {selectedBarangay && !barangays.some(b => b.name === selectedBarangay) && (
+                                                        <SelectItem value={selectedBarangay} className="uppercase font-bold text-[10px]">{selectedBarangay}</SelectItem>
+                                                    )}
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -455,7 +463,7 @@ export default function AdminDashboard() {
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase text-primary">Induction File</Label>
                                             <Button type="button" variant="outline" className="w-full h-12 text-[10px] font-bold uppercase" onClick={() => idInputRef.current?.click()}>
-                                                <FileUp className="h-4 w-4 mr-2" /> {selectedIdFile ? 'File Selected' : 'Upload PDF/Doc'}
+                                                <FileUp className="h-4 w-4 mr-2" /> {selectedIdFile ? 'File Selected' : 'Upload'}
                                             </Button>
                                             <input type="file" ref={idInputRef} className="hidden" accept=".pdf,.doc,.docx,image/*" onChange={(e) => setSelectedIdFile(e.target.files?.[0] || null)} />
                                         </div>
@@ -464,7 +472,7 @@ export default function AdminDashboard() {
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-primary">About / Biography</Label>
                                         <Textarea 
-                                            placeholder="Short officer description for the directory tooltip..." 
+                                            placeholder="Short officer description..." 
                                             value={about} 
                                             onChange={e => setAbout(e.target.value)} 
                                             className="min-h-[80px] text-xs font-medium border-2" 
@@ -500,7 +508,7 @@ export default function AdminDashboard() {
                 <div className="lg:col-span-8 space-y-4">
                     <div className="relative">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input className="pl-12 h-14 shadow-sm uppercase font-bold text-sm bg-white border-2" placeholder="Search national database by name, email, or city..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        <Input className="pl-12 h-14 shadow-sm uppercase font-bold text-sm bg-white border-2" placeholder="Search national database..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     </div>
                     
                     <Card className="shadow-lg overflow-hidden border-none bg-white">
@@ -516,7 +524,7 @@ export default function AdminDashboard() {
                                 <TableHeader><TableRow className="bg-muted/50"><TableHead className="pl-6 text-[10px] font-black uppercase">Member Identity</TableHead><TableHead className="text-[10px] font-black uppercase">Official Rank</TableHead><TableHead className="text-[10px] font-black uppercase">Jurisdiction</TableHead><TableHead className="text-right pr-6 text-[10px] font-black uppercase">Actions</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {usersLoading ? <TableRow><TableCell colSpan={4} className="text-center py-24"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></TableCell></TableRow> :
-                                     filteredRegistry.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center py-24 text-muted-foreground italic">Zero records found in this scope.</TableCell></TableRow> :
+                                     filteredRegistry.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center py-24 text-muted-foreground italic">Zero records found.</TableCell></TableRow> :
                                      filteredRegistry.map(member => (
                                         <TableRow key={member.id} className={member.isApproved === false ? 'bg-destructive/5' : ''}>
                                             <TableCell className="pl-6 py-4">
