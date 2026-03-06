@@ -136,9 +136,9 @@ export default function AdminDashboard() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
-    // Auto-Sync Zip Code
+    // FIXED: Automatic Zip Code Sync
     useEffect(() => {
-        if (selectedCity && selectedBarangay) {
+        if (selectedCity) {
             setZipCode(getZipCode(selectedCity, selectedBarangay));
         }
     }, [selectedBarangay, selectedCity]);

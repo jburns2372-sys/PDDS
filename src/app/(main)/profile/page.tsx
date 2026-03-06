@@ -47,8 +47,7 @@ const NCR_CODE = "130000000";
 /**
  * @fileOverview Member Profile & Registry Management.
  * REFACTORED: Fluid full-width 12-column tactical interface.
- * FIXED: Persistent selection logic for jurisdictional dropdowns (Ghost Items).
- * ACTIVATED: Barangay selection enabled by default if City is present.
+ * FIXED: Automatic Zip Code synchronization based on selection.
  */
 export default function ProfilePage() {
     const { user, userData, loading: userLoading } = useUserData();
@@ -158,7 +157,6 @@ export default function ProfilePage() {
     // Cascading Barangay Fetch
     useEffect(() => {
         if (!selectedCity) { setBarangays([]); return; }
-        // Wait until cities list is available to find the correct city code
         if (cities.length === 0) return;
 
         const fetchBarangays = async () => {
@@ -172,9 +170,11 @@ export default function ProfilePage() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
+    // FIXED: Automatic Zip Code Sync
     useEffect(() => {
-        if (selectedCity && selectedBarangay) {
-            setZipCode(getZipCode(selectedCity, selectedBarangay));
+        if (selectedCity) {
+            const code = getZipCode(selectedCity, selectedBarangay);
+            setZipCode(code);
         }
     }, [selectedBarangay, selectedCity]);
 
@@ -517,7 +517,7 @@ export default function ProfilePage() {
                                             <div className="space-y-2">
                                                 <Label className="text-[9px] font-black uppercase">Province</Label>
                                                 <Select 
-                                                    onValueChange={(val) => { setSelectedProvince(val); setSelectedCity(""); setSelectedBarangay(""); setZipCode(""); }} 
+                                                    onValueChange={(val) => { setSelectedProvince(val); setSelectedCity(""); setSelectedBarangay(""); }} 
                                                     value={selectedProvince}
                                                 >
                                                     <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
@@ -534,7 +534,7 @@ export default function ProfilePage() {
                                             <div className="space-y-2">
                                                 <Label className="text-[9px] font-black uppercase">City / Municipality</Label>
                                                 <Select 
-                                                    onValueChange={(val) => { setSelectedCity(val); setSelectedBarangay(""); setZipCode(""); }} 
+                                                    onValueChange={(val) => { setSelectedCity(val); setSelectedBarangay(""); }} 
                                                     value={selectedCity} 
                                                     disabled={!selectedProvince && !userData?.province}
                                                 >

@@ -27,6 +27,7 @@ const NCR_CODE = "130000000";
 
 /**
  * @fileOverview Standardized Induction Page with Brand Lockdown.
+ * FIXED: Automatic Zip Code synchronization.
  */
 export default function JoinPage() {
     const auth = useAuth();
@@ -117,8 +118,9 @@ export default function JoinPage() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
+    // FIXED: Automatic Zip Code Sync
     useEffect(() => {
-        if (selectedCity && selectedBarangay) {
+        if (selectedCity) {
             setZipCode(getZipCode(selectedCity, selectedBarangay));
         }
     }, [selectedBarangay, selectedCity]);
