@@ -7,20 +7,27 @@ import { PDDS_LOGO_URL } from '@/lib/data';
  * @fileOverview Master PDDS Branding Component.
  * Implements Senior Architect "North Star" rules: 50px fixed height, 
  * mandatory cache-busting, absolute image-only node, and CORS compliance.
+ * Anchored in the official PDDS portion of the screen.
  */
 export function PDDSBrandingMaster() {
-  // FORCE-FIX: Cache-busting protocol to ensure fresh logo load
+  // FORCE-FIX: Cache-busting protocol to ensure fresh logo load from National Registry
   const finalLogoUrl = useMemo(() => {
     return `${PDDS_LOGO_URL}&t=${Date.now()}`;
   }, []);
 
   return (
     <header className="fixed top-0 left-0 right-0 h-20 bg-[#001f3f] border-b-[3px] border-[#D4AF37] z-[9999] flex items-center px-6 shadow-2xl safe-top">
-      <div className="flex items-center gap-4">
-        {/* THE NORTH STAR ANCHOR (IMAGE ONLY) */}
+      <div className="flex items-center gap-4 relative h-full w-full">
+        
+        {/* THE NORTH STAR ANCHOR (IMAGE ONLY - OFFICIAL POSITION) */}
         <div 
-          className="relative flex items-center justify-center"
-          style={{ width: 'auto', height: '50px' }}
+          className="absolute"
+          style={{ 
+            top: '10px', 
+            left: '15px',
+            width: 'auto', 
+            height: '50px' 
+          }}
         >
           <img 
             src={finalLogoUrl} 
@@ -32,13 +39,13 @@ export function PDDSBrandingMaster() {
             }}
             onClick={() => window.location.href = '/'}
             onError={(e) => {
-              console.error("❌ Branding Protocol: Logo failed to resolve from Storage.");
+              console.error("❌ Branding Protocol: Logo failed to resolve from Registry Storage.");
             }}
           />
         </div>
 
-        {/* TYPOGRAPHIC NODE (PEDERALISMO CORRECTED) */}
-        <div className="flex flex-col justify-center border-l border-white/20 pl-4 h-12">
+        {/* TYPOGRAPHIC NODE (ANCHORED BESIDE LOGO) */}
+        <div className="flex flex-col justify-center border-l border-white/20 pl-4 h-12 ml-20">
           <span className="text-white font-black text-[10px] sm:text-xs leading-none uppercase tracking-tight">
             Pederalismo ng Dugong
           </span>
@@ -46,13 +53,13 @@ export function PDDSBrandingMaster() {
             Dakilang Samahan
           </span>
         </div>
-      </div>
 
-      {/* STRATEGIC CONTEXT */}
-      <div className="ml-auto hidden md:block">
-        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] opacity-40">
-          National Command Center
-        </span>
+        {/* STRATEGIC CONTEXT */}
+        <div className="ml-auto hidden md:block">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] opacity-40">
+            National Command Center
+          </span>
+        </div>
       </div>
     </header>
   );

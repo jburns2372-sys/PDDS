@@ -11,10 +11,10 @@ interface PddsLogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 /**
  * @fileOverview Reusable PDDS Logo Component.
  * Synchronized with the Architect's Direct-Link Force Fix: 
- * Timestamp cache-busting, CORS handling, and no typographic fallbacks.
+ * Timestamp cache-busting, CORS handling, and no textual fallbacks.
  */
 export default function PddsLogo({ className, variant = "default", style, ...props }: PddsLogoProps) {
-  // FORCE-FIX: Cache-busting protocol to ensure fresh logo load
+  // FORCE-FIX: Cache-busting protocol to ensure fresh logo load from Storage
   const finalLogoUrl = useMemo(() => {
     return `${PDDS_LOGO_URL}&t=${Date.now()}`;
   }, []);
@@ -31,7 +31,8 @@ export default function PddsLogo({ className, variant = "default", style, ...pro
           className
         )}
         style={{
-          filter: 'drop-shadow(0px 0px 10px rgba(255, 215, 0, 0.5))',
+          height: '50px',
+          filter: 'drop-shadow(0px 0px 10px rgba(212, 175, 55, 0.5))',
           ...style
         }}
         {...props}
