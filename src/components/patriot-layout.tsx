@@ -6,7 +6,7 @@ import { PDDS_LOGO_URL } from '@/lib/data';
 /**
  * @fileOverview Global Patriot Layout Wrapper.
  * Features a fixed brand header with a North Star logo placement and full party name.
- * Strictly follows the Senior Architect's minimalist design protocol.
+ * Strictly follows the Senior Architect's branding force-fix protocol.
  */
 export default function PatriotLayout({ children }: { children: React.ReactNode }) {
   const [logoError, setLogoError] = useState(false);
@@ -17,34 +17,35 @@ export default function PatriotLayout({ children }: { children: React.ReactNode 
       {/* --- THE MASTER HEADER (BRAND LOCKDOWN) --- */}
       <header className="fixed top-0 left-0 right-0 h-20 bg-[#001f3f] border-b-[3px] border-[#D4AF37] z-[9999] flex items-center px-6 shadow-2xl safe-top">
         
-        {/* LOGO & BRAND CONTAINER */}
+        {/* FORCE-FIX: PDDS OFFICIAL LOGO BRANDING BOX */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center">
+          <div className="relative" style={{ minWidth: '55px' }}>
             {!logoError ? (
               <img 
                 src={PDDS_LOGO_URL} 
-                alt="Official PDDS Logo"
+                alt="PDDS Official Logo"
                 style={{
-                  height: '60px',
+                  height: '55px',
                   width: 'auto',
-                  filter: 'drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.4))',
+                  filter: 'drop-shadow(0px 0px 12px rgba(212, 175, 55, 0.6))',
                   pointerEvents: 'auto'
                 }}
-                className="object-contain cursor-pointer"
+                className="object-contain cursor-pointer transition-transform hover:scale-105"
                 onClick={() => window.location.href = '/'}
+                onLoad={() => console.log("✅ PDDS Logo successfully anchored.")}
                 onError={(e) => {
+                  console.error("❌ Branding Error: Firebase access denied.");
                   setLogoError(true);
-                  console.error("Logo failed to load from Firebase. Check Storage permissions.");
                 }}
                 crossOrigin="anonymous"
               />
             ) : (
-              /* SIMPLE EMERGENCY FALLBACK - Only shows if the image itself fails */
+              /* EMERGENCY FALLBACK */
               <span className="text-[#D4AF37] font-black text-2xl tracking-tighter uppercase italic">PDDS</span>
             )}
           </div>
 
-          {/* FULL PARTY NAME TYPOGRAPHY (PEDERALISMO NG DUGONG DAKILANG SAMAHAN) */}
+          {/* FULL PARTY NAME TYPOGRAPHY (PEDERALISMO CORRECTED) */}
           <div className="flex flex-col justify-center border-l border-white/20 pl-4 h-12">
             <span className="text-white font-black text-[10px] sm:text-xs leading-none uppercase tracking-tight">
               Pederalismo ng Dugong
@@ -64,7 +65,6 @@ export default function PatriotLayout({ children }: { children: React.ReactNode 
       </header>
 
       {/* --- CONTENT AREA --- */}
-      {/* pt-24 ensures the header doesn't cover page content */}
       <main className="flex-grow pt-24 px-4 md:px-8 pb-10">
         <div className="max-w-7xl mx-auto">
           {children}

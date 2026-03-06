@@ -10,7 +10,7 @@ interface PddsLogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 
 /**
  * @fileOverview Standardized PDDS Logo Component.
- * Optimized for brand lockdown with fixed square geometry and gold glow.
+ * Optimized for brand lockdown with high-intensity gold glow and public link.
  */
 export default function PddsLogo({ className, variant = "default", style, ...props }: PddsLogoProps) {
   return (
@@ -23,13 +23,13 @@ export default function PddsLogo({ className, variant = "default", style, ...pro
         className
       )}
       style={{
-        height: '60px',
+        height: '55px',
         width: 'auto',
-        filter: 'drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.4))',
+        filter: 'drop-shadow(0px 0px 12px rgba(212, 175, 55, 0.6))',
         ...style
       }}
       crossOrigin="anonymous"
-      onError={(e) => console.error("Logo failed to load from Firebase. Check Storage permissions.")}
+      onError={(e) => console.error("Branding Error: Official Logo failed to load.")}
       {...props}
     />
   );
