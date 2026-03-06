@@ -6,6 +6,7 @@ import { PDDS_LOGO_URL } from '@/lib/data';
 /**
  * @fileOverview Master PDDS Branding Component.
  * Established as the single source of authority for the top header branding.
+ * Features fixed geometry and spelling-perfect typography.
  */
 export function PDDSBrandingMaster() {
   return (
@@ -26,7 +27,7 @@ export function PDDSBrandingMaster() {
           />
         </div>
 
-        {/* TYPOGRAPHIC NODE */}
+        {/* TYPOGRAPHIC NODE - SPELLING: PEDERALISMO */}
         <div className="flex flex-col justify-center border-l border-white/20 pl-4 h-12">
           <span className="text-white font-black text-[10px] sm:text-xs leading-none uppercase tracking-tight">
             Pederalismo ng Dugong
