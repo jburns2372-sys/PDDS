@@ -103,7 +103,7 @@ export default function HomePage() {
       <UserHeader userData={userData} />
       
       <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-        {/* Launch Special Banner - ALWAYS ACTIVE */}
+        {/* Launch Special Banner - RESTORED LOGIC */}
         <Card className="bg-gradient-to-r from-primary to-blue-900 text-white border-none shadow-2xl overflow-hidden relative group mb-8 rounded-3xl">
           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
             <Sparkles className="h-32 w-32" />
@@ -122,8 +122,16 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-            <Button asChild className="h-14 px-10 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0 active:scale-95 transition-all">
-              <Link href="/profile">Claim Badge Now</Link>
+            <Button 
+              asChild={!userData?.isVerified} 
+              disabled={userData?.isVerified}
+              className="h-14 px-10 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0 active:scale-95 transition-all disabled:opacity-50"
+            >
+              {userData?.isVerified ? (
+                <span>Badge Secured</span>
+              ) : (
+                <Link href="/profile">Claim Badge Now</Link>
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -162,7 +170,7 @@ export default function HomePage() {
                           navigator.clipboard.writeText(`${domain}/join?ref=${userData?.uid}`);
                           toast({ title: "Copied!", description: "Earn 50 Merit Points per recruit!" });
                         }}>
-                          <Copy className="h-4 w-4" />
+                          <CapitalCopy className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -231,5 +239,11 @@ export default function HomePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function CapitalCopy({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
   );
 }
