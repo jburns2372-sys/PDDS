@@ -12,15 +12,14 @@ import { doc, getDoc } from "firebase/firestore";
 import { PDDS_LOGO_URL } from "@/lib/data";
 
 /**
- * @fileOverview Master Patriot Digital ID (Senior Full-Stack Overhaul).
- * Features async force-load biometric node from Firestore, bypassing Auth lag.
+ * @fileOverview Master Patriot Digital ID.
+ * Features async force-load biometric node and integrated transparent branding.
  */
 export function DigitalIdCard({ userData: initialUserData }: { userData: any }) {
   const { user } = useUser();
   const firestore = useFirestore();
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Identity State (Force-Fix Protocol)
   const [idPhoto, setIdPhoto] = useState<string | null>(null);
   const [dbUserData, setDbUserData] = useState<any>(null);
   const [fetching, setFetching] = useState(true);
@@ -28,10 +27,6 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
 
   const DEFAULT_SILHOUETTE = "https://firebasestorage.googleapis.com/v0/b/patriot-link-production.firebasestorage.app/o/assets%2Fpatriot-silhouette.png?alt=media";
 
-  /**
-   * ASYNC FORCE-LOAD: Fetches photoURL directly from Firestore users collection
-   * This ensures the identity is always synchronized with the submitted registry photo.
-   */
   useEffect(() => {
     async function forceLoadIdentity() {
       if (!user?.uid) return;
@@ -77,7 +72,6 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   const patriotRank = dbUserData?.role || initialUserData?.role || "Regional Member";
   const isVerified = dbUserData?.isVerified || initialUserData?.isVerified;
 
-  // Border Logic: Bronze -> Brown, Silver -> Grey, Gold -> Glowing Gold
   const getBorderStyles = () => {
     switch (vettingTier) {
       case 'Gold': return "border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.6)] animate-pulse";
@@ -91,48 +85,48 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
     <div className="flex flex-col gap-6 items-center w-full max-w-sm mx-auto">
       <div 
         ref={cardRef} 
-        className="w-full aspect-[1/1.58] overflow-hidden rounded-[32px] shadow-2xl bg-[#002366] text-white relative flex flex-col p-6 border-2 border-white/10"
+        className="w-full aspect-[1/1.58] overflow-hidden rounded-[32px] shadow-2xl bg-white text-slate-900 relative flex flex-col p-6 border border-slate-200"
       >
-        {/* Security Watermark Grid */}
-        <div className="absolute inset-0 opacity-5 pointer-events-none">
+        {/* Security Watermark */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <pattern id="id-grid" width="30" height="30" patternUnits="userSpaceOnUse">
-              <path d="M 30 0 L 0 0 0 30" fill="none" stroke="white" strokeWidth="0.5"/>
+              <path d="M 30 0 L 0 0 0 30" fill="none" stroke="currentColor" strokeWidth="0.5"/>
             </pattern>
             <rect width="100%" height="100%" fill="url(#id-grid)" />
           </svg>
         </div>
-
-        {/* Top Header: Brand Lockdown Implementation */}
+  
+        {/* Top Header - REDO: Background Removed */}
         <div className="flex justify-between items-start relative z-10">
-          <div className="flex items-center gap-3">
-          <img 
+          <div className="flex items-center gap-3 bg-transparent shrink-0">
+            <img 
               src={PDDS_LOGO_URL} 
-              alt="PDDS Official Logo" 
+              alt="PDDS" 
               className="h-[45px] w-auto object-contain" 
               crossOrigin="anonymous"
-              style={{ filter: 'drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.5))' }}
+              style={{ filter: 'drop-shadow(0px 0px 8px rgba(212, 175, 55, 0.4))' }}
             />
             <div className="flex flex-col">
-              <h1 className="text-[9px] font-black uppercase tracking-tighter leading-none text-white">Pederalismo ng Dugong</h1>
-              <h1 className="text-[9px] font-black uppercase tracking-tighter leading-none text-[#D4AF37]">Dakilang Samahan</h1>
+              <h1 className="text-[9px] font-black uppercase tracking-tighter leading-none text-[#002366]">Pederalismo ng Dugong</h1>
+              <h1 className="text-[9px] font-black uppercase tracking-tighter leading-none text-[#B8860B]">Dakilang Samahan</h1>
             </div>
           </div>
-          <Badge variant="outline" className="text-[7px] font-black tracking-[0.2em] uppercase border-[#D4AF37] text-[#D4AF37] bg-transparent">
+          <Badge variant="outline" className="text-[7px] font-black tracking-[0.2em] uppercase border-[#B8860B] text-[#B8860B] bg-white">
             Verified Registry
           </Badge>
         </div>
-
-        {/* Center: Forced-Fit Biometric Node (120px Precision) */}
+  
+        {/* Center: Photo Node */}
         <div className="flex flex-col items-center justify-center mt-10 relative z-10">
           <div className="relative">
-          <div className={cn(
-              "w-[140px] h-[140px] rounded-2xl overflow-hidden bg-[#001a4d] border-4 transition-all duration-500 shadow-2xl",
+            <div className={cn(
+              "w-[140px] h-[140px] rounded-2xl overflow-hidden bg-slate-50 border-4 transition-all duration-500 shadow-xl",
               getBorderStyles()
             )}>
               {fetching ? (
                 <div className="flex items-center justify-center w-full h-full">
-                  <Loader2 className="h-8 w-8 animate-spin text-[#D4AF37]/40" />
+                  <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
                 </div>
               ) : (
                 <img 
@@ -146,35 +140,33 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
                 />
               )}
             </div>
-            
-            {/* Verified Badge Overlay */}
             {isVerified && (
-              <div className="absolute bottom-1 right-1 bg-green-600 rounded-full p-1.5 border-4 border-[#002366] shadow-xl">
-                <ShieldCheck className="h-4 w-4 text-white" />
+              <div className="absolute -bottom-2 -right-2 bg-blue-600 rounded-full p-2 border-4 border-white shadow-xl">
+                <ShieldCheck className="h-5 w-5 text-white" />
               </div>
             )}
           </div>
-          <p className="mt-3 text-[8px] font-black uppercase text-[#D4AF37] tracking-[0.3em]">Patriot Identity</p>
+          <p className="mt-4 text-[8px] font-black uppercase text-[#B8860B] tracking-[0.3em]">Patriot Identity</p>
         </div>
-
-        {/* Bottom: Tactical Data & UID */}
-        <div className="mt-auto flex items-end justify-between relative z-10 border-t border-white/10 pt-6">
+  
+        {/* Bottom Data */}
+        <div className="mt-auto flex items-end justify-between relative z-10 border-t border-slate-100 pt-6">
           <div className="space-y-2 flex-1 pr-4">
-            <h2 className="text-2xl font-black uppercase tracking-tighter leading-none font-headline text-white drop-shadow-lg">
+            <h2 className="text-2xl font-black uppercase tracking-tighter leading-none text-[#002366]">
               {displayName}
             </h2>
             <div className="flex flex-col items-start gap-1">
-              <Badge className="bg-[#D4AF37] text-[#002366] font-black text-[10px] uppercase tracking-widest border-none px-3 py-0.5">
+              <Badge className="bg-[#B8860B] text-white font-black text-[10px] uppercase tracking-widest border-none px-3 py-0.5">
                 {patriotRank}
               </Badge>
-              <p className="text-[8px] font-bold text-white/40 uppercase tracking-[0.2em]">
+              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">
                 {dbUserData?.city || initialUserData?.city || 'National'} Chapter
               </p>
             </div>
           </div>
           
           <div className="flex flex-col items-center gap-2">
-            <div className="bg-white p-1.5 rounded-xl shadow-2xl border-2 border-[#D4AF37]/20">
+            <div className="bg-white p-1.5 rounded-xl shadow-md border border-slate-200">
               <QRCodeSVG 
                 value={user?.uid || 'PDDS-GUEST'} 
                 size={52} 
@@ -183,22 +175,16 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
                 includeMargin={false}
               />
             </div>
-            <p className="text-[6px] font-black uppercase tracking-widest text-white/40">UID Verified</p>
+            <p className="text-[6px] font-black uppercase tracking-widest text-slate-300">UID Verified</p>
           </div>
-        </div>
-
-        {/* Footer Audit Metadata */}
-        <div className="mt-4 flex justify-between items-center opacity-20 relative z-10">
-          <p className="text-[6px] font-mono">ID://{user?.uid?.substring(0, 16).toUpperCase()}</p>
-          <span className="text-[6px] font-black uppercase tracking-widest">End-to-End Encrypted Node</span>
         </div>
       </div>
 
       <Button 
         onClick={handleSaveToGallery} 
-        className="w-full h-14 font-black uppercase text-xs tracking-widest bg-[#D4AF37] hover:bg-[#B8860B] text-[#002366] shadow-2xl rounded-2xl transition-all"
+        className="w-full h-14 bg-[#002366] hover:bg-[#001a3d] text-white font-black uppercase tracking-widest shadow-xl rounded-xl active:scale-95 transition-all"
       >
-        <Download className="mr-2 h-5 w-5" /> Save to Gallery
+        <Download className="mr-2 h-5 w-5 text-accent" /> Save to Gallery
       </Button>
     </div>
   );
