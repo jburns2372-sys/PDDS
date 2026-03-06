@@ -103,9 +103,9 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           </svg>
         </div>
 
-        {/* Top Header: Brand Lockdown Implementation (BACKGROUND REMOVED) */}
+        {/* Top Header: Brand Lockdown Implementation */}
         <div className="flex justify-between items-start relative z-10">
-          <div className="flex items-center gap-3 bg-transparent p-2">
+          <div className="flex items-center gap-3 bg-white/5 p-2 rounded-xl border border-white/10 backdrop-blur-sm">
           <img 
               src={PDDS_LOGO_URL} 
               alt="PDDS Official Logo" 
