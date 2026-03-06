@@ -144,7 +144,7 @@ export const agendas: Agenda[] = [
   {
     title: "Constitutional Reform",
     icon: "Building2",
-    details: ["Shift to Federalism", "Parliamentary form of government", "Strengthen local autonomy"],
+    details: ["Shift to Pederalismo", "Parliamentary form of government", "Strengthen local autonomy"],
   },
   {
     title: "Politics",
@@ -188,9 +188,9 @@ export const pddsInfo = {
     "Itigil ang korapsyon, droga, at krimen.",
   ],
   vision: "A just, free, and prosperous Filipino people and one nation under God.",
-  mission: "Build a Federal system of government that will ensure justice, freedom, and prosperity.",
+  mission: "Build a Pederal system of government that will ensure justice, freedom, and prosperity.",
   program: [
-    { title: "Constitutional Reform", points: ["Federal Form of Government"] },
+    { title: "Constitutional Reform", points: ["Pederal Form of Government"] },
     { title: "Reform Agenda for Politics", points: ["Public Service: Public Trust", "Rule of Law not Mob Rule", "An Equitable Electoral System and Suffrage Parliamentary (Multi-Party System)", "Criteria for Elective Civil servants - Elected after Qualified"] },
     { title: "Reform Agenda for Economics", points: ["Simplified (Flat) Tax with TABOR (Tax Payers Bill of Rights)", "Land, water, and all natural resources must be managed by people, families, and communities and NOT by civil government", "Limited Government Interference in Business", "No Government Borrowings/Guarantees", "No Deficit Spending", "Sound Money - A Return to Basics: Currency versus Fiat Money", "Honest not Fractional Reserve Banking Policies"] },
     { title: "Reform Agenda for Civil Government", points: ["Parliament of Inter-Faith / Inter-denominational, Multi-Tribal, and Multi-Racial States in a Democratic yet Republican (Representative) Setting", "Civilian Authority NOT Militarized", "Defense of National Government Citizen's Militia for National Defense"] },

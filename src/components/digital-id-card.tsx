@@ -103,7 +103,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           </svg>
         </div>
 
-        {/* Top Header: Brand Lockdown Implementation */}
+        {/* Top Header: Brand Lockdown Implementation (PEDERALISMO CORRECTED) */}
         <div className="flex justify-between items-start relative z-10">
           <div className="flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/10 backdrop-blur-sm">
             <img 
@@ -113,7 +113,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
               crossOrigin="anonymous"
             />
             <div className="flex flex-col">
-              <h1 className="text-[9px] font-black uppercase tracking-tighter leading-none text-white">Federalismo ng Dugong</h1>
+              <h1 className="text-[9px] font-black uppercase tracking-tighter leading-none text-white">Pederalismo ng Dugong</h1>
               <h1 className="text-[9px] font-black uppercase tracking-tighter leading-none text-[#D4AF37]">Dakilang Samahan</h1>
             </div>
           </div>

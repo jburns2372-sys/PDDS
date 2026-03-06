@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Gavel, Users, AlertCircle, Wallet, Ban, ShieldAlert } from "lucide-react";
@@ -21,7 +20,7 @@ export default function TermsOfServicePage() {
             1. Eligibility
           </h2>
           <p className="text-sm leading-relaxed mt-2 text-foreground/80">
-            Use of PatriotLink is strictly restricted to verified supporters and members of the <strong>PDDS (Federalismo ng Dugong Dakilang Samahan)</strong>. Users must be at least 18 years of age and must formally declare their alignment with the party's principles.
+            Use of PatriotLink is strictly restricted to verified supporters and members of the <strong>PDDS (Pederalismo ng Dugong Dakilang Samahan)</strong>. Users must be at least 18 years of age and must formally declare their alignment with the party's principles.
           </p>
         </div>
 

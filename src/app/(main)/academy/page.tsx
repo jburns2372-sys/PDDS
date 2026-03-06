@@ -13,7 +13,7 @@ import { AcademyPlayer } from "@/components/academy-player";
 import { CertificateDialog } from "@/components/certificate-dialog";
 
 /**
- * @fileOverview Federalismo Academy Training Center.
+ * @fileOverview Pederalismo Academy Training Center.
  * Handles course delivery, progress tracking, and automated tier upgrades.
  */
 export default function AcademyPage() {
@@ -92,7 +92,7 @@ export default function AcademyPage() {
               <GraduationCap className="h-8 w-8" />
             </div>
             <div>
-              <h1 className="text-4xl font-black text-primary font-headline uppercase tracking-tight">Federalismo Academy</h1>
+              <h1 className="text-4xl font-black text-primary font-headline uppercase tracking-tight">Pederalismo Academy</h1>
               <div className="flex items-center gap-2 mt-1">
                 <Badge className="bg-emerald-100 text-emerald-700 font-black text-[10px] uppercase border-none">Officer Training</Badge>
                 <Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20">Jurisdiction: National</Badge>
@@ -194,7 +194,7 @@ export default function AcademyPage() {
                     </div>
                     <div>
                       <p className="text-xs font-black uppercase text-primary">Foundational Knowledge</p>
-                      <p className="text-[10px] font-medium text-muted-foreground leading-relaxed mt-1">Complete all Leadership and Federalism core modules.</p>
+                      <p className="text-[10px] font-medium text-muted-foreground leading-relaxed mt-1">Complete all Leadership and Pederalismo core modules.</p>
                     </div>
                   </div>
                   <div className="flex gap-3">

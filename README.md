@@ -2,7 +2,7 @@
 
 Dugong Dakilang Samahan. Isang App, Isang Layunin.
 
-This is the official tactical platform for the members of the **Federalismo ng Dugong Dakilang Samahan (PDDS)**, designed for national mobilization, civic oversight, and transparent governance.
+This is the official tactical platform for the members of the **Pederalismo ng Dugong Dakilang Samahan (PDDS)**, designed for national mobilization, civic oversight, and transparent governance.
 
 ## 🛠️ Development & Environment Setup
 
@@ -46,7 +46,7 @@ This application utilizes Firebase App Hosting and specialized Cloud Functions.
 - **Bantay Bayan Digital**: GPS-verified civic reporting and accountability ledger.
 - **Bayanihan Network**: 5km radius emergency response and SOS signaling.
 - **PatriotPondo**: Real-time public financial transparency ledger.
-- **Federalismo Academy**: Merit-based leadership training and certification.
+- **Pederalismo Academy**: Merit-based leadership training and certification.
 
 ---
 **SECURITY NOTICE**: This platform handles sensitive jurisdictional data. Ensure all developer environments comply with the party's internal data privacy protocols and RA 10173.

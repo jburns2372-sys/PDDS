@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef } from "react";
@@ -78,7 +77,7 @@ export function CertificateDialog({ isOpen, onOpenChange, userName, completionDa
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">This official credential is awarded to</p>
               <h1 className="text-4xl font-black text-primary font-headline uppercase tracking-tighter border-b-2 border-emerald-100 pb-2">{userName || 'Patriot Member'}</h1>
               <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed max-w-md mx-auto">
-                For the successful completion of the **Federalismo ng Dugong Dakilang Samahan (PDDS)** Leadership & Ideology Track.
+                For the successful completion of the **Pederalismo ng Dugong Dakilang Samahan (PDDS)** Leadership & Ideology Track.
               </p>
             </div>
 

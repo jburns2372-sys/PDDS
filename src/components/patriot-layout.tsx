@@ -35,10 +35,10 @@ export default function PatriotLayout({ children }: { children: React.ReactNode 
             )}
           </div>
 
-          {/* FULL PARTY NAME TYPOGRAPHY */}
+          {/* FULL PARTY NAME TYPOGRAPHY (PEDERALISMO CORRECTED) */}
           <div className="flex flex-col justify-center border-l border-white/20 pl-4 h-10">
             <span className="text-white font-black text-[10px] sm:text-xs leading-none uppercase tracking-tight">
-              Federalismo ng Dugong
+              Pederalismo ng Dugong
             </span>
             <span className="text-[#D4AF37] font-black text-[10px] sm:text-xs leading-none uppercase tracking-tight mt-0.5">
               Dakilang Samahan
