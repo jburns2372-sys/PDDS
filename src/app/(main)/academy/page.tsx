@@ -14,7 +14,7 @@ import { CertificateDialog } from "@/components/certificate-dialog";
 
 /**
  * @fileOverview Pederalismo Academy Training Center.
- * REFACTORED: Fluid full-width 12-column tactical interface.
+ * REFACTORED: 4-column fluid layout for maximum desktop utilization.
  */
 export default function AcademyPage() {
   const { user } = useUser();
@@ -70,167 +70,100 @@ export default function AcademyPage() {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
-          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Syncing Academy Records...</p>
+          <Loader2 className="h-16 w-16 animate-spin text-emerald-600" />
+          <p className="text-sm font-black uppercase tracking-widest text-muted-foreground animate-pulse">Syncing Academy Records...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 md:p-8 lg:p-10 bg-background min-h-screen pb-32">
-      <div className="w-full space-y-10">
-        
-        {/* Header - Fluid Full Width */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-4 border-emerald-600 pb-8">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-emerald-600 text-white rounded-xl shadow-lg">
-              <GraduationCap className="h-8 w-8" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-black text-primary font-headline uppercase tracking-tight">Pederalismo Academy</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge className="bg-emerald-100 text-emerald-700 font-black text-[10px] uppercase border-none">Officer Training</Badge>
-                <Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20">Jurisdiction: National</Badge>
-              </div>
-            </div>
+    <div className="w-full space-y-12">
+      
+      {/* Header - Maximized */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 border-b-8 border-emerald-600 pb-12">
+        <div className="flex items-center gap-8">
+          <div className="p-6 bg-emerald-600 text-white rounded-3xl shadow-2xl">
+            <GraduationCap className="h-16 w-16" />
           </div>
-
-          <div className="flex gap-4">
-            <div className="text-right">
-              <p className="text-2xl font-black text-emerald-600">{stats.percentage}%</p>
-              <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Completion</p>
+          <div>
+            <h1 className="text-5xl md:text-7xl font-black text-primary font-headline uppercase tracking-tighter">Pederalismo Academy</h1>
+            <div className="flex items-center gap-4 mt-4">
+              <Badge className="bg-emerald-100 text-emerald-700 font-black text-sm uppercase px-4 py-1.5 border-none">Officer Training</Badge>
+              <Badge variant="outline" className="text-sm font-black uppercase border-primary/20 px-4 py-1.5">Jurisdiction: National</Badge>
             </div>
-            {stats.percentage === 100 && (
-              <Button 
-                onClick={() => setShowCertificate(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 font-black uppercase text-[10px] h-12 px-6 shadow-xl"
-              >
-                <Award className="mr-2 h-4 w-4" /> Issue Certificate
-              </Button>
-            )}
           </div>
         </div>
 
-        {/* 12-Column Responsive Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Main Course Feed (8/12) */}
-          <div className="lg:col-span-8 space-y-6">
-            <div className="flex items-center justify-between px-2">
-              <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-emerald-600" />
-                Available Training Modules
-              </h2>
-            </div>
-
-            <div className="grid gap-6">
-              {courses.sort((a, b) => (a.order || 0) - (b.order || 0)).map((course: any) => {
-                const isCompleted = stats.completedIds.includes(course.id);
-                const isActive = activeCourse?.id === course.id;
-
-                return (
-                  <Card key={course.id} className={`shadow-lg border-l-4 overflow-hidden transition-all ${isCompleted ? 'border-l-emerald-500 bg-emerald-50/10' : isActive ? 'border-l-accent' : 'border-l-primary'}`}>
-                    <CardHeader className="bg-muted/30 pb-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <Badge variant="outline" className="text-[8px] font-black uppercase mb-2 border-emerald-600/20 text-emerald-700">{course.category}</Badge>
-                          <CardTitle className="text-lg font-headline font-black text-primary uppercase leading-tight">{course.title}</CardTitle>
-                        </div>
-                        {isCompleted && <CheckCircle2 className="h-6 w-6 text-emerald-600" />}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                      <p className="text-sm text-foreground/70 leading-relaxed font-medium mb-6">
-                        {course.description || "Foundational briefing for the PDDS leadership track."}
-                      </p>
-                      
-                      {isActive ? (
-                        <AcademyPlayer 
-                          videoUrl={course.videoUrl} 
-                          onComplete={() => handleComplete(course.id)} 
-                        />
-                      ) : (
-                        <Button 
-                          onClick={() => setActiveCourse(course)}
-                          className="w-full h-12 font-black uppercase tracking-widest shadow-md"
-                          variant={isCompleted ? "outline" : "default"}
-                        >
-                          <Play className="mr-2 h-4 w-4" /> 
-                          {isCompleted ? "Review Module" : "Start Briefing"}
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-
-              {courses.length === 0 && (
-                <Card className="p-24 text-center border-2 border-dashed bg-muted/20">
-                  <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                  <p className="text-muted-foreground font-medium uppercase text-xs tracking-widest">No academy modules currently deployed.</p>
-                </Card>
-              )}
-            </div>
+        <div className="flex gap-8 items-center bg-slate-50 p-8 rounded-3xl border-2 border-emerald-100">
+          <div className="text-right">
+            <p className="text-5xl font-black text-emerald-600">{stats.percentage}%</p>
+            <p className="text-xs font-black uppercase tracking-widest opacity-60">Mastery Complete</p>
           </div>
+          {stats.percentage === 100 && (
+            <Button 
+              onClick={() => setShowCertificate(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 font-black uppercase text-sm h-16 px-10 shadow-2xl rounded-2xl"
+            >
+              <Award className="mr-3 h-6 w-6" /> Issue Certificate
+            </Button>
+          )}
+        </div>
+      </div>
 
-          {/* Advancement Sidebar (4/12) */}
-          <div className="lg:col-span-4 space-y-6">
-            <Card className="shadow-2xl border-t-4 border-accent overflow-hidden bg-white">
-              <CardHeader className="bg-primary/5 pb-4 border-b">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                  Advancement Protocol
-                </CardTitle>
+      {/* Main Grid - Refactored to 4-column desktop logic */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
+        {courses.sort((a, b) => (a.order || 0) - (b.order || 0)).map((course: any) => {
+          const isCompleted = stats.completedIds.includes(course.id);
+          const isActive = activeCourse?.id === course.id;
+
+          return (
+            <Card key={course.id} className={`shadow-xl border-t-8 flex flex-col overflow-hidden transition-all hover:translate-y-[-8px] rounded-[32px] ${isCompleted ? 'border-t-emerald-500 bg-emerald-50/10' : isActive ? 'border-t-accent' : 'border-t-primary'}`}>
+              <CardHeader className="bg-muted/30 pb-6 pt-8">
+                <div className="flex justify-between items-start mb-4">
+                  <Badge variant="outline" className="text-[10px] font-black uppercase border-emerald-600/20 text-emerald-700 px-3">{course.category}</Badge>
+                  {isCompleted && <CheckCircle2 className="h-8 w-8 text-emerald-600" />}
+                </div>
+                <CardTitle className="text-2xl font-headline font-black text-primary uppercase leading-tight">{course.title}</CardTitle>
               </CardHeader>
-              <CardContent className="pt-6 space-y-6">
-                <div className="space-y-4">
-                  <div className="flex gap-3">
-                    <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-black text-emerald-700">1</span>
-                    </div>
-                    <div>
-                      <p className="text-xs font-black uppercase text-primary">Foundational Knowledge</p>
-                      <p className="text-[10px] font-medium text-muted-foreground leading-relaxed mt-1">Complete all Leadership and Pederalismo core modules.</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-black text-emerald-700">2</span>
-                    </div>
-                    <div>
-                      <p className="text-xs font-black uppercase text-primary">Tier Promotion</p>
-                      <p className="text-[10px] font-medium text-muted-foreground leading-relaxed mt-1">Automatic upgrade to Silver Mobilizer vetting level upon graduation.</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-black text-emerald-700">3</span>
-                    </div>
-                    <div>
-                      <p className="text-xs font-black uppercase text-primary">Certificate Issuance</p>
-                      <p className="text-[10px] font-medium text-muted-foreground leading-relaxed mt-1">Download your official credential for local chapter validation.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-6 border-t border-dashed">
-                  <Card className="bg-primary text-white shadow-inner">
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-accent" />
-                        <h3 className="text-[10px] font-black uppercase tracking-tight">Executive Strategy</h3>
+              <CardContent className="pt-8 flex-1 flex flex-col">
+                <p className="text-lg text-foreground/70 leading-relaxed font-medium mb-8 flex-1">
+                  {course.description || "Foundational briefing for the PDDS leadership track."}
+                </p>
+                
+                {isActive ? (
+                  <div className="fixed inset-0 z-[10000] bg-black/90 flex items-center justify-center p-12">
+                    <div className="w-full max-w-6xl">
+                      <div className="flex justify-end mb-4">
+                        <Button variant="ghost" className="text-white text-xl font-black" onClick={() => setActiveCourse(null)}>CLOSE BRIEFING [X]</Button>
                       </div>
-                      <p className="text-[10px] font-medium leading-relaxed italic opacity-80">
-                        "Knowledge is the fuel of our movement. A leader who masters the platform is a leader who masters the field."
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
+                      <AcademyPlayer 
+                        videoUrl={course.videoUrl} 
+                        onComplete={() => { handleComplete(course.id); setActiveCourse(null); }} 
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={() => setActiveCourse(course)}
+                    className="w-full h-16 font-black uppercase tracking-widest shadow-xl rounded-2xl text-lg"
+                    variant={isCompleted ? "outline" : "default"}
+                  >
+                    <Play className="mr-3 h-6 w-6" /> 
+                    {isCompleted ? "Review Module" : "Start Briefing"}
+                  </Button>
+                )}
               </CardContent>
             </Card>
-          </div>
-        </div>
+          );
+        })}
+
+        {courses.length === 0 && (
+          <Card className="col-span-full p-32 text-center border-4 border-dashed bg-muted/20 rounded-[40px]">
+            <BookOpen className="h-24 w-24 text-muted-foreground/30 mx-auto mb-8" />
+            <p className="text-2xl text-muted-foreground font-black uppercase tracking-widest">No academy modules currently deployed.</p>
+          </Card>
+        )}
       </div>
 
       <CertificateDialog 

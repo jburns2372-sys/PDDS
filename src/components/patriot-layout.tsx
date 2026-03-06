@@ -5,28 +5,27 @@ import { PDDSBrandingMaster } from './pdds-branding-master';
 
 /**
  * @fileOverview Global Patriot Layout Wrapper.
- * REFACTORED: Fluid full-width architecture with responsive desktop padding and safe-area security.
+ * REFACTORED: Maximum space utilization with fluid edge-to-edge coverage.
  */
 export default function PatriotLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-slate-100 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col font-sans bg-white overflow-x-hidden">
       
-      {/* THE MASTER BRANDING HUB (FIXED HEADER) */}
+      {/* THE MASTER BRANDING HUB */}
       <PDDSBrandingMaster />
 
       {/* --- CONTENT AREA --- */}
-      {/* pt-20 offset ensures content doesn't collide with the fixed master header */}
-      {/* Edge-to-edge removal of max-w-7xl. Adaptive padding px-4/px-10 */}
-      <main className="flex-grow pt-20 pb-10 safe-left safe-right">
+      {/* Adaptive padding: px-4 mobile, px-12 desktop */}
+      <main className="flex-grow pt-24 pb-10 safe-left safe-right px-4 lg:px-12">
         <div className="w-full">
           {children}
         </div>
       </main>
 
       {/* --- MINIMAL FOOTER --- */}
-      <footer className="bg-slate-200 py-3 text-center border-t border-slate-300 safe-bottom">
-        <p className="text-[9px] text-slate-500 font-bold tracking-widest opacity-60 uppercase">
-          PDDS PATRIOTLINK • 2026
+      <footer className="bg-slate-50 py-6 text-center border-t border-slate-200 safe-bottom">
+        <p className="text-xs text-primary/40 font-black tracking-[0.3em] uppercase">
+          PDDS PATRIOTLINK • NATIONAL COMMAND CENTER • 2026
         </p>
       </footer>
     </div>
