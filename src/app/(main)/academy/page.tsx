@@ -14,7 +14,7 @@ import { CertificateDialog } from "@/components/certificate-dialog";
 
 /**
  * @fileOverview Pederalismo Academy Training Center.
- * Handles course delivery, progress tracking, and automated tier upgrades.
+ * REFACTORED: Fluid full-width 12-column tactical interface.
  */
 export default function AcademyPage() {
   const { user } = useUser();
@@ -29,7 +29,6 @@ export default function AcademyPage() {
   const [showCertificate, setShowCertificate] = useState(false);
 
   const stats = useMemo(() => {
-    // Explicitly typing 'p' as 'any' satisfies the strict production compiler
     const completedIds = progress.filter((p: any) => p.status === 'Completed').map((p: any) => p.id);
     const total = courses.length;
     const completed = completedIds.length;
@@ -47,12 +46,9 @@ export default function AcademyPage() {
         completedAt: serverTimestamp()
       });
 
-      // Award Points
       const userRef = doc(firestore, "users", user.uid);
       const updates: any = { meritPoints: increment(25) };
 
-      // Automatic Tier Upgrade Logic
-      // If this was the final course, upgrade to Silver
       if (stats.completed + 1 === stats.total) {
         updates.vettingLevel = "Silver";
         updates.achievements = ["Academy Graduate"];
@@ -82,10 +78,10 @@ export default function AcademyPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 bg-background min-h-screen pb-32">
-      <div className="max-w-6xl mx-auto space-y-10">
+    <div className="p-4 md:p-8 lg:p-10 bg-background min-h-screen pb-32">
+      <div className="w-full space-y-10">
         
-        {/* Header */}
+        {/* Header - Fluid Full Width */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-4 border-emerald-600 pb-8">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-emerald-600 text-white rounded-xl shadow-lg">
@@ -116,9 +112,10 @@ export default function AcademyPage() {
           </div>
         </div>
 
+        {/* 12-Column Responsive Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Main Course Feed */}
+          {/* Main Course Feed (8/12) */}
           <div className="lg:col-span-8 space-y-6">
             <div className="flex items-center justify-between px-2">
               <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-2">
@@ -177,7 +174,7 @@ export default function AcademyPage() {
             </div>
           </div>
 
-          {/* Advancement Sidebar */}
+          {/* Advancement Sidebar (4/12) */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="shadow-2xl border-t-4 border-accent overflow-hidden bg-white">
               <CardHeader className="bg-primary/5 pb-4 border-b">
@@ -225,7 +222,7 @@ export default function AcademyPage() {
                         <h3 className="text-[10px] font-black uppercase tracking-tight">Executive Strategy</h3>
                       </div>
                       <p className="text-[10px] font-medium leading-relaxed italic opacity-80">
-                        "Knowledge is the fuel of our movement. A member who masters the platform is a leader who masters the field."
+                        "Knowledge is the fuel of our movement. A leader who masters the platform is a leader who masters the field."
                       </p>
                     </CardContent>
                   </Card>

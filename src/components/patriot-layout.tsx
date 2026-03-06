@@ -5,19 +5,20 @@ import { PDDSBrandingMaster } from './pdds-branding-master';
 
 /**
  * @fileOverview Global Patriot Layout Wrapper.
- * Optimized for brand lockdown and strategic content framing.
+ * REFACTORED: Fluid full-width architecture with responsive desktop padding and safe-area security.
  */
 export default function PatriotLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-slate-100">
+    <div className="min-h-screen flex flex-col font-sans bg-slate-100 overflow-x-hidden">
       
       {/* THE MASTER BRANDING HUB (FIXED HEADER) */}
       <PDDSBrandingMaster />
 
       {/* --- CONTENT AREA --- */}
-      {/* pt-24 offset ensures content doesn't collide with the fixed master header */}
-      <main className="flex-grow pt-24 px-4 md:px-8 pb-10">
-        <div className="max-w-7xl mx-auto">
+      {/* pt-20 offset ensures content doesn't collide with the fixed master header */}
+      {/* Edge-to-edge removal of max-w-7xl. Adaptive padding px-4/px-10 */}
+      <main className="flex-grow pt-20 pb-10 safe-left safe-right">
+        <div className="w-full">
           {children}
         </div>
       </main>

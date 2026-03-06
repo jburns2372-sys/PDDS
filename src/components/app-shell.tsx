@@ -14,7 +14,7 @@ import PddsLogo from "./icons/pdds-logo";
 
 /**
  * @fileOverview Application Shell & Global Route Guard.
- * Standardized with PatriotLayout for fixed global branding.
+ * REFACTORED: Fluid width management for edge-to-edge tactical interfaces.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -119,10 +119,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             {/* Desktop/Tablet Sidebar */}
             {!isMobile && <DesktopSidebar />}
             
-            {/* Main Content Area */}
+            {/* Main Content Area - Refactored for full width */}
             <main className="flex-1 relative flex flex-col min-w-0 h-full overflow-hidden">
                 <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                  <div className="w-full max-w-full pb-24 md:pb-8">
+                  {/* Fluid container with no max-width constraints */}
+                  <div className="w-full pb-24 md:pb-8">
                     {children}
                   </div>
                 </div>

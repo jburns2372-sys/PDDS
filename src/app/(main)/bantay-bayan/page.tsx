@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -13,7 +12,7 @@ import { AlertTriangle, MapPin, Eye, Info, Loader2, ShieldCheck, TrendingUp } fr
 
 /**
  * @fileOverview Bantay Bayan Digital - Civic Accountability Hub.
- * Optimized for community issue documentation and collective verification.
+ * REFACTORED: Fluid full-width 12-column tactical interface.
  */
 export default function BantayBayanPage() {
   const { userData, loading: userLoading } = useUserData();
@@ -28,8 +27,8 @@ export default function BantayBayanPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background pb-32">
-      <div className="bg-card p-6 md:p-8 border-b shadow-sm">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-card p-6 md:p-8 lg:px-10 border-b shadow-sm">
+        <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-red-700 text-white rounded-xl shadow-xl">
               <Eye className="h-8 w-8" />
@@ -47,18 +46,18 @@ export default function BantayBayanPage() {
 
           <div className="flex gap-6">
             <div className="text-right">
-              <p className="text-2xl font-black text-primary">{reports.length}</p>
+              <p className="text-2xl md:text-3xl font-black text-primary">{reports.length}</p>
               <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Total Reports</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-black text-red-600">{reports.filter(r => r.status === 'Escalated').length}</p>
+              <p className="text-2xl md:text-3xl font-black text-red-600">{reports.filter(r => r.status === 'Escalated').length}</p>
               <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Escalated</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8">
+      <div className="p-4 md:p-8 lg:p-10 w-full space-y-8">
         
         {!isVerified && (
           <Card className="bg-amber-50 border-2 border-dashed border-amber-200">
@@ -75,7 +74,7 @@ export default function BantayBayanPage() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="bg-primary/5 p-1 border border-primary/10 h-14">
+          <TabsList className="bg-primary/5 p-1 border border-primary/10 h-14 w-full md:w-auto justify-start">
             <TabsTrigger value="map" className="px-10 h-full font-black uppercase text-[10px] tracking-widest">
               <MapPin className="h-4 w-4 mr-2" />
               Community Heat Map
@@ -88,9 +87,11 @@ export default function BantayBayanPage() {
 
           <TabsContent value="map" className="animate-in fade-in duration-500">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              {/* Map (8/12) */}
               <div className="lg:col-span-8">
                 <BantayBayanMap reports={reports} />
               </div>
+              {/* Stats & Sidebar (4/12) */}
               <div className="lg:col-span-4 space-y-6">
                 <Card className="shadow-lg border-t-4 border-primary">
                   <CardHeader>
@@ -104,7 +105,7 @@ export default function BantayBayanPage() {
                     <div className="divide-y">
                       {reports
                         .sort((a: any, b: any) => (b.upvotes?.length || 0) - (a.upvotes?.length || 0))
-                        .slice(0, 5)
+                        .slice(0, 10)
                         .map((report: any) => (
                           <div key={report.id} className="p-4 hover:bg-muted/30 transition-colors">
                             <div className="flex justify-between items-start mb-1">

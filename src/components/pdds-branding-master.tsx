@@ -6,12 +6,12 @@ import { PDDS_LOGO_URL } from '@/lib/data';
 /**
  * @fileOverview Master PDDS Branding Component.
  * Established as the single source of authority for the top header branding.
- * RESTORED: Navy background and official typographic stack.
+ * REFACTORED: Full-width fluid header with edge-to-edge coverage.
  */
 export function PDDSBrandingMaster() {
   return (
-    <header className="fixed top-0 left-0 right-0 h-20 bg-[#002366] border-b border-white/10 z-[9999] flex items-center px-6 shadow-2xl safe-top">
-      <div className="flex items-center gap-4 h-full">
+    <header className="fixed top-0 left-0 right-0 h-20 bg-[#002366] border-b border-white/10 z-[9999] flex items-center px-4 lg:px-10 shadow-2xl safe-top">
+      <div className="flex items-center gap-4 h-full w-full">
         
         {/* THE NORTH STAR ANCHOR - Background-free container */}
         <div className="flex items-center justify-center shrink-0 bg-transparent">

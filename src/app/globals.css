@@ -73,6 +73,14 @@
   padding-bottom: max(0rem, env(safe-area-inset-bottom));
 }
 
+.safe-left {
+  padding-left: max(0rem, env(safe-area-inset-left));
+}
+
+.safe-right {
+  padding-right: max(0rem, env(safe-area-inset-right));
+}
+
 .safe-pb-nav {
   padding-bottom: calc(4rem + env(safe-area-inset-bottom));
 }

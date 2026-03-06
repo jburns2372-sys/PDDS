@@ -46,8 +46,7 @@ const NCR_CODE = "130000000";
 
 /**
  * @fileOverview Member Profile & Registry Management.
- * Synchronizes local state with National Registry Data.
- * Clicking "Sync Profile" overrides previous registry data with current local inputs.
+ * REFACTORED: Fluid full-width 12-column tactical interface.
  */
 export default function ProfilePage() {
     const { user, userData, loading: userLoading } = useUserData();
@@ -96,7 +95,6 @@ export default function ProfilePage() {
     const streamRef = useRef<MediaStream | null>(null);
     const verifierRef = useRef<RecaptchaVerifier | null>(null);
 
-    // Fetch master location data once
     useEffect(() => {
         const fetchProvinces = async () => {
             try {
@@ -111,7 +109,6 @@ export default function ProfilePage() {
         fetchProvinces();
     }, []);
 
-    // Initialize local state from National Registry Data (Default Information)
     useEffect(() => {
         if (userData && !isInitialized) {
             setFullName(userData.fullName || "");
@@ -128,7 +125,6 @@ export default function ProfilePage() {
         }
     }, [userData, isInitialized]);
 
-    // Update cities when province changes
     useEffect(() => {
         if (!selectedProvince) { setCities([]); return; }
         const fetchCities = async () => {
@@ -145,7 +141,6 @@ export default function ProfilePage() {
         fetchCities();
     }, [selectedProvince, provinces]);
 
-    // Update barangays when city changes
     useEffect(() => {
         if (!selectedCity) { setBarangays([]); return; }
         const fetchBarangays = async () => {
@@ -159,7 +154,6 @@ export default function ProfilePage() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
-    // AUTO-SYNC ZIP CODE TO BARANGAY / CITY (Pre-save sync)
     useEffect(() => {
         if (selectedCity && selectedBarangay) {
             setZipCode(getZipCode(selectedCity, selectedBarangay));
@@ -239,7 +233,6 @@ export default function ProfilePage() {
         e.preventDefault();
         if (!user) return;
 
-        // Ensure phone is verified if it changed
         if (phoneNumber !== userData?.phoneNumber && !isPhoneVerified) {
             handleSendVerificationSms();
             return;
@@ -247,7 +240,6 @@ export default function ProfilePage() {
 
         setSaving(true);
         try {
-            // 1. Update Auth Email if changed
             if (email !== user.email) {
                 try {
                     await updateEmail(user, email);
@@ -256,7 +248,6 @@ export default function ProfilePage() {
                 }
             }
 
-            // 2. Upload Profile Photo if a new one was captured/selected
             let finalPhotoURL = photoURL;
             if (selectedFile) {
                 const photoRef = ref(storage, `users/${user.uid}/profile.jpg`);
@@ -264,7 +255,6 @@ export default function ProfilePage() {
                 finalPhotoURL = await getDownloadURL(photoRef);
             }
 
-            // 3. Update National Registry Document (Override Last Information)
             const userRef = doc(firestore, "users", user.uid);
             const registryData = {
                 fullName: fullName.trim().toUpperCase(),
@@ -284,7 +274,7 @@ export default function ProfilePage() {
 
             toast({ title: "Registry Synchronized", description: "Your information has been updated in the National Database." });
             setSelectedFile(null);
-            setIsInitialized(false); // Force re-sync with registry defaults
+            setIsInitialized(false); 
         } catch (error: any) {
             toast({ variant: "destructive", title: "Sync Failed", description: error.message });
         } finally {
@@ -357,8 +347,8 @@ export default function ProfilePage() {
     return (
         <div className="flex flex-col min-h-screen bg-gray-50/50 pb-32">
             <div id="recaptcha-profile"></div>
-            <div className="bg-card p-6 md:p-8 border-b shadow-sm">
-                <div className="max-w-5xl mx-auto flex justify-between items-center">
+            <div className="bg-card p-6 md:p-8 lg:px-10 border-b shadow-sm">
+                <div className="w-full flex justify-between items-center">
                     <div>
                         <h1 className="text-3xl font-black font-headline text-primary uppercase tracking-tight">Member Profile</h1>
                         <p className="mt-1 text-xs text-muted-foreground font-bold uppercase tracking-widest">National Registry Oversight</p>
@@ -369,11 +359,11 @@ export default function ProfilePage() {
                 </div>
             </div>
 
-            <div className="p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8">
-                <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="p-4 md:p-8 lg:p-10 w-full space-y-8">
+                <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
-                    {/* Left: Identity & Vetting */}
-                    <div className="lg:col-span-1 space-y-6">
+                    {/* Left: Identity & Vetting (4/12) */}
+                    <div className="lg:col-span-4 space-y-6">
                         <Card className="shadow-lg overflow-hidden border-none bg-white">
                             <CardHeader className="bg-primary text-primary-foreground text-center pb-8 pt-10 relative">
                                 <div className="absolute inset-0 opacity-10 pointer-events-none">
@@ -452,8 +442,8 @@ export default function ProfilePage() {
                         </Card>
                     </div>
 
-                    {/* Right: National Registry Data */}
-                    <div className="lg:col-span-2 space-y-6">
+                    {/* Right: National Registry Data (8/12) */}
+                    <div className="lg:col-span-8 space-y-6">
                         <Card className="shadow-xl border-t-4 border-primary bg-white">
                             <CardHeader>
                                 <CardTitle className="text-xl font-headline flex items-center gap-2 uppercase tracking-tight text-primary">
@@ -576,7 +566,6 @@ export default function ProfilePage() {
                 </form>
             </div>
 
-            {/* RA 10173 Consent Dialog */}
             <Dialog open={showConsent} onOpenChange={setShowConsent}>
                 <DialogContent className="sm:max-w-md bg-white">
                     <DialogHeader>

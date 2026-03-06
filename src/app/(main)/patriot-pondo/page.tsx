@@ -41,8 +41,7 @@ import { format } from "date-fns";
 
 /**
  * @fileOverview PatriotPondo - National Financial Transparency Dashboard.
- * Displays real-time collections and expenditures to members.
- * Features an "Audit-Ready" aesthetic with category icons and treasurer verification seals.
+ * REFACTORED: Fluid 12-column grid spanning the full screen width.
  */
 export default function PatriotPondoPage() {
   const { user } = useUser();
@@ -77,17 +76,6 @@ export default function PatriotPondoPage() {
     return { totalPondo, totalSpent, balance, pieData, barData };
   }, [donations, expenses]);
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'Rally Logistics': return <Megaphone className="h-5 w-5 text-red-600" />;
-      case 'Bayanihan Aid': return <HeartHandshake className="h-5 w-5 text-emerald-600" />;
-      case 'Administrative': return <Home className="h-5 w-5 text-blue-600" />;
-      case 'Printing & Assets': return <Printer className="h-5 w-5 text-purple-600" />;
-      case 'Logistics': return <Package className="h-5 w-5 text-amber-600" />;
-      default: return <Receipt className="h-5 w-5 text-gray-600" />;
-    }
-  };
-
   if (donLoading || expLoading) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
@@ -102,10 +90,10 @@ export default function PatriotPondoPage() {
   const COLORS = ['#002366', '#D4AF37', '#dc2626', '#10b981', '#6366f1'];
 
   return (
-    <div className="p-4 md:p-8 bg-background min-h-screen pb-32">
-      <div className="max-w-6xl mx-auto space-y-10">
+    <div className="p-4 md:p-8 lg:p-10 bg-background min-h-screen pb-32">
+      <div className="w-full space-y-10">
         
-        {/* Financial Header */}
+        {/* Financial Header - Full Width */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-4 border-primary pb-8">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-primary text-white rounded-xl shadow-xl">
@@ -122,11 +110,11 @@ export default function PatriotPondoPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="text-right">
-              <p className="text-2xl font-black text-primary">₱{stats.totalPondo.toLocaleString()}</p>
+              <p className="text-2xl md:text-3xl font-black text-primary">₱{stats.totalPondo.toLocaleString()}</p>
               <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Total Collections</p>
             </div>
             <div className="text-right">
-              <p className={`text-2xl font-black ${stats.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              <p className={`text-2xl md:text-3xl font-black ${stats.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                 ₱{stats.balance.toLocaleString()}
               </p>
               <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Vault Balance</p>
@@ -134,9 +122,10 @@ export default function PatriotPondoPage() {
           </div>
         </div>
 
+        {/* 12-Column Responsive Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Main Feed & Analytics */}
+          {/* Main Feed & Analytics (8/12) */}
           <div className="lg:col-span-8 space-y-10">
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -147,10 +136,10 @@ export default function PatriotPondoPage() {
                     Allocation breakdown
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="h-[250px] pt-4">
+                <CardContent className="h-[300px] pt-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={stats.pieData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                      <Pie data={stats.pieData} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value">
                         {stats.pieData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
@@ -168,10 +157,10 @@ export default function PatriotPondoPage() {
                     Regional Strength
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="h-[250px] pt-4">
+                <CardContent className="h-[300px] pt-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={stats.barData}>
-                      <XAxis dataKey="name" hide />
+                      <XAxis dataKey="name" tick={{fontSize: 9, fontWeight: 'bold'}} />
                       <YAxis hide />
                       <ChartTooltip />
                       <Bar dataKey="value" fill="#002366" radius={[4, 4, 0, 0]} />
@@ -183,10 +172,10 @@ export default function PatriotPondoPage() {
 
             <Tabs defaultValue="expenses" className="w-full">
               <TabsList className="bg-primary/5 p-1 border border-primary/10 h-14 w-full justify-start overflow-x-auto">
-                <TabsTrigger value="expenses" className="px-8 font-black uppercase text-[10px] tracking-widest">
+                <TabsTrigger value="expenses" className="px-8 h-full font-black uppercase text-[10px] tracking-widest">
                   <Receipt className="h-4 w-4 mr-2" /> Expenditure Feed
                 </TabsTrigger>
-                <TabsTrigger value="ledger" className="px-8 font-black uppercase text-[10px] tracking-widest">
+                <TabsTrigger value="ledger" className="px-8 h-full font-black uppercase text-[10px] tracking-widest">
                   <History className="h-4 w-4 mr-2" /> Collection Log
                 </TabsTrigger>
               </TabsList>
@@ -204,7 +193,7 @@ export default function PatriotPondoPage() {
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-4">
                               <div className="h-12 w-12 rounded-xl bg-red-50 flex items-center justify-center border border-red-100 shadow-inner">
-                                {getCategoryIcon(e.category)}
+                                <Receipt className="h-5 w-5 text-red-600" />
                               </div>
                               <div>
                                 <p className="font-black text-sm uppercase text-primary leading-tight">{e.description}</p>
@@ -218,7 +207,7 @@ export default function PatriotPondoPage() {
                               <p className="font-black text-red-600 text-lg">-₱{e.amount.toLocaleString()}</p>
                               <div className="flex items-center justify-end gap-1 mt-1">
                                 <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                                <span className="text-[8px] font-black uppercase text-emerald-600 tracking-widest">VERIFIED BY TREASURER</span>
+                                <span className="text-[8px] font-black uppercase text-emerald-600 tracking-widest">VERIFIED</span>
                               </div>
                             </div>
                           </div>
@@ -230,7 +219,7 @@ export default function PatriotPondoPage() {
                             {e.receiptUrl && (
                               <Button variant="outline" size="sm" asChild className="h-9 font-black uppercase text-[9px] tracking-widest border-2 hover:bg-primary hover:text-white transition-all">
                                 <a href={e.receiptUrl} target="_blank" rel="noopener noreferrer">
-                                  <ExternalLink className="h-3 w-3 mr-2" /> View Official Receipt
+                                  <ExternalLink className="h-3 w-3 mr-2" /> View Receipt
                                 </a>
                               </Button>
                             )}
@@ -270,7 +259,7 @@ export default function PatriotPondoPage() {
             </Tabs>
           </div>
 
-          {/* Donation Sidebar */}
+          {/* Donation Sidebar (4/12) */}
           <div className="lg:col-span-4 space-y-6">
             <PondoDonationCard />
             

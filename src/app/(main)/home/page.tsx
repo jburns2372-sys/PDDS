@@ -25,8 +25,8 @@ import Link from "next/link";
 
 function UserHeader({userData}: {userData: any}) {
   return (
-    <div className="bg-card p-6 md:p-8 border-b shadow-sm">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="bg-card p-6 md:p-8 lg:px-10 border-b shadow-sm">
+      <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           <PddsLogo className="h-16 w-auto" />
           <div>
@@ -102,22 +102,22 @@ export default function HomePage() {
     <div className="flex flex-col min-h-screen pb-20 md:pb-0 bg-slate-50/50">
       <UserHeader userData={userData} />
       
-      <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-        {/* Launch Special Banner - RESTORED LOGIC */}
+      <div className="p-4 md:p-8 lg:p-10 w-full">
+        {/* Launch Special Banner - Fluid Full Width */}
         <Card className="bg-gradient-to-r from-primary to-blue-900 text-white border-none shadow-2xl overflow-hidden relative group mb-8 rounded-3xl">
           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
             <Sparkles className="h-32 w-32" />
           </div>
-          <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+          <CardContent className="p-6 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
             <div className="flex items-center gap-6">
               <div className="bg-accent p-4 rounded-2xl shadow-2xl animate-bounce">
                 <ShieldCheck className="h-8 w-8 text-primary" />
               </div>
               <div className="text-center md:text-left">
-                <h3 className="text-2xl font-black uppercase font-headline tracking-tighter leading-tight">
+                <h3 className="text-2xl md:text-3xl font-black uppercase font-headline tracking-tighter leading-tight">
                   Launch Special: <span className="text-accent">First 1,000 Push</span>
                 </h3>
-                <p className="text-sm font-medium opacity-80 mt-1 max-w-lg leading-relaxed">
+                <p className="text-sm md:text-base font-medium opacity-80 mt-1 max-w-2xl leading-relaxed">
                   Complete your ID verification now to secure the exclusive **"Founding Patriot"** Digital Badge and a permanent **+100 Merit Point** headstart!
                 </p>
               </div>
@@ -125,7 +125,7 @@ export default function HomePage() {
             <Button 
               asChild={!userData?.isVerified} 
               disabled={userData?.isVerified}
-              className="h-14 px-10 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0 active:scale-95 transition-all disabled:opacity-50"
+              className="h-14 md:h-16 px-12 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0 active:scale-95 transition-all disabled:opacity-50"
             >
               {userData?.isVerified ? (
                 <span>Badge Secured</span>
@@ -136,9 +136,10 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-8 lg:grid-cols-12 items-start">
+        {/* REFACTORED: 12-Column Fluid Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
-            {/* LEFT COLUMN: Patriot Progress & Profile */}
+            {/* LEFT COLUMN: Patriot Progress & Profile (4/12) */}
             <div className="lg:col-span-4 space-y-8 order-last lg:order-first">
                 <section id="patriot-progress" className="space-y-4">
                   <h2 className="text-lg font-black uppercase text-primary tracking-tight flex items-center gap-2 px-1">
@@ -178,7 +179,7 @@ export default function HomePage() {
                 </Card>
             </div>
 
-            {/* RIGHT COLUMN: Daily Actions & Mission Feed */}
+            {/* RIGHT COLUMN: Daily Actions & Mission Feed (8/12) */}
             <div className="lg:col-span-8 space-y-10">
                 
                 {/* Daily Action Center */}
