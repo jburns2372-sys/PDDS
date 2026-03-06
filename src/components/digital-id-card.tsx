@@ -4,7 +4,6 @@ import { useRef, useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { QRCodeSVG } from "qrcode.react";
-import html2canvas from "html2canvas";
 import { Download, ShieldCheck, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useFirestore } from "@/firebase";
@@ -49,8 +48,11 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   }, [user?.uid, firestore]);
 
   const handleSaveToGallery = async () => {
-    if (cardRef.current === null) return;
+    if (typeof window === "undefined" || !cardRef.current) return;
+
     try {
+      const html2canvas = (await import("html2canvas")).default;
+
       const canvas = await html2canvas(cardRef.current, {
         scale: 3,
         useCORS: true,
@@ -120,7 +122,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           </Badge>
         </div>
   
-        {/* Center: Biometric Node (220px fixed) */}
+        {/* Center: Biometric Node (220px calibrated) */}
         <div className="flex flex-col items-center justify-center mt-12 relative z-10 w-full">
           <div className="relative">
             <div className={cn(
@@ -152,7 +154,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           <p className="mt-8 text-[13px] font-black uppercase text-[#B8860B] tracking-[0.6em]">Patriot Identity</p>
         </div>
   
-        {/* Bottom Data: Maximum Readability */}
+        {/* Bottom Data: Maximum Font Scale */}
         <div className="mt-auto flex items-end justify-between relative z-10 border-t-2 border-slate-50 pt-[10%] w-full">
           <div className="space-y-5 flex-1 pr-6">
             <h2 className="text-5xl font-black uppercase tracking-tighter leading-[0.85] text-[#002366] break-words drop-shadow-sm">
