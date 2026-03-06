@@ -5,7 +5,7 @@ import { PDDSBrandingMaster } from './pdds-branding-master';
 
 /**
  * @fileOverview Global Patriot Layout Wrapper.
- * Standardized with PDDSBrandingMaster for absolute brand lockdown.
+ * Optimized for brand lockdown and strategic content framing.
  */
 export default function PatriotLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,7 +15,7 @@ export default function PatriotLayout({ children }: { children: React.ReactNode 
       <PDDSBrandingMaster />
 
       {/* --- CONTENT AREA --- */}
-      {/* pt-20 + px-4 offset ensures content doesn't collide with the fixed master header */}
+      {/* pt-24 offset ensures content doesn't collide with the fixed master header */}
       <main className="flex-grow pt-24 px-4 md:px-8 pb-10">
         <div className="max-w-7xl mx-auto">
           {children}

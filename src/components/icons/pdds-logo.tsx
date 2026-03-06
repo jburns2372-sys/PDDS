@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import React, { useMemo } from "react";
+import React from "react";
 import { PDDS_LOGO_URL } from "@/lib/data";
 
 interface PddsLogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -10,28 +10,21 @@ interface PddsLogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 
 /**
  * @fileOverview Reusable PDDS Logo Component.
- * Synchronized with the Architect's Direct-Link Force Fix: 
- * Timestamp cache-busting, CORS handling, and no textual fallbacks.
+ * Optimized for high-fidelity rendering across all organizational terminals.
  */
 export default function PddsLogo({ className, variant = "default", style, ...props }: PddsLogoProps) {
-  // FORCE-FIX: Cache-busting protocol to ensure fresh logo load from Storage
-  const finalLogoUrl = useMemo(() => {
-    return `${PDDS_LOGO_URL}&t=${Date.now()}`;
-  }, []);
-
   return (
-    <div className="flex items-center justify-start bg-transparent">
+    <div className="flex items-center justify-start bg-transparent shrink-0">
       <img
-        src={finalLogoUrl}
+        src={PDDS_LOGO_URL}
         alt="Official PDDS Party Logo"
         crossOrigin="anonymous"
         className={cn(
-          "object-contain aspect-square shrink-0 duration-300 shadow-none transition-opacity",
+          "object-contain aspect-square duration-300 shadow-none transition-opacity",
           variant === "white" && "brightness-0 invert",
           className
         )}
         style={{
-          height: '50px',
           filter: 'drop-shadow(0px 0px 10px rgba(212, 175, 55, 0.5))',
           ...style
         }}

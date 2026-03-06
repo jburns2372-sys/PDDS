@@ -45,11 +45,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="font-body antialiased selection:bg-accent selection:text-accent-foreground h-full w-full relative">
+      <body className="font-body antialiased h-full w-full relative">
         <FirebaseClientProvider>
-          <main className="relative min-h-screen">
-            {children}
-          </main>
+          {children}
         </FirebaseClientProvider>
         <Toaster />
       </body>
