@@ -27,7 +27,7 @@ const NCR_CODE = "130000000";
 
 /**
  * @fileOverview Standardized Induction Page with Brand Lockdown.
- * FIXED: Automatic Zip Code synchronization.
+ * FIXED: Automatic Zip Code synchronization based on Barangay selection. No default when barangay is empty.
  */
 export default function JoinPage() {
     const auth = useAuth();
@@ -118,11 +118,9 @@ export default function JoinPage() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
-    // FIXED: Automatic Zip Code Sync
+    // FIXED: Automatic Zip Code Sync - Strict logic
     useEffect(() => {
-        if (selectedCity) {
-            setZipCode(getZipCode(selectedCity, selectedBarangay));
-        }
+        setZipCode(selectedCity ? getZipCode(selectedCity, selectedBarangay) : "");
     }, [selectedBarangay, selectedCity]);
 
     const startCamera = async () => {
@@ -338,14 +336,14 @@ export default function JoinPage() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label className="text-[9px] font-black uppercase">Province</Label>
-                                            <Select onValueChange={setSelectedProvince} value={selectedProvince}>
+                                            <Select onValueChange={(val) => { setSelectedProvince(val); setSelectedCity(""); setSelectedBarangay(""); }} value={selectedProvince}>
                                                 <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                 <SelectContent>{provinces.map((p) => <SelectItem key={p.code} value={p.name} className="uppercase font-bold text-[10px]">{p.name}</SelectItem>)}</SelectContent>
                                             </Select>
                                         </div>
                                         <div className="space-y-2">
                                             <Label className="text-[9px] font-black uppercase">City / Town</Label>
-                                            <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
+                                            <Select onValueChange={(val) => { setSelectedCity(val); setSelectedBarangay(""); }} value={selectedCity} disabled={!selectedProvince}>
                                                 <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                 <SelectContent>{cities.map((c) => <SelectItem key={c.code} value={c.name} className="uppercase font-bold text-[10px]">{c.name}</SelectItem>)}</SelectContent>
                                             </Select>

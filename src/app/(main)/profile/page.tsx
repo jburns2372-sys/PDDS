@@ -47,7 +47,7 @@ const NCR_CODE = "130000000";
 /**
  * @fileOverview Member Profile & Registry Management.
  * REFACTORED: Fluid full-width 12-column tactical interface.
- * FIXED: Automatic Zip Code synchronization based on selection.
+ * FIXED: Automatic Zip Code synchronization based on Barangay selection. No default when barangay is empty.
  */
 export default function ProfilePage() {
     const { user, userData, loading: userLoading } = useUserData();
@@ -170,11 +170,13 @@ export default function ProfilePage() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
-    // FIXED: Automatic Zip Code Sync
+    // FIXED: Automatic Zip Code Sync - Strict logic
     useEffect(() => {
         if (selectedCity) {
             const code = getZipCode(selectedCity, selectedBarangay);
             setZipCode(code);
+        } else {
+            setZipCode("");
         }
     }, [selectedBarangay, selectedCity]);
 

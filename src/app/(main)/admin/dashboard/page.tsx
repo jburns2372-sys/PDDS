@@ -134,12 +134,9 @@ export default function AdminDashboard() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
-    // HARDENED: Dynamic Zip Code Sync - Responsive to both City and Barangay
+    // HARDENED: Dynamic Zip Code Sync - Strict Logic
     useEffect(() => {
-        if (selectedCity) {
-            const code = getZipCode(selectedCity, selectedBarangay);
-            setZipCode(code);
-        }
+        setZipCode(selectedCity ? getZipCode(selectedCity, selectedBarangay) : "");
     }, [selectedBarangay, selectedCity]);
 
     useEffect(() => {
@@ -308,7 +305,7 @@ export default function AdminDashboard() {
                     }
                     if (selectedIdFile) {
                         const idRef = ref(storage, `users/${uid}/verification.${selectedIdFile.name.split('.').pop()}`);
-                        await uploadBytes(idRef, selectedIdFile);
+                        await uploadBytes(idRef, idFile);
                         idPath = await getDownloadURL(idRef);
                     }
 
@@ -392,7 +389,7 @@ export default function AdminDashboard() {
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-1">
                                             <Label className="text-[9px] uppercase font-bold">Province</Label>
-                                            <Select onValueChange={setSelectedProvince} value={selectedProvince}>
+                                            <Select onValueChange={(val) => { setSelectedProvince(val); setSelectedCity(""); setSelectedBarangay(""); }} value={selectedProvince}>
                                                 <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                 <SelectContent>
                                                     {provinces.map(p => <SelectItem key={p.code} value={p.name} className="uppercase font-bold text-[10px]">{p.name}</SelectItem>)}
@@ -404,7 +401,7 @@ export default function AdminDashboard() {
                                         </div>
                                         <div className="space-y-1">
                                             <Label className="text-[9px] uppercase font-bold">City / Town</Label>
-                                            <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
+                                            <Select onValueChange={(val) => { setSelectedCity(val); setSelectedBarangay(""); }} value={selectedCity} disabled={!selectedProvince}>
                                                 <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                 <SelectContent>
                                                     {cities.map(c => <SelectItem key={c.code} value={c.name} className="uppercase font-bold text-[10px]">{c.name}</SelectItem>)}
@@ -423,7 +420,7 @@ export default function AdminDashboard() {
                                                 <SelectContent>
                                                     {barangays.map(b => <SelectItem key={b.code} value={b.name} className="uppercase font-bold text-[10px]">{b.name}</SelectItem>)}
                                                     {selectedBarangay && !barangays.some(b => b.name === selectedBarangay) && (
-                                                        <SelectItem value={selectedBarangay} className="uppercase font-bold text-[10px]">{selectedBarangay}</SelectItem>
+                                                        <SelectItem value={selectedBarangay} className="font-bold uppercase text-[10px]">{selectedBarangay}</SelectItem>
                                                     )}
                                                 </SelectContent>
                                             </Select>
@@ -513,7 +510,7 @@ export default function AdminDashboard() {
                     
                     <Card className="shadow-lg overflow-hidden border-none bg-white">
                         <CardHeader className="bg-primary text-primary-foreground py-4 border-b flex flex-row items-center justify-between">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-gap-2">
                                 <Users className="h-5 w-5 text-accent" />
                                 Registry Base ({filteredRegistry.length})
                             </CardTitle>
