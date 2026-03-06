@@ -12,8 +12,8 @@ import { doc, getDoc } from "firebase/firestore";
 import { PDDS_LOGO_URL } from "@/lib/data";
 
 /**
- * @fileOverview Master Patriot Digital ID.
- * REFACTORED: Maximized typographic nodes for field legibility and high-stakes auditing.
+ * @fileOverview Master Patriot Digital ID - White Edition.
+ * REFACTORED: Maximized typographic nodes and expanded geometry for high-stakes field auditing.
  */
 export function DigitalIdCard({ userData: initialUserData }: { userData: any }) {
   const { user } = useUser();
@@ -54,7 +54,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
       const canvas = await html2canvas(cardRef.current, {
         scale: 3,
         useCORS: true,
-        backgroundColor: "#002366",
+        backgroundColor: "#ffffff", // Synchronized with White Edition UI
         logging: false,
       });
       const image = canvas.toDataURL("image/png", 1.0);
@@ -82,7 +82,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   };
 
   return (
-    <div className="flex flex-col gap-10 items-center w-full max-w-md mx-auto">
+    <div className="flex flex-col gap-10 items-center w-full max-w-lg mx-auto">
       <div 
         ref={cardRef} 
         className="w-full aspect-[1/1.58] overflow-hidden rounded-[48px] shadow-2xl bg-white text-slate-900 relative flex flex-col p-10 border-4 border-slate-100"
@@ -98,30 +98,33 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         </div>
   
         {/* Top Header */}
-        <div className="flex justify-between items-start relative z-10">
+        <div className="flex justify-between items-start relative z-10 w-full">
           <div className="flex items-center gap-5 bg-transparent shrink-0">
             <img 
               src={PDDS_LOGO_URL} 
               alt="PDDS" 
-              className="h-[65px] w-auto object-contain" 
+              className="h-[75px] w-auto object-contain" 
               crossOrigin="anonymous"
-              style={{ filter: 'drop-shadow(0px 0px 12px rgba(212, 175, 55, 0.6))' }}
+              style={{ 
+                filter: 'drop-shadow(0px 0px 12px rgba(212, 175, 55, 0.6))',
+                mixBlendMode: 'multiply' // Cleans white artifacts from source logo
+              }}
             />
             <div className="flex flex-col">
-              <h1 className="text-[12px] font-black uppercase tracking-tighter leading-none text-[#002366]">Pederalismo ng Dugong</h1>
-              <h1 className="text-[12px] font-black uppercase tracking-tighter leading-none text-[#B8860B]">Dakilang Samahan</h1>
+              <h1 className="text-[14px] font-black uppercase tracking-tighter leading-none text-[#002366]">Pederalismo ng Dugong</h1>
+              <h1 className="text-[14px] font-black uppercase tracking-tighter leading-none text-[#B8860B]">Dakilang Samahan</h1>
             </div>
           </div>
-          <Badge variant="outline" className="text-[10px] font-black tracking-[0.2em] uppercase border-[#B8860B] text-[#B8860B] bg-white px-3 py-1.5 rounded-xl">
+          <Badge variant="outline" className="text-[10px] font-black tracking-[0.2em] uppercase border-[#B8860B] text-[#B8860B] bg-white px-3 py-1.5 rounded-xl shrink-0">
             OFFICIAL REGISTRY
           </Badge>
         </div>
   
         {/* Center: Photo Node */}
-        <div className="flex flex-col items-center justify-center mt-16 relative z-10">
+        <div className="flex flex-col items-center justify-center mt-16 relative z-10 w-full">
           <div className="relative">
             <div className={cn(
-              "w-[200px] h-[200px] rounded-[40px] overflow-hidden bg-slate-50 border-[8px] transition-all duration-500 shadow-2xl",
+              "w-[220px] h-[220px] rounded-[48px] overflow-hidden bg-slate-50 border-[10px] transition-all duration-500 shadow-2xl",
               getBorderStyles()
             )}>
               {fetching ? (
@@ -141,48 +144,48 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
               )}
             </div>
             {isVerified && (
-              <div className="absolute -bottom-4 -right-4 bg-blue-600 rounded-full p-3.5 border-4 border-white shadow-2xl">
-                <ShieldCheck className="h-8 w-8 text-white" />
+              <div className="absolute -bottom-4 -right-4 bg-blue-600 rounded-full p-4 border-4 border-white shadow-2xl">
+                <ShieldCheck className="h-10 w-10 text-white" />
               </div>
             )}
           </div>
-          <p className="mt-8 text-[12px] font-black uppercase text-[#B8860B] tracking-[0.5em]">Patriot Identity</p>
+          <p className="mt-8 text-[14px] font-black uppercase text-[#B8860B] tracking-[0.5em]">Patriot Identity</p>
         </div>
   
-        {/* Bottom Data - Maximized for read-aloud */}
-        <div className="mt-auto flex items-end justify-between relative z-10 border-t-4 border-slate-50 pt-10">
+        {/* Bottom Data - Maximized for Readability */}
+        <div className="mt-auto flex items-end justify-between relative z-10 border-t-4 border-slate-50 pt-10 w-full">
           <div className="space-y-4 flex-1 pr-6">
-            <h2 className="text-4xl font-black uppercase tracking-tighter leading-[0.9] text-[#002366] break-words">
+            <h2 className="text-5xl font-black uppercase tracking-tighter leading-[0.85] text-[#002366] break-words">
               {displayName}
             </h2>
             <div className="flex flex-col items-start gap-3">
-              <Badge className="bg-[#B8860B] text-white font-black text-sm uppercase tracking-widest border-none px-6 py-2 shadow-xl rounded-2xl">
+              <Badge className="bg-[#B8860B] text-white font-black text-xl uppercase tracking-widest border-none px-8 py-3 shadow-xl rounded-[24px]">
                 {patriotRank}
               </Badge>
-              <p className="text-[12px] font-bold text-slate-400 uppercase tracking-[0.3em]">
+              <p className="text-[14px] font-bold text-slate-400 uppercase tracking-[0.3em]">
                 {dbUserData?.city || initialUserData?.city || 'National'} Chapter
               </p>
             </div>
           </div>
           
-          <div className="flex flex-col items-center gap-4">
-            <div className="bg-white p-3 rounded-[24px] shadow-2xl border-4 border-slate-50">
+          <div className="flex flex-col items-center gap-4 shrink-0">
+            <div className="bg-white p-4 rounded-[28px] shadow-2xl border-4 border-slate-50">
               <QRCodeSVG 
                 value={user?.uid || 'PDDS-GUEST'} 
-                size={80} 
+                size={90} 
                 level="H" 
                 fgColor="#002366" 
                 includeMargin={false}
               />
             </div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">UID://{user?.uid?.substring(0,8)}</p>
+            <p className="text-[12px] font-black uppercase tracking-widest text-slate-300">UID://{user?.uid?.substring(0,8)}</p>
           </div>
         </div>
       </div>
 
       <Button 
         onClick={handleSaveToGallery} 
-        className="w-full h-20 bg-[#002366] hover:bg-[#001a3d] text-white font-black uppercase tracking-widest shadow-2xl rounded-3xl active:scale-95 transition-all text-xl"
+        className="w-full h-24 bg-[#002366] hover:bg-[#001a3d] text-white font-black uppercase tracking-widest shadow-2xl rounded-[32px] active:scale-95 transition-all text-2xl"
       >
         <Download className="mr-4 h-8 w-8 text-accent" /> Export Digital ID
       </Button>
