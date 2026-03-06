@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * @fileOverview Global MainHeader Protocol.
- * features fixed height logo, z-index hardening, and a Gold text safety fallback.
+ * features fixed height logo (45px), z-index hardening (50), and a Gold text safety fallback.
  * Optimized for horizontal and vertical visibility on all platforms.
  */
 export function MainHeader() {
@@ -27,13 +27,14 @@ export function MainHeader() {
             <img 
               src={PDDS_LOGO_URL} 
               alt="Official PDDS Party Logo"
-              className="h-[45px] w-auto aspect-square object-contain rounded-full border-2 border-white shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all group-hover:scale-105"
+              style={{ height: '45px', width: 'auto' }}
+              className="aspect-square object-contain rounded-full border-2 border-white shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all group-hover:scale-105"
               onError={() => setLogoError(true)}
               crossOrigin="anonymous"
             />
           </div>
         ) : (
-          /* Safety Fallback: Bold Gold Typography */
+          /* Safety Fallback: Bold Gold Typography (#D4AF37) */
           <span className="text-[#D4AF37] font-black text-lg tracking-tighter uppercase italic drop-shadow-md animate-in fade-in duration-500">
             PDDS PATRIOTLINK
           </span>
