@@ -24,9 +24,18 @@ export default function PatriotLayout({ children }: { children: React.ReactNode 
               <img 
                 src={PDDS_LOGO_URL} 
                 alt="Official PDDS Logo"
-                className="h-14 w-auto object-contain drop-shadow-[0_0_10px_rgba(212,175,55,0.4)] cursor-pointer"
+                style={{
+                  height: '60px',
+                  width: 'auto',
+                  filter: 'drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.4))',
+                  pointerEvents: 'auto'
+                }}
+                className="object-contain cursor-pointer"
                 onClick={() => window.location.href = '/'}
-                onError={() => setLogoError(true)}
+                onError={(e) => {
+                  setLogoError(true);
+                  console.error("Logo failed to load from Firebase. Check Storage permissions.");
+                }}
                 crossOrigin="anonymous"
               />
             ) : (
@@ -35,8 +44,8 @@ export default function PatriotLayout({ children }: { children: React.ReactNode 
             )}
           </div>
 
-          {/* FULL PARTY NAME TYPOGRAPHY (PEDERALISMO CORRECTED) */}
-          <div className="flex flex-col justify-center border-l border-white/20 pl-4 h-10">
+          {/* FULL PARTY NAME TYPOGRAPHY (PEDERALISMO NG DUGONG DAKILANG SAMAHAN) */}
+          <div className="flex flex-col justify-center border-l border-white/20 pl-4 h-12">
             <span className="text-white font-black text-[10px] sm:text-xs leading-none uppercase tracking-tight">
               Pederalismo ng Dugong
             </span>
