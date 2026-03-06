@@ -26,8 +26,7 @@ import { getIslandGroup, getZipCode } from "@/lib/data";
 const NCR_CODE = "130000000";
 
 /**
- * @fileOverview Enhanced National Member Induction Page.
- * Optimized for horizontal/vertical alignment on all platforms.
+ * @fileOverview Standardized Induction Page with Brand Lockdown.
  */
 export default function JoinPage() {
     const auth = useAuth();
@@ -258,7 +257,7 @@ export default function JoinPage() {
             )}
 
             <div className="mb-8 flex flex-col items-center gap-4 mt-8">
-                <PddsLogo className="h-24 w-auto" />
+                <PddsLogo className="h-20 w-auto" />
                 <div className="text-center">
                     <h1 className="text-4xl font-black tracking-tighter text-primary font-headline uppercase">
                         PatriotLink

@@ -17,8 +17,8 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 /**
- * @fileOverview Login Page with Social and Credential access.
- * Optimized for horizontal and vertical centering on all platforms.
+ * @fileOverview Standardized Login Page.
+ * Optimized for horizontal and vertical centering on all platforms with Brand Lockdown.
  */
 export default function LoginPage() {
     const auth = useAuth();
@@ -147,8 +147,8 @@ export default function LoginPage() {
             </div>
         )}
 
-        <div className="mb-8 flex items-center gap-4 mt-4">
-            <PddsLogo className="h-16 w-16" />
+        <div className="mb-8 flex flex-col items-center gap-4 mt-4">
+            <PddsLogo className="h-20 w-auto" />
             <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-primary font-headline uppercase">
                 PDDS Portal
             </h1>

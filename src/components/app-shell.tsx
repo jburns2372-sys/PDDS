@@ -16,7 +16,7 @@ import { DesktopSidebarContent } from "./desktop-sidebar";
 
 /**
  * @fileOverview Application Shell & Global Route Guard.
- * Hardened for Android, Apple, Tablets, and Desktops to ensure a perfect fit in any orientation.
+ * Standardized with Brand Lockdown Protocol.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -88,7 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex h-dynamic w-full flex-col items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-8">
             <div className="relative">
-              <PddsLogo className="h-48 w-auto animate-pulse shadow-none" />
+              <PddsLogo className="h-32 w-auto animate-pulse shadow-none" />
               <div className="absolute inset-0 border-4 border-primary/10 rounded-full animate-ping" />
             </div>
             <div className="flex flex-col items-center gap-3 text-center px-6">
@@ -118,11 +118,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <UserDataContext.Provider value={contextValue}>
         <div className="flex h-dynamic w-full flex-col md:flex-row overflow-hidden bg-background">
-          {/* Mobile Header - Hardened for Notch/Safe Area */}
+          {/* Mobile Header - Hardened for Brand Lockdown */}
           <div className="flex h-20 w-full items-center justify-between border-b bg-primary px-4 md:hidden shrink-0 shadow-md safe-top relative z-50">
-            <div className="flex items-center gap-2">
-              <PddsLogo variant="white" className="h-14 w-auto" />
-              <h1 className="text-white font-black uppercase text-[10px] tracking-widest ml-1 font-headline">PatriotLink</h1>
+            <div className="flex items-center gap-3">
+              <PddsLogo variant="white" className="h-12 w-auto" />
+              <h1 className="text-white font-black uppercase text-[10px] tracking-widest font-headline">PatriotLink</h1>
             </div>
             <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
               <SheetTrigger asChild>
@@ -141,7 +141,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {/* Desktop/Tablet Sidebar */}
           {!isMobile && <DesktopSidebar />}
           
-          {/* Main Content Area - Scrollable Fit */}
+          {/* Main Content Area */}
           <main className="flex-1 relative flex flex-col min-w-0 h-full overflow-hidden">
               <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 <div className="w-full max-w-full pb-24 md:pb-8">

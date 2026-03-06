@@ -27,7 +27,7 @@ function UserHeader({userData}: {userData: any}) {
   return (
     <div className="bg-card p-6 md:p-8 border-b shadow-sm">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           <PddsLogo className="h-16 w-auto" />
           <div>
             <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary uppercase tracking-tight leading-none">
@@ -123,7 +123,7 @@ export default function HomePage() {
                   </p>
                 </div>
               </div>
-              <Button asChild className="h-14 px-10 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-2xl rounded-xl shrink-0">
+              <Button asChild className="h-14 px-10 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0">
                 <Link href="/profile">Claim Badge Now</Link>
               </Button>
             </CardContent>

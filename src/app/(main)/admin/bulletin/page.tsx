@@ -51,7 +51,6 @@ import {
   FileSearch,
   AlertTriangle
 } from "lucide-react";
-import { PDDS_LOGO_URL } from "@/lib/data";
 import { format } from "date-fns";
 import PddsLogo from "@/components/icons/pdds-logo";
 
@@ -202,12 +201,12 @@ Our movement stands for accountability and local empowerment. We call upon the r
 
   return (
     <div className="p-4 md:p-6 bg-background min-h-screen pb-32">
-      <div className="max-w-7xl mx-auto space-y-10">
+      <div className="max-w-7xl auto space-y-10">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-4 border-primary pb-8">
           <div className="flex items-center gap-5">
-            <div className="p-4 bg-primary text-white rounded-2xl shadow-xl">
+            <div className="p-4 bg-primary text-white rounded-2xl shadow-xl shrink-0">
               <Megaphone className="h-8 w-8" />
             </div>
             <div>
@@ -410,7 +409,7 @@ Our movement stands for accountability and local empowerment. We call upon the r
                         <PddsLogo className="w-full h-full object-contain scale-150" />
                       </div>
                       <div className="relative z-10 space-y-4">
-                        <PddsLogo className="h-16 w-auto mx-auto brightness-0 invert" />
+                        <PddsLogo className="h-16 w-auto mx-auto" variant="white" />
                         <div className="h-0.5 w-12 bg-accent mx-auto" />
                         <h3 className="text-center text-xl font-black uppercase leading-tight tracking-tight">
                           {title || "OFFICIAL PRESS STATEMENT"}

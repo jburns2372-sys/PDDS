@@ -11,8 +11,8 @@ import { Download, CheckCircle2, ShieldCheck, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * @fileOverview High-Fidelity Digital ID Component.
- * Optimized for PatriotLink (PDDS) movement with dynamic tier-borders and export functionality.
+ * @fileOverview Senior Frontend Architect Grade Digital ID Component.
+ * Optimized for PatriotLink (PDDS) movement with dynamic data-binding and high-res export.
  */
 export function DigitalIdCard({ userData }: { userData: any }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -32,7 +32,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
       
       const image = canvas.toDataURL("image/png", 1.0);
       const link = document.createElement("a");
-      link.download = `PDDS-ID-${userData.fullName.replace(/\s+/g, '-')}.png`;
+      link.download = `PDDS-ID-${userData.fullName?.replace(/\s+/g, '-') || 'PATRIOT'}.png`;
       link.href = image;
       link.click();
     } catch (err) {
@@ -47,7 +47,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
   const getBorderClasses = () => {
     switch (vettingTier) {
       case 'Gold':
-        return "border-4 border-[#D4AF37] shadow-[0_0_20px_#D4AF37] animate-pulse";
+        return "border-4 border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.6)] animate-pulse";
       case 'Silver':
         return "border-4 border-[#C0C0C0]";
       case 'Bronze':
@@ -72,21 +72,28 @@ export function DigitalIdCard({ userData }: { userData: any }) {
           </svg>
         </div>
 
-        {/* Top Left: PDDS Logo */}
+        {/* Top Left: Standardized PDDS Logo */}
         <div className="flex justify-between items-start relative z-10">
-          <div className="h-14 w-14 bg-white p-1.5 rounded-xl shadow-lg border border-white/20">
+          <div className="h-14 w-14 bg-white p-1.5 rounded-xl shadow-lg border border-white/20 shrink-0">
             <PddsLogo className="h-full w-full" />
           </div>
-          <Badge variant="outline" className="text-[7px] font-black tracking-[0.2em] uppercase border-accent text-accent bg-white/5">
-            NATIONAL REGISTRY
-          </Badge>
+          <div className="text-right">
+            <Badge variant="outline" className="text-[7px] font-black tracking-[0.2em] uppercase border-accent text-accent bg-white/5 px-2">
+              National Registry
+            </Badge>
+            {isVerified ? (
+              <p className="text-[6px] font-black text-green-400 uppercase mt-1 tracking-widest">Verified Patriot</p>
+            ) : (
+              <p className="text-[6px] font-black text-amber-500 uppercase mt-1 tracking-widest">Awaiting Audit</p>
+            )}
+          </div>
         </div>
 
-        {/* Center Top: Profile Picture with Dynamic Border */}
-        <div className="flex flex-col items-center justify-center mt-8 relative z-10">
+        {/* Center Section: Biometric Photo & Name Node */}
+        <div className="flex flex-col items-center justify-center mt-10 relative z-10 space-y-6">
           <div className="relative group">
             <div className={cn(
-              "h-32 w-32 rounded-full flex items-center justify-center overflow-hidden bg-[#001a4d] transition-all duration-500",
+              "h-36 w-36 rounded-full flex items-center justify-center overflow-hidden bg-[#001a4d] transition-all duration-500",
               getBorderClasses()
             )}>
               {userData.photoURL ? (
@@ -101,34 +108,33 @@ export function DigitalIdCard({ userData }: { userData: any }) {
               ) : (
                 <div className="flex flex-col items-center gap-1 opacity-40">
                   <User className="h-16 w-16 text-[#D4AF37]" />
-                  <span className="text-[8px] font-black uppercase text-[#D4AF37]">PDDS PATRIOT</span>
+                  <span className="text-[8px] font-black uppercase text-[#D4AF37]">Induction Profile</span>
                 </div>
               )}
             </div>
             
             {/* Verified Badge Overlay */}
             {isVerified && (
-              <div className="absolute bottom-1 right-1 bg-green-600 rounded-full p-1.5 border-4 border-[#002366] shadow-xl animate-in zoom-in duration-500">
-                <CheckCircle2 className="h-4 w-4 text-white" />
+              <div className="absolute bottom-1 right-1 bg-green-600 rounded-full p-2 border-4 border-[#002366] shadow-xl animate-in zoom-in duration-500">
+                <CheckCircle2 className="h-5 w-5 text-white" />
               </div>
             )}
           </div>
-        </div>
 
-        {/* Center Bottom: Name & Patriot Rank */}
-        <div className="mt-8 text-center space-y-2 relative z-10">
-          <h2 className="text-2xl font-black uppercase tracking-tighter leading-none font-headline text-white drop-shadow-md">
-            {userData.fullName || 'ANONYMOUS PATRIOT'}
-          </h2>
-          <div className="flex flex-col items-center">
-            <p className="text-[#D4AF37] font-black text-xs uppercase tracking-[0.2em]">
-              {userData.role || 'Regional Member'}
-            </p>
-            <div className="h-0.5 w-12 bg-[#D4AF37]/30 mt-2 rounded-full" />
+          <div className="text-center space-y-3 px-2">
+            <h2 className="text-2xl font-black uppercase tracking-tighter leading-tight font-headline text-white drop-shadow-lg break-words">
+              {userData.fullName || 'Anonymous Patriot'}
+            </h2>
+            <div className="flex flex-col items-center">
+              <Badge className="bg-accent text-primary font-black text-[10px] uppercase tracking-widest border-none px-4 py-1">
+                {userData.role || 'Member'}
+              </Badge>
+              <p className="text-[8px] font-bold text-white/40 uppercase mt-2 tracking-[0.2em]">{userData.city || 'National'} Chapter</p>
+            </div>
           </div>
         </div>
 
-        {/* Right Side / Bottom: QR Code & Verification Info */}
+        {/* Bottom Section: QR Verification */}
         <div className="mt-auto pt-6 flex items-end justify-between border-t border-white/10 relative z-10">
           <div className="space-y-1">
             <p className="text-[7px] font-black uppercase tracking-[0.3em] text-white/40">Credential ID</p>
@@ -140,7 +146,7 @@ export function DigitalIdCard({ userData }: { userData: any }) {
           <div className="bg-white p-2 rounded-xl shadow-2xl border-4 border-accent/20">
             <QRCodeSVG 
               value={userData.uid || 'null'} 
-              size={60} 
+              size={64} 
               level="H" 
               fgColor="#002366" 
               includeMargin={false}
