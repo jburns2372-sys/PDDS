@@ -84,10 +84,10 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   };
 
   return (
-    <div className="flex flex-col gap-10 items-center w-full max-w-lg mx-auto">
+    <div className="flex flex-col gap-8 items-center w-full max-w-lg mx-auto">
       <div 
         ref={cardRef} 
-        className="w-full aspect-[1/1.58] overflow-hidden rounded-[48px] shadow-2xl bg-white text-slate-900 relative flex flex-col p-[8%] border border-slate-100"
+        className="w-full aspect-[1/1.58] overflow-hidden rounded-[40px] shadow-2xl bg-white text-slate-900 relative flex flex-col p-[6%] border border-slate-100"
       >
         {/* Full-Width Security Watermark */}
         <div className="absolute inset-0 opacity-[0.04] pointer-events-none">
@@ -100,38 +100,38 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         </div>
   
         {/* Top Header: Responsive Alignment */}
-        <div className="flex justify-between items-start relative z-10 w-full">
-          <div className="flex items-center gap-4">
+        <div className="flex justify-between items-start relative z-10 w-full mb-4">
+          <div className="flex items-center gap-2">
             <img 
               src={PDDS_LOGO_URL} 
               alt="PDDS" 
-              className="h-[75px] w-auto object-contain" 
+              className="h-[55px] sm:h-[75px] w-auto object-contain" 
               crossOrigin="anonymous"
               style={{ 
-                mixBlendMode: 'multiply', // FIXED: Removes checkered backgrounds
+                mixBlendMode: 'multiply',
                 filter: 'drop-shadow(0px 0px 10px rgba(0, 35, 102, 0.1))' 
               }} 
             />
             <div className="flex flex-col">
-              <h1 className="text-[14px] font-black uppercase tracking-tighter leading-none text-[#002366]">Pederalismo ng Dugong</h1>
-              <h1 className="text-[14px] font-black uppercase tracking-tighter leading-none text-[#B8860B]">Dakilang Samahan</h1>
+              <h1 className="text-[10px] sm:text-[14px] font-black uppercase tracking-tighter leading-none text-[#002366]">Pederalismo ng</h1>
+              <h1 className="text-[10px] sm:text-[14px] font-black uppercase tracking-tighter leading-none text-[#B8860B]">Dugong Dakila</h1>
             </div>
           </div>
-          <Badge variant="outline" className="text-[10px] font-black tracking-widest uppercase border-[#B8860B] text-[#B8860B] bg-slate-50 px-3 py-1.5 rounded-xl shrink-0">
-            OFFICIAL REGISTRY
+          <Badge variant="outline" className="text-[8px] sm:text-[10px] font-black tracking-widest uppercase border-[#B8860B] text-[#B8860B] bg-slate-50 px-2 py-1 rounded-lg shrink-0">
+            REGISTRY
           </Badge>
         </div>
   
-        {/* Center: Biometric Node (220px calibrated) */}
-        <div className="flex flex-col items-center justify-center mt-12 relative z-10 w-full">
+        {/* Center: Biometric Node (Responsive calibration) */}
+        <div className="flex flex-col items-center justify-center mt-4 sm:mt-8 relative z-10 w-full">
           <div className="relative">
             <div className={cn(
-              "w-[220px] h-[220px] rounded-[50px] overflow-hidden bg-slate-50 border-[10px] transition-all duration-500 shadow-2xl",
+              "w-[180px] h-[180px] sm:w-[220px] sm:h-[220px] rounded-[40px] sm:rounded-[50px] overflow-hidden bg-slate-50 border-[8px] sm:border-[10px] transition-all duration-500 shadow-2xl",
               getBorderStyles()
             )}>
               {fetching ? (
                 <div className="flex items-center justify-center w-full h-full">
-                  <Loader2 className="h-16 w-16 animate-spin text-slate-200" />
+                  <Loader2 className="h-12 w-12 animate-spin text-slate-200" />
                 </div>
               ) : (
                 <img 
@@ -146,50 +146,51 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
               )}
             </div>
             {isVerified && (
-              <div className="absolute -bottom-4 -right-4 bg-blue-600 rounded-full p-4 border-8 border-white shadow-2xl z-20">
-                <ShieldCheck className="h-10 w-10 text-white" />
+              <div className="absolute -bottom-2 -right-2 sm:-bottom-4 sm:-right-4 bg-blue-600 rounded-full p-2 sm:p-4 border-4 sm:border-8 border-white shadow-2xl z-20">
+                <ShieldCheck className="h-6 w-6 sm:h-10 sm:w-10 text-white" />
               </div>
             )}
           </div>
-          <p className="mt-8 text-[13px] font-black uppercase text-[#B8860B] tracking-[0.6em]">Patriot Identity</p>
+          <p className="mt-4 sm:mt-8 text-[10px] sm:text-[13px] font-black uppercase text-[#B8860B] tracking-[0.4em] sm:tracking-[0.6em]">Patriot Identity</p>
         </div>
   
-        {/* Bottom Data: Maximum Font Scale */}
-        <div className="mt-auto flex items-end justify-between relative z-10 border-t-2 border-slate-50 pt-[10%] w-full">
-          <div className="space-y-5 flex-1 pr-6">
-            <h2 className="text-5xl font-black uppercase tracking-tighter leading-[0.85] text-[#002366] break-words drop-shadow-sm">
+        {/* Bottom Data: Maximized Font Scale with overflow protection */}
+        <div className="mt-auto flex items-end justify-between relative z-10 border-t-2 border-slate-50 pt-[8%] w-full">
+          <div className="space-y-3 sm:space-y-5 flex-1 pr-4">
+            <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-[0.85] text-[#002366] break-words drop-shadow-sm">
               {displayName}
             </h2>
-            <div className="flex flex-col items-start gap-4">
-              <Badge className="bg-[#B8860B] text-white font-black text-xl uppercase tracking-widest border-none px-8 py-3 shadow-xl rounded-2xl">
+            <div className="flex flex-col items-start gap-2 sm:gap-4">
+              <Badge className="bg-[#B8860B] text-white font-black text-sm sm:text-xl uppercase tracking-widest border-none px-4 sm:px-8 py-1 sm:py-3 shadow-xl rounded-xl sm:rounded-2xl">
                 {patriotRank}
               </Badge>
-              <p className="text-[14px] font-bold text-slate-400 uppercase tracking-[0.4em]">
+              <p className="text-[10px] sm:text-[14px] font-bold text-slate-400 uppercase tracking-[0.2em] sm:tracking-[0.4em]">
                 {dbUserData?.city || initialUserData?.city || 'National'} Chapter
               </p>
             </div>
           </div>
           
-          <div className="flex flex-col items-center gap-6 shrink-0">
-            <div className="bg-white p-4 rounded-[32px] shadow-2xl border-2 border-slate-100">
+          <div className="flex flex-col items-center gap-4 sm:gap-6 shrink-0">
+            <div className="bg-white p-2 sm:p-4 rounded-[24px] sm:rounded-[32px] shadow-2xl border-2 border-slate-100">
               <QRCodeSVG 
                 value={user?.uid || 'PDDS-GUEST'} 
-                size={100} 
+                size={70} 
+                className="sm:w-[100px] sm:h-[100px]"
                 level="H" 
                 fgColor="#002366" 
                 includeMargin={false}
               />
             </div>
-            <p className="text-[11px] font-black uppercase tracking-widest text-slate-300">UID Verified</p>
+            <p className="text-[8px] sm:text-[11px] font-black uppercase tracking-widest text-slate-300">UID Verified</p>
           </div>
         </div>
       </div>
 
       <Button 
         onClick={handleSaveToGallery} 
-        className="w-full h-24 bg-[#002366] hover:bg-[#001a4d] text-white font-black uppercase tracking-[0.2em] shadow-2xl rounded-[32px] active:scale-95 transition-all text-2xl"
+        className="w-full h-20 sm:h-24 bg-[#002366] hover:bg-[#001a4d] text-white font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] shadow-2xl rounded-[24px] sm:rounded-[32px] active:scale-95 transition-all text-xl sm:text-2xl"
       >
-        <Download className="mr-6 h-10 w-10 text-accent" /> Export Identity Card
+        <Download className="mr-4 sm:mr-6 h-8 w-8 sm:h-10 sm:w-10 text-accent" /> Export Identity Card
       </Button>
     </div>
   );
