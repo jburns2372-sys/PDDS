@@ -11,11 +11,10 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import PddsLogo from "./icons/pdds-logo";
-import { MainHeader } from "./main-header";
 
 /**
  * @fileOverview Application Shell & Global Route Guard.
- * Standardized with MainHeader Branding Protocol.
+ * Reverted: MainHeader removed to restore previous layout architecture.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -116,9 +115,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <UserDataContext.Provider value={contextValue}>
         <div className="flex h-dynamic w-full flex-col md:flex-row overflow-hidden bg-background">
-          {/* Main Global Header - Visible on all platforms */}
-          <MainHeader />
-
           <div className="flex flex-1 overflow-hidden">
             {/* Desktop/Tablet Sidebar */}
             {!isMobile && <DesktopSidebar />}
