@@ -47,7 +47,7 @@ const NCR_CODE = "130000000";
 /**
  * @fileOverview Member Profile & Registry Management.
  * REFACTORED: Fluid full-width 12-column tactical interface.
- * FIXED: Default value persistence for cascading dropdowns.
+ * FIXED: Persistent selection logic for jurisdictional dropdowns (Ghost Items).
  */
 export default function ProfilePage() {
     const { user, userData, loading: userLoading } = useUserData();
@@ -134,7 +134,7 @@ export default function ProfilePage() {
     // Cascading City Fetch
     useEffect(() => {
         if (!selectedProvince) { setCities([]); return; }
-        if (provinces.length === 0) return; // Wait for provinces list
+        if (provinces.length === 0) return;
 
         const fetchCities = async () => {
             const province = provinces.find((p: any) => p.name === selectedProvince);
@@ -153,7 +153,7 @@ export default function ProfilePage() {
     // Cascading Barangay Fetch
     useEffect(() => {
         if (!selectedCity) { setBarangays([]); return; }
-        if (cities.length === 0) return; // Wait for cities list
+        if (cities.length === 0) return;
 
         const fetchBarangays = async () => {
             const city = cities.find((c: any) => c.name === selectedCity);
@@ -510,27 +510,36 @@ export default function ProfilePage() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-[9px] font-black uppercase">Province</Label>
-                                                <Select onValueChange={setSelectedProvince} value={selectedProvince}>
+                                                <Select 
+                                                    onValueChange={(val) => { setSelectedProvince(val); setSelectedCity(""); setSelectedBarangay(""); setZipCode(""); }} 
+                                                    value={selectedProvince}
+                                                >
                                                     <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                     <SelectContent>
-                                                        {provinces.length > 0 ? (
-                                                            provinces.map((p: any) => <SelectItem key={p.code} value={p.name} className="font-bold uppercase text-[10px]">{p.name}</SelectItem>)
-                                                        ) : selectedProvince ? (
+                                                        {provinces.map((p: any) => (
+                                                            <SelectItem key={p.code} value={p.name} className="font-bold uppercase text-[10px]">{p.name}</SelectItem>
+                                                        ))}
+                                                        {selectedProvince && !provinces.some(p => p.name === selectedProvince) && (
                                                             <SelectItem value={selectedProvince} className="font-bold uppercase text-[10px]">{selectedProvince}</SelectItem>
-                                                        ) : null}
+                                                        )}
                                                     </SelectContent>
                                                 </Select>
                                             </div>
                                             <div className="space-y-2">
                                                 <Label className="text-[9px] font-black uppercase">City / Municipality</Label>
-                                                <Select onValueChange={setSelectedCity} value={selectedCity} disabled={!selectedProvince}>
+                                                <Select 
+                                                    onValueChange={(val) => { setSelectedCity(val); setSelectedBarangay(""); setZipCode(""); }} 
+                                                    value={selectedCity} 
+                                                    disabled={!selectedProvince}
+                                                >
                                                     <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                     <SelectContent>
-                                                        {cities.length > 0 ? (
-                                                            cities.map((c: any) => <SelectItem key={c.code} value={c.name} className="font-bold uppercase text-[10px]">{c.name}</SelectItem>)
-                                                        ) : selectedCity ? (
+                                                        {cities.map((c: any) => (
+                                                            <SelectItem key={c.code} value={c.name} className="font-bold uppercase text-[10px]">{c.name}</SelectItem>
+                                                        ))}
+                                                        {selectedCity && !cities.some(c => c.name === selectedCity) && (
                                                             <SelectItem value={selectedCity} className="font-bold uppercase text-[10px]">{selectedCity}</SelectItem>
-                                                        ) : null}
+                                                        )}
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -541,11 +550,12 @@ export default function ProfilePage() {
                                                 <Select onValueChange={setSelectedBarangay} value={selectedBarangay} disabled={!selectedCity}>
                                                     <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                                                     <SelectContent>
-                                                        {barangays.length > 0 ? (
-                                                            barangays.map((b: any) => <SelectItem key={b.code} value={b.name} className="font-bold uppercase text-[10px]">{b.name}</SelectItem>)
-                                                        ) : selectedBarangay ? (
+                                                        {barangays.map((b: any) => (
+                                                            <SelectItem key={b.code} value={b.name} className="font-bold uppercase text-[10px]">{b.name}</SelectItem>
+                                                        ))}
+                                                        {selectedBarangay && !barangays.some(b => b.name === selectedBarangay) && (
                                                             <SelectItem value={selectedBarangay} className="font-bold uppercase text-[10px]">{selectedBarangay}</SelectItem>
-                                                        ) : null}
+                                                        )}
                                                     </SelectContent>
                                                 </Select>
                                             </div>
