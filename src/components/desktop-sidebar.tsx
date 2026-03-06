@@ -57,12 +57,12 @@ export function DesktopSidebarContent({ onClose }: DesktopSidebarContentProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-40 flex-col items-center justify-center px-6 py-6">
-        <PddsLogo className="h-28 w-auto shadow-none" />
+      <div className="flex h-32 flex-col items-center justify-center px-6 py-4">
+        <PddsLogo className="h-20 w-auto shadow-none opacity-80 group-hover:opacity-100 transition-opacity" />
       </div>
-      <Separator />
-      <nav className="flex flex-col flex-1 justify-between p-4 overflow-y-auto">
-        <div className="space-y-2">
+      <Separator className="bg-primary/5" />
+      <nav className="flex flex-col flex-1 justify-between p-4 overflow-y-auto custom-scrollbar">
+        <div className="space-y-1">
             {navItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
@@ -71,8 +71,8 @@ export function DesktopSidebarContent({ onClose }: DesktopSidebarContentProps) {
                 href={item.href}
                 onClick={onClose}
                 className={cn(
-                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest",
-                    isActive && "bg-primary/10 text-primary font-bold border-l-4 border-primary rounded-l-none"
+                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-primary/5 hover:text-primary uppercase text-[10px] font-bold tracking-widest",
+                    isActive && "bg-primary/10 text-primary font-black border-l-4 border-primary rounded-l-none"
                 )}
                 >
                 <item.icon className="h-4 w-4" />
@@ -84,7 +84,7 @@ export function DesktopSidebarContent({ onClose }: DesktopSidebarContentProps) {
                 <button
                     type="button"
                     className={cn(
-                        "flex w-full items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest"
+                        "flex w-full items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-primary/5 hover:text-primary uppercase text-[10px] font-bold tracking-widest"
                     )}
                 >
                     <div className="flex items-center gap-3">
@@ -96,7 +96,7 @@ export function DesktopSidebarContent({ onClose }: DesktopSidebarContentProps) {
             
             {isSecGen && (
               <>
-                <div className="px-4 py-2 mt-6 mb-1 text-[10px] font-black uppercase text-red-600 tracking-[0.2em]">Sec-Gen Command</div>
+                <div className="px-4 py-2 mt-6 mb-1 text-[9px] font-black uppercase text-red-600 tracking-[0.2em] opacity-60">Sec-Gen Command</div>
                 {secGenNavItems.map((item) => {
                   const isActive = pathname.startsWith(item.href);
                   return (
@@ -105,8 +105,8 @@ export function DesktopSidebarContent({ onClose }: DesktopSidebarContentProps) {
                       href={item.href}
                       onClick={onClose}
                       className={cn(
-                          "flex items-center gap-3 rounded-md px-4 py-3 text-red-400 transition-all hover:bg-red-600/10 hover:text-red-500 uppercase text-xs font-bold tracking-widest",
-                          isActive && "bg-red-600/20 text-red-500 font-bold border-l-4 border-red-600 rounded-l-none"
+                          "flex items-center gap-3 rounded-md px-4 py-3 text-red-400 transition-all hover:bg-red-600/5 hover:text-red-500 uppercase text-[10px] font-bold tracking-widest",
+                          isActive && "bg-red-600/10 text-red-500 font-black border-l-4 border-red-600 rounded-l-none"
                       )}
                       >
                       <item.icon className="h-4 w-4" />
@@ -119,7 +119,7 @@ export function DesktopSidebarContent({ onClose }: DesktopSidebarContentProps) {
 
             {isPrivileged && (
               <>
-                <div className="px-4 py-2 mt-6 mb-1 text-[10px] font-black uppercase text-primary/40 tracking-[0.2em]">Leadership Tools</div>
+                <div className="px-4 py-2 mt-6 mb-1 text-[9px] font-black uppercase text-primary/40 tracking-[0.2em]">Leadership Tools</div>
                 {adminNavItems.map((item) => {
                   const isActive = pathname.startsWith(item.href);
                   if (item.href === '/admin/logistics' && !['Treasurer', 'President', 'Admin', 'System Admin'].includes(userRole)) return null;
@@ -131,8 +131,8 @@ export function DesktopSidebarContent({ onClose }: DesktopSidebarContentProps) {
                       href={item.href}
                       onClick={onClose}
                       className={cn(
-                          "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest",
-                          isActive && "bg-primary/10 text-primary font-bold border-l-4 border-primary rounded-l-none"
+                          "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-primary/5 hover:text-primary uppercase text-[10px] font-bold tracking-widest",
+                          isActive && "bg-primary/10 text-primary font-black border-l-4 border-primary rounded-l-none"
                       )}
                       >
                       <item.icon className="h-4 w-4" />
@@ -149,8 +149,8 @@ export function DesktopSidebarContent({ onClose }: DesktopSidebarContentProps) {
                   href="/profile"
                   onClick={onClose}
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-accent/50 hover:text-accent-foreground uppercase text-xs font-bold tracking-widest",
-                    pathname.startsWith('/profile') && "bg-primary/10 text-primary font-bold"
+                    "flex items-center gap-3 rounded-md px-4 py-3 text-muted-foreground transition-all hover:bg-primary/5 hover:text-primary uppercase text-[10px] font-bold tracking-widest",
+                    pathname.startsWith('/profile') && "bg-primary/10 text-primary font-black"
                   )}
                 >
                   <UserCircle className="h-4 w-4" />
@@ -160,17 +160,14 @@ export function DesktopSidebarContent({ onClose }: DesktopSidebarContentProps) {
 
             {/* Legal Footer Section */}
             <div className="px-4 py-4 bg-primary/5 rounded-xl border border-primary/10">
-                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/40 mb-3">Legal & Privacy Compliance</p>
+                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/40 mb-3">RA 10173 Compliance</p>
                 <div className="space-y-3">
                     <Link href="/legal/privacy" className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground hover:text-primary transition-colors uppercase">
-                        <Scale className="h-3 w-3" /> Privacy Policy (RA 10173)
+                        <Scale className="h-3 w-3" /> Privacy Policy
                     </Link>
                     <Link href="/legal/terms" className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground hover:text-primary transition-colors uppercase">
                         <FileText className="h-3 w-3" /> Terms of Service
                     </Link>
-                </div>
-                <div className="mt-4 pt-3 border-t border-dashed border-primary/10 text-[8px] font-bold text-muted-foreground/60 uppercase">
-                    Member ID: {isLoadingRole ? '...' : (userData?.uid?.substring(0, 12).toUpperCase() || 'ANONYMOUS')}
                 </div>
             </div>
         </div>
@@ -181,7 +178,7 @@ export function DesktopSidebarContent({ onClose }: DesktopSidebarContentProps) {
 
 export function DesktopSidebar() {
   return (
-    <aside className="hidden w-64 flex-shrink-0 flex-col border-r bg-card md:flex">
+    <aside className="hidden w-64 flex-shrink-0 flex-col border-r bg-card md:flex shadow-inner">
       <DesktopSidebarContent />
     </aside>
   );

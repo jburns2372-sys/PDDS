@@ -9,14 +9,13 @@ import { UserDataContext, UserDataContextType, UserProfile } from "@/context/use
 import { useRouter } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { Menu, Loader2 } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Loader2 } from "lucide-react";
 import PddsLogo from "./icons/pdds-logo";
-import { DesktopSidebarContent } from "./desktop-sidebar";
+import { MainHeader } from "./main-header";
 
 /**
  * @fileOverview Application Shell & Global Route Guard.
- * Standardized with Brand Lockdown Protocol.
+ * Standardized with MainHeader Branding Protocol.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -28,7 +27,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -118,37 +116,22 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <UserDataContext.Provider value={contextValue}>
         <div className="flex h-dynamic w-full flex-col md:flex-row overflow-hidden bg-background">
-          {/* Mobile Header - Hardened for Brand Lockdown */}
-          <div className="flex h-20 w-full items-center justify-between border-b bg-primary px-4 md:hidden shrink-0 shadow-md safe-top relative z-50">
-            <div className="flex items-center gap-3">
-              <PddsLogo variant="white" className="h-12 w-auto" />
-              <h1 className="text-white font-black uppercase text-[10px] tracking-widest font-headline">PatriotLink</h1>
-            </div>
-            <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-              <SheetTrigger asChild>
-                <button className="p-2 text-white active:bg-white/10 rounded-lg transition-colors outline-none">
-                  <Menu className="h-6 w-6" />
-                </button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[85vw] max-w-72 p-0 border-r-none">
-                <div className="h-full py-4 overflow-y-auto custom-scrollbar">
-                  <DesktopSidebarContent onClose={() => setIsDrawerOpen(false)} />
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
+          {/* Main Global Header - Visible on all platforms */}
+          <MainHeader />
 
-          {/* Desktop/Tablet Sidebar */}
-          {!isMobile && <DesktopSidebar />}
-          
-          {/* Main Content Area */}
-          <main className="flex-1 relative flex flex-col min-w-0 h-full overflow-hidden">
-              <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                <div className="w-full max-w-full pb-24 md:pb-8">
-                  {children}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Desktop/Tablet Sidebar */}
+            {!isMobile && <DesktopSidebar />}
+            
+            {/* Main Content Area */}
+            <main className="flex-1 relative flex flex-col min-w-0 h-full overflow-hidden">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+                  <div className="w-full max-w-full pb-24 md:pb-8">
+                    {children}
+                  </div>
                 </div>
-              </div>
-          </main>
+            </main>
+          </div>
 
           {/* Mobile Bottom Navigation */}
           {isMobile && <MobileBottomNav />}
