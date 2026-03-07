@@ -12,7 +12,7 @@ import { PDDS_LOGO_URL } from "@/lib/data";
 
 /**
  * @fileOverview Master Patriot Digital ID (Compact Safe Edition).
- * OPTIMIZED: Reduced white space and tightened geometry.
+ * OPTIMIZED: Reduced white space and tightened geometry for 100% zoom compliance.
  * PHOTO: Fixed at 140px (approx 1.45 inches) to exceed 1x1 requirement.
  */
 export function DigitalIdCard({ userData: initialUserData }: { userData: any }) {
@@ -85,10 +85,10 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   };
 
   return (
-    <div className="flex flex-col gap-3 items-center w-full max-w-[340px] mx-auto">
+    <div className="flex flex-col gap-3 items-center w-full max-w-[320px] mx-auto">
       <div 
         ref={cardRef} 
-        className="w-full aspect-[1/1.45] overflow-hidden rounded-[20px] shadow-2xl bg-white text-slate-900 relative flex flex-col p-5 border border-slate-100"
+        className="w-full aspect-[1/1.4] overflow-hidden rounded-[20px] shadow-2xl bg-white text-slate-900 relative flex flex-col p-4 border border-slate-100"
       >
         {/* Security Watermark */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
@@ -101,30 +101,30 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         </div>
   
         {/* Header Section */}
-        <div className="flex justify-between items-center relative z-10 w-full mb-3">
+        <div className="flex justify-between items-center relative z-10 w-full mb-2">
           <div className="flex items-center gap-2">
             <img 
               src={PDDS_LOGO_URL} 
               alt="PDDS" 
-              className="h-[40px] w-auto object-contain" 
+              className="h-[36px] w-auto object-contain" 
               crossOrigin="anonymous"
               style={{ mixBlendMode: 'multiply' }} 
             />
             <div className="flex flex-col justify-center">
-              <h1 className="text-[8px] font-black uppercase tracking-tighter leading-none text-[#002366]">PEDERALISMO NG DUGONG</h1>
-              <h1 className="text-[8px] font-black uppercase tracking-tighter leading-none text-[#B8860B] mt-0.5">DAKILANG SAMAHAN</h1>
+              <h1 className="text-[7px] font-black uppercase tracking-tighter leading-none text-[#002366]">PEDERALISMO NG DUGONG</h1>
+              <h1 className="text-[7px] font-black uppercase tracking-tighter leading-none text-[#B8860B] mt-0.5">DAKILANG SAMAHAN</h1>
             </div>
           </div>
-          <Badge variant="outline" className="text-[7px] font-black tracking-widest uppercase border-[#B8860B] text-[#B8860B] px-1 py-0 rounded-md">
+          <Badge variant="outline" className="text-[6px] font-black tracking-widest uppercase border-[#B8860B] text-[#B8860B] px-1 py-0 rounded-md">
             OFFICIAL
           </Badge>
         </div>
   
         {/* Biometric Node */}
-        <div className="flex flex-col items-center justify-center relative z-10 w-full mb-4">
+        <div className="flex flex-col items-center justify-center relative z-10 w-full mb-2">
           <div className="relative">
             <div className={cn(
-              "w-[140px] h-[140px] rounded-[24px] overflow-hidden bg-slate-50 border-[5px] transition-all shadow-md",
+              "w-[140px] h-[140px] rounded-[24px] overflow-hidden bg-slate-50 border-[4px] transition-all shadow-md",
               getBorderStyles()
             )}>
               {fetching ? (
@@ -136,7 +136,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
                   key={idPhoto}
                   src={loadError || !idPhoto ? DEFAULT_SILHOUETTE : idPhoto} 
                   alt={displayName} 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-center"
                   crossOrigin="anonymous"
                   loading="eager"
                   onError={() => setLoadError(true)}
@@ -152,8 +152,8 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         </div>
   
         {/* Data Section */}
-        <div className="mt-auto flex items-end justify-between relative z-10 border-t border-slate-100 pt-4 w-full">
-          <div className="space-y-1.5 flex-1 pr-2 min-w-0">
+        <div className="mt-auto flex items-end justify-between relative z-10 border-t border-slate-100 pt-3 w-full">
+          <div className="space-y-1 flex-1 pr-2 min-w-0">
             <h2 className={cn(
               "font-black uppercase tracking-tighter leading-[0.9] text-[#002366] break-words",
               displayName.length > 15 ? "text-lg" : "text-xl"
@@ -161,10 +161,10 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
               {displayName}
             </h2>
             <div className="flex flex-col items-start gap-1">
-              <Badge className="bg-[#B8860B] text-white font-black text-[9px] uppercase tracking-widest border-none px-2 py-0.5 rounded-md">
+              <Badge className="bg-[#B8860B] text-white font-black text-[8px] uppercase tracking-widest border-none px-2 py-0.5 rounded-md">
                 {patriotRank}
               </Badge>
-              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate w-full">
+              <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest truncate w-full">
                 {dbUserData?.city || initialUserData?.city || 'National'} Hub
               </p>
             </div>
@@ -174,14 +174,14 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
             <div className="bg-white p-1 rounded-md shadow-sm border border-slate-100">
               <QRCodeSVG 
                 value={user?.uid || 'PDDS-GUEST'} 
-                size={40} 
-                className="w-[40px] h-[40px]"
+                size={36} 
+                className="w-[36px] h-[36px]"
                 level="M" 
                 fgColor="#002366" 
                 includeMargin={false}
               />
             </div>
-            <p className="text-[6px] font-black uppercase tracking-widest text-slate-300">UID AUTH</p>
+            <p className="text-[5px] font-black uppercase tracking-widest text-slate-300">UID AUTH</p>
           </div>
         </div>
       </div>
