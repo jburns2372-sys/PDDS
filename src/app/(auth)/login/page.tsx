@@ -18,7 +18,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 
 /**
  * @fileOverview Standardized Login Page.
- * Optimized for horizontal and vertical centering on all platforms with Brand Lockdown.
+ * FIXED: Perfect vertical and horizontal alignment for Android and Apple devices with safe area awareness.
  */
 export default function LoginPage() {
     const auth = useAuth();
@@ -127,7 +127,7 @@ export default function LoginPage() {
     };
 
   return (
-    <div className="flex h-dynamic w-full flex-col items-center justify-center bg-muted/30 p-4 relative overflow-y-auto">
+    <div className="flex min-h-dynamic w-full flex-col items-center justify-center bg-muted/30 p-4 safe-top safe-bottom relative overflow-y-auto">
         {loading && (
             <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -147,9 +147,9 @@ export default function LoginPage() {
             </div>
         )}
 
-        <div className="mb-8 flex flex-col items-center gap-4 mt-4">
+        <div className="mb-8 flex flex-col items-center gap-4">
             <PddsLogo className="h-20 w-auto" />
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-primary font-headline uppercase">
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-primary font-headline uppercase text-center">
                 PDDS Portal
             </h1>
       </div>
@@ -199,7 +199,7 @@ export default function LoginPage() {
                 </Button>
             </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4 mb-4">
+        <CardFooter className="flex flex-col gap-4 pb-8">
             <div className="text-center w-full">
                 <p className="text-sm text-muted-foreground font-medium">
                     New to PDDS? <Link href="/join" className="text-primary font-black hover:underline uppercase text-xs tracking-widest ml-1">Join the Movement</Link>

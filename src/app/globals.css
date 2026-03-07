@@ -54,17 +54,41 @@
   p { @apply text-lg font-medium leading-relaxed; }
 }
 
+@layer utilities {
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+
+  .h-dynamic {
+    height: 100vh;
+    height: 100svh;
+  }
+
+  .min-h-dynamic {
+    min-height: 100vh;
+    min-height: 100svh;
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
 .custom-scrollbar::-webkit-scrollbar { width: 8px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: hsl(var(--primary) / 0.2);
   border-radius: 10px;
 }
-
-.h-dynamic { height: 100svh; }
-.min-h-dynamic { min-height: 100svh; }
-
-.safe-top { padding-top: max(0rem, env(safe-area-inset-top)); }
-.safe-bottom { padding-bottom: max(0rem, env(safe-area-inset-bottom)); }
-.safe-left { padding-left: max(0rem, env(safe-area-inset-left)); }
-.safe-right { padding-right: max(0rem, env(safe-area-inset-right)); }

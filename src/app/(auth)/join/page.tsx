@@ -26,8 +26,8 @@ import { getIslandGroup, getZipCode } from "@/lib/data";
 const NCR_CODE = "130000000";
 
 /**
- * @fileOverview Standardized Induction Page with Brand Lockdown.
- * FIXED: Automatic Zip Code synchronization based on Barangay selection. No default when barangay is empty.
+ * @fileOverview Standardized Induction Page.
+ * FIXED: Dynamic viewport height and safe-area alignment for Android and Apple devices.
  */
 export default function JoinPage() {
     const auth = useAuth();
@@ -118,7 +118,6 @@ export default function JoinPage() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
-    // FIXED: Automatic Zip Code Sync - Strict logic
     useEffect(() => {
         setZipCode(selectedCity ? getZipCode(selectedCity, selectedBarangay) : "");
     }, [selectedBarangay, selectedCity]);
@@ -246,7 +245,7 @@ export default function JoinPage() {
     const isPhoneValid = phoneNumber.startsWith("+63") && phoneNumber.length === 13;
 
     return (
-        <div className="flex min-h-dynamic w-full flex-col items-center justify-center bg-muted/30 p-4 pb-12 relative overflow-y-auto">
+        <div className="flex min-h-dynamic w-full flex-col items-center justify-center bg-muted/30 p-4 safe-top safe-bottom relative overflow-y-auto">
             {loading && (
                 <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -256,7 +255,7 @@ export default function JoinPage() {
                 </div>
             )}
 
-            <div className="mb-8 flex flex-col items-center gap-4 mt-8">
+            <div className="mb-8 flex flex-col items-center gap-4 py-8">
                 <PddsLogo className="h-20 w-auto" />
                 <div className="text-center">
                     <h1 className="text-4xl font-black tracking-tighter text-primary font-headline uppercase">
@@ -266,7 +265,7 @@ export default function JoinPage() {
                 </div>
             </div>
 
-            <div className="w-full max-w-lg space-y-4">
+            <div className="w-full max-w-lg space-y-4 pb-12">
                 <Card className="shadow-2xl border-t-4 border-primary bg-white">
                     {!showOtpInput ? (
                         <form onSubmit={handleInitialSubmit}>
@@ -393,7 +392,7 @@ export default function JoinPage() {
                                     </div>
                                 </div>
                             </CardContent>
-                            <CardFooter className="flex flex-col gap-4">
+                            <CardFooter className="flex flex-col gap-4 pb-10">
                                 <Button type="submit" className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl" disabled={loading || !agreed || !isPhoneValid || !selectedBarangay}>
                                     {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Verify & Induct"}
                                 </Button>

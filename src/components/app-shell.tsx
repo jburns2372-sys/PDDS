@@ -14,7 +14,7 @@ import PddsLogo from "./icons/pdds-logo";
 
 /**
  * @fileOverview Application Shell & Global Route Guard.
- * REFACTORED: Fluid width management for edge-to-edge tactical interfaces.
+ * FIXED: Standardized vertical and horizontal centering for loading states.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -82,7 +82,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (loading || (user && userDataLoading)) {
     return (
-      <div className="flex h-dynamic w-full flex-col items-center justify-center bg-white">
+      <div className="flex min-h-dynamic w-full flex-col items-center justify-center bg-white safe-top safe-bottom">
         <div className="flex flex-col items-center gap-8">
             <div className="relative">
               <PddsLogo className="h-32 w-auto animate-pulse shadow-none" />
