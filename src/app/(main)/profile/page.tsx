@@ -30,7 +30,8 @@ import {
     AlertTriangle, 
     ShieldAlert,
     FileUp,
-    Mail
+    Mail,
+    Image as ImageIcon
 } from "lucide-react";
 import { getIslandGroup, getZipCode } from "@/lib/data";
 import {
@@ -46,8 +47,7 @@ const NCR_CODE = "130000000";
 
 /**
  * @fileOverview Member Profile & Registry Management.
- * REFACTORED: Fluid full-width 12-column tactical interface.
- * FIXED: Automatic Zip Code synchronization based on Barangay selection. No default when barangay is empty.
+ * UPDATED: Added explicit 1x1 ID Photo management terminal.
  */
 export default function ProfilePage() {
     const { user, userData, loading: userLoading } = useUserData();
@@ -170,9 +170,9 @@ export default function ProfilePage() {
         fetchBarangays();
     }, [selectedCity, cities]);
 
-    // FIXED: Automatic Zip Code Sync - Strict logic
+    // Automatic Zip Code Sync
     useEffect(() => {
-        if (selectedCity) {
+        if (selectedCity && selectedBarangay) {
             const code = getZipCode(selectedCity, selectedBarangay);
             setZipCode(code);
         } else {
@@ -405,29 +405,37 @@ export default function ProfilePage() {
                                     </Badge>
                                 </div>
                             </CardHeader>
-                            <CardContent className="pt-6">
-                                {isCameraOpen ? (
-                                    <div className="space-y-3">
-                                        <div className="relative rounded-2xl overflow-hidden bg-black aspect-square shadow-inner">
-                                            <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button type="button" onClick={capturePhoto} className="flex-1 font-black uppercase text-xs">Capture</Button>
-                                            <Button type="button" variant="outline" onClick={stopCamera} className="h-10 px-3"><X className="h-4 w-4" /></Button>
-                                        </div>
-                                        <canvas ref={canvasRef} className="hidden" />
+                            <CardContent className="pt-6 space-y-6">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary/60">Official Digital ID Photo (1x1 Standard)</Label>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {isCameraOpen ? (
+                                            <div className="space-y-3">
+                                                <div className="relative rounded-2xl overflow-hidden bg-black aspect-square shadow-inner">
+                                                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button type="button" onClick={capturePhoto} className="flex-1 font-black uppercase text-xs">Capture</Button>
+                                                    <Button type="button" variant="outline" onClick={stopCamera} className="h-10 px-3"><X className="h-4 w-4" /></Button>
+                                                </div>
+                                                <canvas ref={canvasRef} className="hidden" />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <Button type="button" variant="outline" className="w-full font-black uppercase text-[10px] tracking-widest h-14 border-2 flex flex-col items-center justify-center gap-1" onClick={startCamera}>
+                                                    <Camera className="h-5 w-5 text-primary" />
+                                                    <span>Open Identity Camera</span>
+                                                </Button>
+                                                <Button type="button" variant="outline" className="w-full font-black uppercase text-[10px] tracking-widest h-14 border-2 flex flex-col items-center justify-center gap-1" onClick={() => fileInputRef.current?.click()}>
+                                                    <ImageIcon className="h-5 w-5 text-primary" />
+                                                    <span>Upload 1x1 Portrait</span>
+                                                </Button>
+                                                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={e => {const f=e.target.files?.[0]; if(f){setSelectedFile(f); const r=new FileReader(); r.onloadend=()=>setPhotoURL(r.result as string); r.readAsDataURL(f);}}} />
+                                            </>
+                                        )}
                                     </div>
-                                ) : (
-                                    <div className="flex flex-col gap-2">
-                                        <Button type="button" variant="outline" className="w-full font-black uppercase text-[10px] tracking-widest h-12 border-2" onClick={startCamera}>
-                                            <Camera className="mr-2 h-4 w-4" /> Capture New Selfie
-                                        </Button>
-                                        <Button type="button" variant="ghost" className="w-full text-[9px] font-black uppercase tracking-widest text-muted-foreground" onClick={() => fileInputRef.current?.click()}>
-                                            Or Upload Photo File
-                                        </Button>
-                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={e => {const f=e.target.files?.[0]; if(f){setSelectedFile(f); const r=new FileReader(); r.onloadend=()=>setPhotoURL(r.result as string); r.readAsDataURL(f);}}} />
-                                    </div>
-                                )}
+                                    <p className="text-[8px] font-bold text-muted-foreground uppercase text-center mt-2">Professional 1x1 portraits are recommended for field verification.</p>
+                                </div>
                             </CardContent>
                         </Card>
 

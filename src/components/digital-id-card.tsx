@@ -12,8 +12,7 @@ import { PDDS_LOGO_URL } from "@/lib/data";
 
 /**
  * @fileOverview Master Patriot Digital ID (Compact Safe Edition).
- * OPTIMIZED: Reduced white space and tightened geometry for 100% zoom compliance.
- * PHOTO: Fixed at 140px (approx 1.45 inches) to exceed 1x1 requirement.
+ * OPTIMIZED: Standardized 1x1 biometric fit with object-cover normalization.
  */
 export function DigitalIdCard({ userData: initialUserData }: { userData: any }) {
   const { user } = useUser();
