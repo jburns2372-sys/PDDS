@@ -24,7 +24,8 @@ import {
   Filter,
   CalendarPlus,
   ArrowRight,
-  AlertCircle
+  AlertCircle,
+  LayoutGrid
 } from "lucide-react";
 import {
   Dialog,
@@ -50,10 +51,9 @@ import { format, isSameDay, parseISO, addHours } from "date-fns";
 import { cn } from "@/lib/utils";
 
 /**
- * @fileOverview Calendar of Activities page.
- * Global Visibility: Accessible to all members.
- * RBAC: Only President, Admin, Sec Gen, or PRO can manage.
- * AUTHORIZATION: All events require Presidential sign-off before becoming public.
+ * @fileOverview Full-Scale National Mobilization Calendar.
+ * REFACTORED: Full-width grid layout with perfect day-to-date alignment.
+ * RBAC: Presidential sign-off required for all public events.
  */
 
 const NCR_CODE = "130000000";
@@ -63,7 +63,7 @@ export default function CalendarActivitiesPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Data Stream - Fetches ONLY authorized activities for public view
+  // Data Stream - Fetches authorized activities
   const { data: activities, loading } = useCollection('calendar_activities', {
     queries: [{ attribute: 'isAuthorized', operator: '==', value: true }]
   });
@@ -159,7 +159,7 @@ export default function CalendarActivitiesPage() {
         locationAddress,
         organizerName: userData?.fullName || 'Official',
         organizerUid: userData?.uid,
-        isAuthorized: isPresident, // Auto-authorize if President creates it
+        isAuthorized: isPresident, 
         authorizedBy: isPresident ? userData?.fullName : null,
         createdAt: serverTimestamp()
       });
@@ -202,31 +202,36 @@ export default function CalendarActivitiesPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <div className="bg-card p-6 md:p-8 border-b shadow-sm">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary uppercase tracking-tight">
-              National Mobilization Calendar
-            </h1>
-            <p className="mt-2 text-muted-foreground font-medium">
-              Synchronize your schedule with official party activities across the archipelago.
-            </p>
+    <div className="flex flex-col min-h-screen bg-background pb-32">
+      <div className="bg-card p-6 md:p-10 border-b shadow-sm">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="flex items-center gap-5">
+            <div className="p-4 bg-primary text-white rounded-2xl shadow-xl">
+              <LayoutGrid className="h-8 w-8" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black font-headline text-primary uppercase tracking-tight leading-none">
+                National Activities
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground font-bold uppercase tracking-widest">
+                Official Mobilization Schedule & Operations
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-col gap-1.5">
               <span className="text-[9px] font-black uppercase text-primary/40 ml-1">Context Filter</span>
               <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
-                <SelectTrigger className="w-[200px] bg-background border-primary/20 h-12 font-bold shadow-sm">
+                <SelectTrigger className="w-[240px] bg-background border-2 border-primary/10 h-12 font-black uppercase text-[10px] tracking-widest shadow-sm">
                   <Filter className="mr-2 h-4 w-4 text-primary" />
                   <SelectValue placeholder="View Content" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="smart">My Local Context</SelectItem>
-                  <SelectItem value="all">View All Regions</SelectItem>
-                  <SelectItem value="national">National Directives</SelectItem>
-                  <SelectItem value="region">My Specific Area</SelectItem>
+                  <SelectItem value="smart" className="font-bold uppercase text-[10px]">My Local Context</SelectItem>
+                  <SelectItem value="all" className="font-bold uppercase text-[10px]">View All Regions</SelectItem>
+                  <SelectItem value="national" className="font-bold uppercase text-[10px]">National Directives</SelectItem>
+                  <SelectItem value="region" className="font-bold uppercase text-[10px]">My Specific Area</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -234,9 +239,9 @@ export default function CalendarActivitiesPage() {
             {canManage && (
               <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogTrigger asChild>
-                  <Button className="h-12 px-6 font-black uppercase tracking-widest shadow-xl rounded-xl mt-auto">
+                  <Button className="h-12 px-8 font-black uppercase tracking-[0.15em] shadow-xl rounded-xl mt-auto active:scale-95 transition-all text-xs">
                     <Plus className="mr-2 h-5 w-5" />
-                    {isPresident ? "Schedule Activity" : "Draft Activity"}
+                    {isPresident ? "Deploy Activity" : "Draft Directive"}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
@@ -244,30 +249,30 @@ export default function CalendarActivitiesPage() {
                     <DialogHeader>
                       <DialogTitle className="font-headline text-xl flex items-center gap-2">
                         <ShieldCheck className="h-6 w-6 text-primary" />
-                        {isPresident ? "New Party Activity" : "Draft Operational Directive"}
+                        {isPresident ? "Deploy Party Activity" : "Submit Operational Directive"}
                       </DialogTitle>
-                      <DialogDescription>
+                      <DialogDescription className="text-xs font-bold uppercase pt-1">
                         {isPresident 
-                          ? "Broadcast a new directive instantly to the national registry." 
-                          : "Submit an operational activity for Presidential authorization."}
+                          ? "Authorized broadcasting to the National Registry." 
+                          : "Awaiting Presidential vetting before publication."}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="py-6 space-y-4">
                       <div className="space-y-2">
-                        <Label>Activity Title</Label>
-                        <Input placeholder="e.g. Regional Strategic Assembly" value={title} onChange={e => setTitle(e.target.value)} required />
+                        <Label className="text-[10px] font-black uppercase text-primary">Activity Title</Label>
+                        <Input placeholder="e.g. REGIONAL STRATEGIC ASSEMBLY" value={title} onChange={e => setTitle(e.target.value.toUpperCase())} className="h-12 font-bold border-2" required />
                       </div>
                       <div className="space-y-2">
-                        <Label>Date & Start Time</Label>
-                        <Input type="datetime-local" value={startDate} onChange={e => setStartDate(e.target.value)} required />
+                        <Label className="text-[10px] font-black uppercase text-primary">Date & Time</Label>
+                        <Input type="datetime-local" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 border-2 font-bold" required />
                       </div>
                       <div className="space-y-2">
-                        <Label>Scope</Label>
+                        <Label className="text-[10px] font-black uppercase text-primary">Scope</Label>
                         <Select value={scope} onValueChange={(v: any) => setScope(v)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-12 border-2"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="National">National</SelectItem>
-                            <SelectItem value="Regional">Regional</SelectItem>
+                            <SelectItem value="National">National Directive</SelectItem>
+                            <SelectItem value="Regional">Regional Deployment</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -275,20 +280,20 @@ export default function CalendarActivitiesPage() {
                       {scope === 'Regional' && (
                         <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
                           <div className="space-y-2">
-                            <Label>Province</Label>
+                            <Label className="text-[9px] font-black uppercase">Province</Label>
                             <Select onValueChange={setTargetProvince} value={targetProvince}>
-                              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                              <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                               <SelectContent>
-                                {provinces.map(p => <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>)}
+                                {provinces.map(p => <SelectItem key={p.code} value={p.name} className="uppercase font-bold text-[10px]">{p.name}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label>City</Label>
+                            <Label className="text-[9px] font-black uppercase">City</Label>
                             <Select onValueChange={setTargetCity} value={targetCity} disabled={!targetProvince}>
-                              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                              <SelectTrigger className="h-11 border-2"><SelectValue placeholder="Select" /></SelectTrigger>
                               <SelectContent>
-                                {cities.map(c => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}
+                                {cities.map(c => <SelectItem key={c.code} value={c.name} className="uppercase font-bold text-[10px]">{c.name}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>
@@ -296,27 +301,27 @@ export default function CalendarActivitiesPage() {
                       )}
 
                       <div className="space-y-2">
-                        <Label>Virtual Link (Optional)</Label>
+                        <Label className="text-[10px] font-black uppercase text-primary">Virtual Node (Optional)</Label>
                         <div className="relative">
-                          <Video className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input className="pl-10" placeholder="https://..." value={meetingLink} onChange={e => setMeetingLink(e.target.value)} />
+                          <Video className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                          <Input className="pl-10 h-12 border-2" placeholder="https://..." value={meetingLink} onChange={e => setMeetingLink(e.target.value)} />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>Physical Location (Optional)</Label>
+                        <Label className="text-[10px] font-black uppercase text-primary">Physical Coordinates (Optional)</Label>
                         <div className="relative">
-                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input className="pl-10" placeholder="Address..." value={locationAddress} onChange={e => setLocationAddress(e.target.value)} />
+                          <MapPin className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                          <Input className="pl-10 h-12 border-2" placeholder="Complete address..." value={locationAddress} onChange={e => setLocationAddress(e.target.value)} />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>Detailed Agenda</Label>
-                        <Textarea placeholder="Objectives and operational notes..." value={description} onChange={e => setDescription(e.target.value)} />
+                        <Label className="text-[10px] font-black uppercase text-primary">Operational Agenda</Label>
+                        <Textarea placeholder="Objectives and mission notes..." value={description} onChange={e => setDescription(e.target.value)} className="min-h-[100px] border-2 text-sm leading-relaxed" />
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button type="submit" className="w-full font-black h-12 uppercase tracking-widest" disabled={isSubmitting}>
-                        {isSubmitting ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : (isPresident ? "Dispatch Activity" : "Submit for Approval")}
+                      <Button type="submit" className="w-full font-black h-14 uppercase tracking-widest shadow-2xl" disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : (isPresident ? "Dispatch Activity" : "Submit for Authorization")}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -327,136 +332,160 @@ export default function CalendarActivitiesPage() {
         </div>
       </div>
 
-      <div className="p-4 md:p-8 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="p-4 md:p-10 max-w-7xl mx-auto w-full space-y-10">
         
-        <div className="lg:col-span-4 space-y-6">
-          <Card className="shadow-xl border-none overflow-hidden bg-white">
-            <CardHeader className="bg-primary/5 pb-4 border-b">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                <CalendarDays className="h-4 w-4" /> Date Selection
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 flex justify-center">
+        {/* FULL CALENDAR GRID */}
+        <Card className="shadow-2xl border-none overflow-hidden bg-white rounded-[32px]">
+          <CardHeader className="bg-primary p-8 text-white relative">
+            <div className="absolute inset-0 opacity-10 pointer-events-none">
+              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <pattern id="cal-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
+                </pattern>
+                <rect width="100%" height="100%" fill="url(#cal-grid)" />
+              </svg>
+            </div>
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <CardTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
+                  <CalendarDays className="h-8 w-8 text-accent animate-pulse" />
+                  National Activity Ledger
+                </CardTitle>
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">Select a date to audit scheduled deployments</p>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/80">
+                  <div className="h-2.5 w-2.5 rounded-full bg-accent" /> National
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/80">
+                  <div className="h-2.5 w-2.5 rounded-full bg-blue-400" /> Regional
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0 md:p-8 flex justify-center bg-muted/5">
+            <div className="w-full max-w-4xl scale-100 md:scale-110 lg:scale-125 transform transition-transform py-12 md:py-24">
               <Calendar
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                className="rounded-md border-none"
+                className="rounded-3xl border-none bg-white p-8 shadow-xl"
+                classNames={{
+                  months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 w-full",
+                  month: "space-y-6 w-full",
+                  table: "w-full border-collapse space-y-1",
+                  head_row: "flex justify-between w-full mb-4",
+                  head_cell: "text-primary/40 rounded-md w-12 font-black uppercase text-[10px] tracking-widest text-center",
+                  row: "flex w-full justify-between mt-2",
+                  cell: "h-14 w-14 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+                  day: cn(
+                    "h-14 w-14 p-0 font-bold aria-selected:opacity-100 rounded-2xl transition-all hover:bg-primary/5 active:scale-90"
+                  ),
+                  day_selected: "bg-primary text-white hover:bg-primary hover:text-white focus:bg-primary focus:text-white shadow-lg",
+                  day_today: "bg-accent/20 text-primary border-2 border-accent/50",
+                }}
                 modifiers={{
                   hasEvent: (date) => filteredActivities.some(a => isSameDay(parseISO(a.startDate), date)),
                   isNational: (date) => filteredActivities.some(a => isSameDay(parseISO(a.startDate), date) && a.scope === 'National'),
                   isRegional: (date) => filteredActivities.some(a => isSameDay(parseISO(a.startDate), date) && a.scope === 'Regional')
                 }}
                 modifiersStyles={{
-                  hasEvent: { fontWeight: 'bold' },
-                  isNational: { color: 'hsl(var(--accent))', textDecoration: 'underline' },
-                  isRegional: { color: 'hsl(var(--primary))', textDecoration: 'underline' }
+                  hasEvent: { fontWeight: '900' },
+                  isNational: { borderBottom: '4px solid hsl(var(--accent))' },
+                  isRegional: { borderBottom: '4px solid #60a5fa' }
                 }}
               />
-            </CardContent>
-            <CardFooter className="bg-muted/30 p-4 border-t grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                <div className="h-2 w-2 rounded-full bg-accent" /> National Directive
-              </div>
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                <div className="h-2 w-2 rounded-full bg-primary" /> Regional Activity
-              </div>
-            </CardFooter>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-primary shadow-2xl border-none text-white overflow-hidden group">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Mobilization Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm font-medium leading-relaxed italic">
-                "Every activity displayed here has been officially authorized by the National Leadership for member participation."
-              </p>
-              <div className="flex items-center gap-2 pt-4 border-t border-white/10">
-                <Globe className="h-4 w-4 text-accent animate-pulse" />
-                <span className="text-xs font-bold uppercase">{userData?.city}, {userData?.province}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-8 space-y-6">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-bold font-headline text-primary uppercase tracking-tight flex items-center gap-3">
-              Activities for {selectedDate ? format(selectedDate, 'PPPP') : 'Selected Day'}
+        {/* DAILY BRIEFING LIST */}
+        <div className="space-y-6 animate-in fade-in duration-700">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-2xl font-black font-headline text-primary uppercase tracking-tight flex items-center gap-4">
+              <AlertCircle className="h-6 w-6 text-accent" />
+              Briefings for {selectedDate ? format(selectedDate, 'MMMM dd, yyyy') : 'Target Date'}
             </h2>
-            <Badge variant="secondary" className="bg-primary/10 text-primary font-black">
-              {selectedDayActivities.length} Authorized
+            <Badge variant="secondary" className="bg-primary/5 text-primary font-black uppercase text-[9px] px-4 py-1 border-2 border-primary/10">
+              {selectedDayActivities.length} Authorized Records
             </Badge>
           </div>
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Syncing Authorized Records...</p>
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Syncing Secure Deployment Records...</p>
             </div>
           ) : selectedDayActivities.length === 0 ? (
-            <Card className="p-24 text-center border-dashed border-2 bg-muted/20">
-              <div className="flex flex-col items-center gap-4">
-                <Search className="h-12 w-12 text-muted-foreground/30" />
-                <p className="text-muted-foreground font-medium">No authorized party activities scheduled for this date.</p>
-                <Button variant="ghost" onClick={() => setFilter('all')} className="text-[10px] font-black uppercase tracking-widest">
-                  View other regions <ArrowRight className="ml-2 h-3 w-3" />
+            <Card className="p-32 text-center border-dashed border-4 bg-muted/20 rounded-[40px]">
+              <div className="flex flex-col items-center gap-6">
+                <div className="p-6 bg-white rounded-full shadow-inner opacity-40">
+                  <Search className="h-16 w-16 text-muted-foreground" />
+                </div>
+                <p className="text-xl text-muted-foreground font-black uppercase tracking-widest">No authorized activities on this date.</p>
+                <Button variant="ghost" onClick={() => setFilter('all')} className="text-xs font-black uppercase tracking-[0.2em] text-primary/60 hover:text-primary">
+                  Audit all regional nodes <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </Card>
           ) : (
-            <div className="grid gap-6">
+            <div className="grid gap-8">
               {selectedDayActivities.map((activity: any) => (
                 <Card key={activity.id} className={cn(
-                  "shadow-lg border-l-4 overflow-hidden group hover:shadow-xl transition-all",
-                  activity.scope === 'National' ? 'border-l-accent' : 'border-l-primary'
+                  "shadow-xl border-l-8 overflow-hidden group hover:shadow-2xl transition-all rounded-[32px]",
+                  activity.scope === 'National' ? 'border-l-accent' : 'border-l-blue-400'
                 )}>
-                  <CardHeader className="bg-muted/30 pb-4">
+                  <CardHeader className="bg-muted/30 p-8">
                     <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-xl font-headline uppercase font-black text-primary leading-tight">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <CardTitle className="text-3xl font-headline uppercase font-black text-primary leading-none">
                             {activity.title}
                           </CardTitle>
                           <Badge className={cn(
-                            "text-[8px] font-black uppercase tracking-widest",
-                            activity.scope === 'National' ? 'bg-accent text-accent-foreground' : 'bg-primary text-white'
+                            "text-[9px] font-black uppercase tracking-widest px-3 py-1",
+                            activity.scope === 'National' ? 'bg-accent text-accent-foreground' : 'bg-blue-500 text-white'
                           )}>
                             {activity.scope}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {format(parseISO(activity.startDate), 'p')}</span>
+                        <div className="flex items-center gap-6 text-[11px] font-black text-muted-foreground uppercase tracking-widest">
+                          <span className="flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm">
+                            <Clock className="h-4 w-4 text-primary" /> 
+                            {format(parseISO(activity.startDate), 'hh:mm aa')}
+                          </span>
                           {activity.scope === 'Regional' && (
-                            <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {activity.targetCity}, {activity.targetProvince}</span>
+                            <span className="flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm">
+                              <MapPin className="h-4 w-4 text-red-600" /> 
+                              {activity.targetCity}, {activity.targetProvince}
+                            </span>
                           )}
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <Button 
                           variant="outline" 
                           size="icon" 
                           asChild 
-                          className="h-8 w-8 rounded-full border-primary/20 text-primary hover:bg-primary hover:text-white"
-                          title="Sync to Google Calendar"
+                          className="h-12 w-12 rounded-2xl border-2 border-primary/10 text-primary hover:bg-primary hover:text-white transition-all active:scale-90 shadow-md"
+                          title="Sync to Calendar"
                         >
                           <a href={getGoogleCalendarUrl(activity)} target="_blank" rel="noopener noreferrer">
-                            <CalendarPlus className="h-4 w-4" />
+                            <CalendarPlus className="h-6 w-6" />
                           </a>
                         </Button>
 
                         {canManage && (
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                                <MoreVertical className="h-4 w-4" />
+                              <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl hover:bg-red-50 hover:text-red-600">
+                                <MoreVertical className="h-6 w-6" />
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent align="end" className="w-40 p-1">
-                              <Button variant="ghost" className="w-full justify-start text-xs font-bold text-destructive" onClick={() => handleDelete(activity.id)}>
-                                Cancel Activity
+                            <PopoverContent align="end" className="w-56 p-2 rounded-2xl shadow-2xl border-2">
+                              <Button variant="ghost" className="w-full justify-start text-xs font-black uppercase tracking-widest text-red-600 hover:bg-red-50" onClick={() => handleDelete(activity.id)}>
+                                Terminate Activity
                               </Button>
                             </PopoverContent>
                           </Popover>
@@ -464,39 +493,43 @@ export default function CalendarActivitiesPage() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-6">
-                    <p className="text-sm text-foreground/80 leading-relaxed font-medium italic mb-6">
-                      "{activity.description || "Official party directive. Ensure all attendees are verified and in possession of their Digital ID Card."}"
-                    </p>
+                  <CardContent className="p-8 pt-0">
+                    <div className="prose prose-lg max-w-none bg-white p-8 rounded-3xl border border-dashed border-primary/10 shadow-inner mb-8">
+                      <p className="text-lg text-foreground/80 leading-relaxed font-medium italic">
+                        "{activity.description || "Official party directive. Secure connection and Digital ID verification required for all participants."}"
+                      </p>
+                    </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {activity.meetingLink && (
-                        <Button asChild className="h-12 font-black uppercase tracking-widest bg-green-600 hover:bg-green-700 shadow-lg">
-                          <a href={activity.meetingLink} target="_blank" rel="noopener noreferrer">
-                            <Video className="mr-2 h-4 w-4" /> Join Virtual Meeting
+                        <Button asChild className="h-16 text-lg font-black uppercase tracking-widest bg-green-600 hover:bg-green-700 shadow-2xl rounded-2xl group overflow-hidden relative">
+                          <a href={activity.meetingLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-3 relative z-10">
+                            <Video className="h-6 w-6" /> 
+                            Join Secure Node
                           </a>
                         </Button>
                       )}
                       {activity.locationAddress && (
-                        <Button variant="outline" className="h-12 font-black uppercase tracking-widest border-primary/20 text-primary">
-                          <MapPin className="mr-2 h-4 w-4" /> {activity.locationAddress}
+                        <Button variant="outline" className="h-16 text-lg font-black uppercase tracking-widest border-4 border-primary/10 text-primary rounded-2xl shadow-xl hover:bg-primary/5">
+                          <MapPin className="mr-3 h-6 w-6 text-red-600" /> 
+                          <span className="truncate">{activity.locationAddress}</span>
                         </Button>
                       )}
                     </div>
                   </CardContent>
-                  <CardFooter className="bg-primary/5 border-t py-3 flex justify-between">
+                  <CardFooter className="bg-primary/5 p-6 flex justify-between items-center border-t border-primary/10">
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 leading-none">
-                        Organizer: {activity.organizerName}
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 leading-none">
+                        Deployment Authority: {activity.organizerName}
                       </span>
                       {activity.authorizedBy && (
-                        <span className="text-[8px] font-bold text-green-600 uppercase mt-1 flex items-center gap-1">
-                          <ShieldCheck className="h-2 w-2" /> Authorized by {activity.authorizedBy}
+                        <span className="text-[9px] font-black text-green-600 uppercase mt-2 flex items-center gap-2">
+                          <ShieldCheck className="h-3 w-3" /> Signed & Authorized by {activity.authorizedBy}
                         </span>
                       )}
                     </div>
-                    <Badge variant="outline" className="text-[8px] opacity-40 uppercase border-none">
-                      REF: {activity.id.substring(0, 8)}
+                    <Badge variant="outline" className="text-[10px] font-mono font-bold opacity-40 uppercase border-none">
+                      REG_ID: {activity.id.substring(0, 12).toUpperCase()}
                     </Badge>
                   </CardFooter>
                 </Card>
@@ -505,6 +538,8 @@ export default function CalendarActivitiesPage() {
           )}
         </div>
       </div>
+
+      <div className="fixed bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary animate-pulse z-50" />
     </div>
   );
 }
