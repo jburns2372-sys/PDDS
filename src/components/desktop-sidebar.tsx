@@ -16,7 +16,6 @@ const navItems = [
   { href: '/chat', label: 'PatriotHub', icon: Hexagon },
   { href: '/academy', label: 'PDDS Academy', icon: GraduationCap },
   { href: '/bantay-bayan', label: 'Bantay Bayan', icon: Eye },
-  { href: '/policies', label: 'Manifestos', icon: GraduationCap },
   { href: '/directory', label: 'Directory', icon: Users },
   { href: '/calendar', label: 'Activities', icon: Calendar },
   { href: '/agendas', label: 'Agendas', icon: BookText },
