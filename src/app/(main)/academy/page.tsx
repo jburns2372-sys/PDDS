@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -24,18 +25,22 @@ import {
   FileText,
   Image as ImageIcon,
   ExternalLink,
-  BookMarked
+  BookMarked,
+  Scale,
+  X
 } from "lucide-react";
 import { doc, setDoc, updateDoc, increment, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { AcademyPlayer } from "@/components/academy-player";
 import { CertificateDialog } from "@/components/certificate-dialog";
 import { PolicyQuizDialog } from "@/components/policy-quiz-dialog";
-import { policyCategories } from "@/lib/data";
+import { PillarHoverCard } from "@/components/pillar-hover-card";
+import { policyCategories, agendas } from "@/lib/data";
 
 /**
  * @fileOverview PDDS ACADEMY Training & Manifesto Hub.
  * Unified center for Leadership Track and Ideological Foundations.
+ * UPDATED: Added Strategic Pillars with hover functionality.
  */
 export default function AcademyPage() {
   const { user } = useUser();
@@ -43,15 +48,12 @@ export default function AcademyPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // --- Academy Track Data ---
   const { data: courses, loading: coursesLoading } = useCollection('courses');
   const { data: courseProgress, loading: progressLoading } = useCollection(`users/${user?.uid}/course_progress`);
 
-  // --- Policy/Manifesto Data ---
   const { data: policies, loading: policiesLoading } = useCollection('policies');
   const { data: userEngagements } = useCollection(`users/${user?.uid}/policy_engagement`);
 
-  // --- UI State ---
   const [activeTab, setActiveTab] = useState("leadership");
   const [activeCourse, setActiveCourse] = useState<any>(null);
   const [showCertificate, setShowCertificate] = useState(false);
@@ -138,7 +140,6 @@ export default function AcademyPage() {
   return (
     <div className="w-full space-y-12">
       
-      {/* Header - Maximized */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 border-b-8 border-emerald-600 pb-12">
         <div className="flex items-center gap-8">
           <div className="p-6 bg-emerald-600 text-white rounded-3xl shadow-2xl">
@@ -179,7 +180,6 @@ export default function AcademyPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* LEADERSHIP TRACK CONTENT */}
         <TabsContent value="leadership" className="animate-in fade-in duration-500">
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
             {courses.sort((a: any, b: any) => (a.order || 0) - (b.order || 0)).map((course: any) => {
@@ -226,19 +226,24 @@ export default function AcademyPage() {
                 </Card>
               );
             })}
-
-            {courses.length === 0 && (
-              <Card className="col-span-full p-32 text-center border-4 border-dashed bg-muted/20 rounded-[40px]">
-                <BookOpen className="h-24 w-24 text-muted-foreground/30 mx-auto mb-8" />
-                <p className="text-2xl text-muted-foreground font-black uppercase tracking-widest">No leadership modules currently deployed.</p>
-              </Card>
-            )}
           </div>
         </TabsContent>
 
-        {/* IDEOLOGY & MANIFESTOS CONTENT */}
-        <TabsContent value="ideology" className="animate-in fade-in duration-500 space-y-10">
-          <div className="flex flex-col md:flex-row gap-6 items-center">
+        <TabsContent value="ideology" className="animate-in fade-in duration-500 space-y-12">
+          
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <Scale className="h-6 w-6 text-emerald-600" />
+              <h2 className="text-2xl font-black font-headline text-primary uppercase tracking-tight">National Platform Pillars</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {agendas.map((pillar) => (
+                <PillarHoverCard key={pillar.title} pillar={pillar} />
+              ))}
+            </div>
+          </section>
+
+          <div className="flex flex-col md:flex-row gap-6 items-center pt-6 border-t border-emerald-100">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input 
@@ -358,11 +363,5 @@ export default function AcademyPage() {
         onComplete={() => {}}
       />
     </div>
-  );
-}
-
-function X({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
   );
 }

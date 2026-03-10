@@ -52,8 +52,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * @fileOverview Full-Scale National Mobilization Calendar.
- * REFACTORED: Full-width grid layout with perfect day-to-date alignment.
- * RBAC: Presidential sign-off required for all public events.
+ * FIXED: Perfectly center-aligned days to dates.
  */
 
 const NCR_CODE = "130000000";
@@ -63,18 +62,15 @@ export default function CalendarActivitiesPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Data Stream - Fetches authorized activities
   const { data: activities, loading } = useCollection('calendar_activities', {
     queries: [{ attribute: 'isAuthorized', operator: '==', value: true }]
   });
 
-  // UI State
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [filter, setFilter] = useState<'smart' | 'all' | 'national' | 'region'>('smart');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form State
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -84,7 +80,6 @@ export default function CalendarActivitiesPage() {
   const [meetingLink, setMeetingLink] = useState("");
   const [locationAddress, setLocationAddress] = useState("");
 
-  // Location Data State
   const [provinces, setProvinces] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
 
@@ -334,7 +329,6 @@ export default function CalendarActivitiesPage() {
 
       <div className="p-4 md:p-10 max-w-7xl mx-auto w-full space-y-10">
         
-        {/* FULL CALENDAR GRID */}
         <Card className="shadow-2xl border-none overflow-hidden bg-white rounded-[32px]">
           <CardHeader className="bg-primary p-8 text-white relative">
             <div className="absolute inset-0 opacity-10 pointer-events-none">
@@ -364,7 +358,7 @@ export default function CalendarActivitiesPage() {
             </div>
           </CardHeader>
           <CardContent className="p-0 md:p-8 flex justify-center bg-muted/5">
-            <div className="w-full max-w-4xl scale-100 md:scale-110 lg:scale-125 transform transition-transform py-12 md:py-24">
+            <div className="w-full max-w-4xl py-12 md:py-24">
               <Calendar
                 mode="single"
                 selected={selectedDate}
@@ -377,9 +371,9 @@ export default function CalendarActivitiesPage() {
                   head_row: "flex justify-between w-full mb-4",
                   head_cell: "text-primary/40 rounded-md w-12 font-black uppercase text-[10px] tracking-widest text-center",
                   row: "flex w-full justify-between mt-2",
-                  cell: "h-14 w-14 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+                  cell: "h-14 w-14 text-center text-sm p-0 relative focus-within:relative focus-within:z-20 flex items-center justify-center",
                   day: cn(
-                    "h-14 w-14 p-0 font-bold aria-selected:opacity-100 rounded-2xl transition-all hover:bg-primary/5 active:scale-90"
+                    "h-12 w-12 p-0 font-bold aria-selected:opacity-100 rounded-2xl transition-all hover:bg-primary/5 active:scale-90 flex items-center justify-center text-center mx-auto"
                   ),
                   day_selected: "bg-primary text-white hover:bg-primary hover:text-white focus:bg-primary focus:text-white shadow-lg",
                   day_today: "bg-accent/20 text-primary border-2 border-accent/50",
@@ -399,7 +393,6 @@ export default function CalendarActivitiesPage() {
           </CardContent>
         </Card>
 
-        {/* DAILY BRIEFING LIST */}
         <div className="space-y-6 animate-in fade-in duration-700">
           <div className="flex items-center justify-between px-2">
             <h2 className="text-2xl font-black font-headline text-primary uppercase tracking-tight flex items-center gap-4">
