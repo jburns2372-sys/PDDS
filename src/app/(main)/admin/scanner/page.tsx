@@ -2,177 +2,180 @@
 
 import { useState } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
-import { useCollection, useFirestore, useUser } from "@/firebase";
-import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useFirestore } from "@/firebase";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { QrCode, AlertTriangle, Loader2, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2, QrCode, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 
-/**
- * @fileOverview Secure Event Attendance Scanner.
- * Strictly restricted to leadership roles for mobilization tracking.
- */
-export default function EventScannerPage() {
-  const firestore = useFirestore();
-  const { user: currentUser } = useUser();
-  const { toast } = useToast();
+export default function QuickScanCollector() {
+  const [scannedUid, setScannedUid] = useState<string | null>(null);
+  const [member, setMember] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  const { data: events, loading: eventsLoading } = useCollection('meeting_agendas');
-  const [selectedEventId, setSelectedEventId] = useState<string>("");
-  const [isScanning, setIsScanning] = useState(true);
-  const [lastScanned, setLastScanned] = useState<any>(null);
-  const [scanStatus, setScanStatus] = useState<'success' | 'error' | null>(null);
+  const firestore = useFirestore();
+  const { toast } = useToast();
 
-  const handleScan = async (result: any) => {
-    if (!result || !isScanning || !selectedEventId) return;
+  const handleScan = async (detectedCodes: any[]) => {
+    // Prevent double-scanning while already processing a result
+    if (scannedUid || loading || detectedCodes.length === 0) return;
     
-    setIsScanning(false);
-    const scannedUid = result[0].rawValue;
+    const uid = detectedCodes[0].rawValue;
+    if (!uid || uid === 'PDDS-GUEST') {
+      setError("Invalid QR Code or Guest Pass scanned.");
+      return;
+    }
+
+    setScannedUid(uid);
+    setLoading(true);
+    setError(null);
 
     try {
-      // 1. Verify User
-      const userRef = doc(firestore, "users", scannedUid);
+      const userRef = doc(firestore, "users", uid);
       const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        setScanStatus('error');
-        toast({ variant: "destructive", title: "Invalid ID", description: "Not found in registry." });
-        resumeScanning();
-        return;
+      
+      if (userSnap.exists()) {
+        setMember({ id: userSnap.id, ...userSnap.data() });
+      } else {
+        setError("Member not found in the Official Registry.");
       }
-
-      const memberData = userSnap.data();
-      if (memberData.isApproved === false) {
-        setScanStatus('error');
-        toast({ variant: "destructive", title: "Access Revoked", description: "Account suspended." });
-        resumeScanning();
-        return;
-      }
-
-      // 2. Record Attendance
-      await addDoc(collection(firestore, "attendance"), {
-        eventId: selectedEventId,
-        userId: scannedUid,
-        scannedBy: currentUser?.uid || 'System',
-        timestamp: serverTimestamp(),
-      });
-
-      // 3. Feedback
-      setLastScanned(memberData);
-      setScanStatus('success');
-      toast({ title: "Verified", description: `${memberData.fullName} checked in.` });
-
-      resumeScanning();
-    } catch (error: any) {
-      setScanStatus('error');
-      toast({ variant: "destructive", title: "Scan Failed", description: error.message });
-      resumeScanning();
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError("Database connection error.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const resumeScanning = () => {
-    setTimeout(() => {
-      setIsScanning(true);
-      setScanStatus(null);
-    }, 2500);
+  const handleMarkPaid = async () => {
+    if (!member?.id) return;
+    setProcessingPayment(true);
+
+    try {
+      const userRef = doc(firestore, "users", member.id);
+      await updateDoc(userRef, {
+        lastDuesPaymentDate: serverTimestamp(),
+        membershipStatus: "Active"
+      });
+
+      // Update local UI immediately
+      setMember({ ...member, membershipStatus: "Active", lastDuesPaymentDate: new Date() });
+      
+      toast({ 
+        title: "PAYMENT RECORDED", 
+        description: `${member.fullName}'s ID is now Active.`,
+        className: "bg-green-50 border-green-200"
+      });
+    } catch (err) {
+      console.error("Payment update failed:", err);
+      toast({ title: "ERROR", description: "Could not record payment.", variant: "destructive" });
+    } finally {
+      setProcessingPayment(false);
+    }
   };
 
+  const handleReset = () => {
+    setScannedUid(null);
+    setMember(null);
+    setError(null);
+  };
+
+  // Status Calculation Logic
+  const currentYear = new Date().getFullYear();
+  const lastPaymentYear = member?.lastDuesPaymentDate?.toDate?.()?.getFullYear() || 
+                          (member?.lastDuesPaymentDate instanceof Date ? member.lastDuesPaymentDate.getFullYear() : null);
+  const hasPaidCurrentYear = lastPaymentYear === currentYear;
+
   return (
-    <div className="p-6 bg-background min-h-screen pb-32">
-      <div className="max-w-md mx-auto space-y-6">
-        <div className="flex items-center gap-4 border-b-2 border-primary pb-4">
-          <div className="p-3 bg-primary text-primary-foreground rounded-lg shadow-inner">
-            <QrCode className="h-8 w-8" />
+    <div className="max-w-md mx-auto p-4 space-y-6">
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-black uppercase tracking-tighter text-[#002366]">
+          QR Collector
+        </h2>
+        <p className="text-sm font-bold text-slate-400 tracking-widest uppercase">
+          Point Camera at Digital ID
+        </p>
+      </div>
+
+      {!scannedUid && !error && (
+        <div className="rounded-[32px] overflow-hidden border-4 border-[#002366] shadow-2xl bg-black relative aspect-square flex items-center justify-center">
+          <Scanner 
+            onScan={handleScan}
+            components={{ audio: true, finder: true }}
+            options={{ delayBetweenScanAttempts: 1000 }}
+          />
+          {/* Overlay scanning graphic */}
+          <div className="absolute inset-0 border-[8px] border-[#B8860B]/30 m-8 rounded-3xl pointer-events-none animate-pulse" />
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[32px] border shadow-sm">
+          <Loader2 className="animate-spin h-16 w-16 text-[#002366] mb-4" />
+          <p className="font-bold text-slate-400 uppercase tracking-widest">Verifying Patriot...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="p-8 bg-red-50 border-2 border-red-100 rounded-[32px] text-center space-y-4 shadow-sm">
+          <XCircle className="h-16 w-16 text-red-500 mx-auto" />
+          <p className="text-lg font-black text-red-700 uppercase">{error}</p>
+          <Button onClick={handleReset} className="w-full bg-red-600 hover:bg-red-700 rounded-xl h-12 uppercase font-black tracking-widest">
+            Scan Again
+          </Button>
+        </div>
+      )}
+
+      {member && !loading && (
+        <div className="bg-white rounded-[32px] border-2 border-slate-100 shadow-xl overflow-hidden flex flex-col">
+          <div className="p-8 pb-4 text-center border-b border-slate-100 bg-slate-50">
+            <h3 className="text-3xl font-black text-[#002366] uppercase leading-none tracking-tighter">
+              {member.fullName}
+            </h3>
+            <p className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">
+              {member.city || "National"} Chapter
+            </p>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-primary font-headline uppercase tracking-tight">Access Control</h1>
-            <p className="text-muted-foreground text-xs font-medium">Verify Digital ID Cards for Mobilization.</p>
+
+          <div className="p-8 flex flex-col items-center space-y-6">
+            {hasPaidCurrentYear ? (
+              <div className="flex flex-col items-center space-y-3">
+                <CheckCircle className="h-20 w-20 text-green-500" />
+                <Badge className="bg-green-100 text-green-800 border-none px-6 py-2 text-lg font-black uppercase tracking-widest">
+                  Active Member {currentYear}
+                </Badge>
+                <p className="text-xs font-bold text-slate-400 uppercase">Dues Cleared</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center space-y-3 w-full">
+                <AlertCircle className="h-20 w-20 text-red-500 animate-pulse" />
+                <Badge className="bg-red-100 text-red-800 border-none px-6 py-2 text-lg font-black uppercase tracking-widest">
+                  Pending Dues
+                </Badge>
+                
+                <Button 
+                  onClick={handleMarkPaid}
+                  disabled={processingPayment}
+                  className="w-full mt-4 h-16 bg-[#B8860B] hover:bg-[#966d09] text-white rounded-2xl font-black text-xl tracking-widest shadow-xl transition-all active:scale-95"
+                >
+                  {processingPayment ? <Loader2 className="animate-spin h-8 w-8" /> : "RECORD PAYMENT"}
+                </Button>
+              </div>
+            )}
+            
+            <Button 
+              variant="outline" 
+              onClick={handleReset} 
+              className="w-full h-14 rounded-2xl border-2 border-slate-200 text-slate-500 font-black uppercase tracking-widest hover:bg-slate-50"
+            >
+              <QrCode className="mr-3 h-6 w-6" /> Next Scan
+            </Button>
           </div>
         </div>
-
-        <Card className="shadow-xl border-t-4 border-primary overflow-hidden">
-          <CardHeader className="bg-primary/5 pb-4">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-primary">
-              <ShieldCheck className="h-4 w-4" />
-              Event Synchronization
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase text-muted-foreground">Select Deployment</label>
-              <Select onValueChange={setSelectedEventId} value={selectedEventId}>
-                <SelectTrigger className="h-12 font-bold"><SelectValue placeholder={eventsLoading ? "Loading..." : "Choose Event"} /></SelectTrigger>
-                <SelectContent>
-                  {events.map((e: any) => <SelectItem key={e.id} value={e.id} className="font-bold">{e.title}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {!selectedEventId && (
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
-                <p className="text-xs font-bold text-amber-800 leading-tight">Select an active event above to authorize the scanner.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {selectedEventId && (
-          <div className="space-y-6">
-            <div className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl border-4 border-white ring-4 ring-primary/10">
-              {isScanning ? (
-                <Scanner 
-                  onScan={handleScan}
-                  allowMultiple={false}
-                  constraints={{ facingMode: "environment" }}
-                  styles={{ container: { width: '100%', height: '100%' } }}
-                />
-              ) : (
-                <div className={`absolute inset-0 flex flex-col items-center justify-center text-white p-8 text-center space-y-4 transition-colors ${scanStatus === 'success' ? 'bg-green-600/90' : 'bg-destructive/90'}`}>
-                  {scanStatus === 'success' ? (
-                    <>
-                      <CheckCircle2 className="h-20 w-20 animate-bounce" />
-                      <div className="space-y-1">
-                        <p className="text-xl font-black uppercase">{lastScanned?.fullName}</p>
-                        <p className="text-[10px] font-black tracking-widest opacity-80 uppercase">Access Authorized</p>
-                      </div>
-                    </>
-                  ) : scanStatus === 'error' ? (
-                    <>
-                      <XCircle className="h-20 w-20" />
-                      <p className="text-xl font-black uppercase">Unauthorized</p>
-                    </>
-                  ) : (
-                    <Loader2 className="h-12 w-12 animate-spin opacity-50" />
-                  )}
-                </div>
-              )}
-              
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-white/50 rounded-xl" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-0.5 bg-accent/50 animate-pulse" />
-              </div>
-            </div>
-
-            {lastScanned && scanStatus === 'success' && (
-              <Card className="bg-white/50 backdrop-blur-sm border-dashed border-2 animate-in fade-in slide-in-from-top-2">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary">
-                    {lastScanned.fullName?.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-black uppercase text-primary leading-none">{lastScanned.fullName}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">{lastScanned.role} • {lastScanned.city}</p>
-                  </div>
-                  <Badge className="bg-green-600 font-black text-[8px]">VERIFIED</Badge>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

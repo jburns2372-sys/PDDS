@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useState, useEffect } from "react";
@@ -10,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useUser, useFirestore } from "@/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { PDDS_LOGO_URL } from "@/lib/data";
+import { PayDuesButton } from "./pay-dues-button"; // <-- 1. IMPORT ADDED
 
 /**
  * @fileOverview Master Patriot Digital ID (Compact Safe Edition).
@@ -22,6 +22,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
 
   const [idPhoto, setIdPhoto] = useState<string | null>(null);
   const [dbUserData, setDbUserData] = useState<any>(null);
+  const [duesAmount, setDuesAmount] = useState<number>(0); // <-- 2. AMOUNT STATE ADDED
   const [fetching, setFetching] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
@@ -32,6 +33,8 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
       if (!user?.uid) return;
       try {
         setFetching(true);
+        
+        // Fetch User Data
         const userRef = doc(firestore, "users", user.uid);
         const userSnap = await getDoc(userRef).catch(() => null);
         if (userSnap?.exists()) {
@@ -39,6 +42,14 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           setDbUserData(data);
           setIdPhoto(data.photoURL || null);
         }
+
+        // Fetch Global Dues Amount
+        const settingsRef = doc(firestore, "metadata", "settings");
+        const settingsSnap = await getDoc(settingsRef).catch(() => null);
+        if (settingsSnap?.exists()) {
+          setDuesAmount(settingsSnap.data().yearlyDuesAmount || 0);
+        }
+
       } catch (err) {
         console.error("Registry identity fetch failed:", err);
       } finally {
@@ -77,6 +88,8 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   // Dues Compliance Logic: Check if payment was made in the current calendar year
   const lastPaymentDate = dbUserData?.lastDuesPaymentDate?.toDate ? dbUserData.lastDuesPaymentDate.toDate() : null;
   const isDuesActive = lastPaymentDate && lastPaymentDate.getFullYear() === new Date().getFullYear();
+  // Only show the payment button if they are an Official Member and haven't paid
+  const showPaymentButton = patriotRank === "Official Member" && !isDuesActive && !fetching;
 
   const getBorderStyles = () => {
     switch (vettingTier) {
@@ -156,6 +169,11 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         <div className="relative z-10 w-full mb-3">
           {fetching ? (
             <div className="h-6 w-full bg-slate-50 animate-pulse rounded-lg" />
+          ) : patriotRank !== "Official Member" ? (
+             <div className="bg-slate-200 text-slate-600 py-1 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm border border-slate-300">
+              <ShieldCheck className="h-2.5 w-2.5" />
+              <span className="text-[8px] font-black uppercase tracking-[0.1em]">Status: Supporter</span>
+            </div>
           ) : isDuesActive ? (
             <div className="bg-emerald-600 text-white py-1 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-lg border border-white/20">
               <CheckCircle2 className="h-2.5 w-2.5" />
@@ -203,6 +221,15 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           </div>
         </div>
       </div>
+
+      {/* 3. INJECTED PAYMENT BUTTON (OUTSIDE THE ID CARD) */}
+      {showPaymentButton && (
+        <PayDuesButton 
+          userId={user?.uid || ""}
+          userName={displayName}
+          amount={duesAmount}
+        />
+      )}
 
       <Button 
         onClick={handleSaveToGallery} 
