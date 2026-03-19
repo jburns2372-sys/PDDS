@@ -10,19 +10,20 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, RefreshCw, ShieldCheck, Loader2, Landmark } from "lucide-react";
+import { CreditCard, RefreshCw, Loader2, Landmark } from "lucide-react";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 /**
  * @fileOverview Admin Dues Management Component.
- * Allows executives to set the yearly membership dues amount.
+ * Authorized for Treasurer and Executive roles.
  */
 export function DuesManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
   const [amount, setAmount] = useState<number>(0);
+  const [currency, setCurrency] = useState<string>("PHP");
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
@@ -32,7 +33,9 @@ export function DuesManagement() {
         const docRef = doc(firestore, "metadata", "settings");
         const snap = await getDoc(docRef);
         if (snap.exists()) {
-          setAmount(snap.data().yearlyDuesAmount || 0);
+          const data = snap.data();
+          setAmount(data.yearlyDuesAmount || 0);
+          setCurrency(data.currency || "PHP");
         }
       } catch (error: any) {
         console.error("Failed to fetch dues setting:", error);
@@ -48,12 +51,13 @@ export function DuesManagement() {
     const settingsRef = doc(firestore, "metadata", "settings");
     const data = {
       yearlyDuesAmount: amount,
+      currency: currency.toUpperCase(),
       lastUpdated: serverTimestamp()
     };
 
     try {
       await setDoc(settingsRef, data, { merge: true });
-      toast({ title: "Dues Calibrated", description: `National Yearly Dues set to ₱${amount.toLocaleString()}.` });
+      toast({ title: "Dues Calibrated", description: `National Yearly Dues set to ${data.currency} ${amount.toLocaleString()}.` });
     } catch (error: any) {
       const permissionError = new FirestorePermissionError({
         path: settingsRef.path,
@@ -78,12 +82,12 @@ export function DuesManagement() {
 
   return (
     <Card className="shadow-xl border-t-4 border-accent bg-white overflow-hidden">
-      <CardHeader className="bg-primary/5 pb-4">
+      <CardHeader className="bg-primary/5 pb-4 border-b">
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
               <Landmark className="h-4 w-4 text-accent" />
-              Membership Dues Protocol
+              Dues Command Terminal
             </CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase mt-1">
               National Financial Governance
@@ -93,21 +97,32 @@ export function DuesManagement() {
         </div>
       </CardHeader>
       <CardContent className="pt-6 space-y-4">
-        <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase text-primary/60">Current Yearly Dues (PHP)</Label>
-          <div className="relative">
-            <CreditCard className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase text-primary/60">Yearly Dues</Label>
+            <div className="relative">
+              <CreditCard className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                type="number" 
+                value={amount} 
+                onChange={(e) => setAmount(Number(e.target.value))}
+                className="h-12 pl-10 border-2 font-black text-lg focus:border-accent"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase text-primary/60">Currency</Label>
             <Input 
-              type="number" 
-              value={amount} 
-              onChange={(e) => setAmount(Number(e.target.value))}
-              className="h-12 pl-10 border-2 font-black text-lg focus:border-accent transition-all"
-              placeholder="0.00"
+              value={currency} 
+              onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+              className="h-12 border-2 font-black text-lg focus:border-accent"
+              placeholder="PHP"
             />
           </div>
         </div>
         <p className="text-[9px] font-medium text-muted-foreground italic leading-relaxed">
-          "Updating this value will instantly synchronize the 'Payment Required' status on all non-compliant Digital ID cards nationwide."
+          "Updating these values will instantly re-evaluate the 'PENDING DUES' status on Digital ID cards nationwide for the current cycle."
         </p>
       </CardContent>
       <CardFooter className="bg-muted/30 border-t pt-4">
@@ -117,7 +132,7 @@ export function DuesManagement() {
           className="w-full h-12 font-black uppercase tracking-widest shadow-lg text-xs"
         >
           {updating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-          Commit New Amount
+          Commit Registry Change
         </Button>
       </CardFooter>
     </Card>

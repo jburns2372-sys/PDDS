@@ -40,7 +40,7 @@
         },
         "meritPoints": { "type": "number", "default": 0 },
         "referralCount": { "type": "number", "default": 0 },
-        "lastDuesYearPaid": { "type": "number", "description": "The last year for which membership dues were settled." },
+        "lastDuesPaymentDate": { "type": "string", "format": "date-time", "description": "The exact timestamp of the last successful membership dues payment." },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "fullName", "role"]
@@ -51,6 +51,7 @@
       "type": "object",
       "properties": {
         "yearlyDuesAmount": { "type": "number", "default": 100 },
+        "currency": { "type": "string", "default": "PHP" },
         "lastUpdated": { "type": "string", "format": "date-time" }
       }
     },

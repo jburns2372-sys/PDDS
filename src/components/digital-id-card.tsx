@@ -5,7 +5,7 @@ import { useRef, useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, ShieldCheck, Loader2, CreditCard, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Download, ShieldCheck, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useFirestore } from "@/firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -13,7 +13,7 @@ import { PDDS_LOGO_URL } from "@/lib/data";
 
 /**
  * @fileOverview Master Patriot Digital ID (Compact Safe Edition).
- * UPDATED: Dynamic Yearly Dues synchronization and compliance status.
+ * Features real-time status verification for membership dues compliance.
  */
 export function DigitalIdCard({ userData: initialUserData }: { userData: any }) {
   const { user } = useUser();
@@ -22,33 +22,22 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
 
   const [idPhoto, setIdPhoto] = useState<string | null>(null);
   const [dbUserData, setDbUserData] = useState<any>(null);
-  const [duesAmount, setDuesAmount] = useState<number | null>(null);
   const [fetching, setFetching] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
   const DEFAULT_SILHOUETTE = "https://firebasestorage.googleapis.com/v0/b/patriot-link-production.firebasestorage.app/o/assets%2Fpatriot-silhouette.png?alt=media";
-  const CURRENT_YEAR = 2026;
-
+  
   useEffect(() => {
     async function forceLoadIdentity() {
       if (!user?.uid) return;
       try {
         setFetching(true);
-        
-        // 1. Fetch User Data
         const userRef = doc(firestore, "users", user.uid);
         const userSnap = await getDoc(userRef).catch(() => null);
         if (userSnap?.exists()) {
           const data = userSnap.data();
           setDbUserData(data);
           setIdPhoto(data.photoURL || null);
-        }
-
-        // 2. Fetch Yearly Dues Protocol
-        const settingsRef = doc(firestore, "metadata", "settings");
-        const settingsSnap = await getDoc(settingsRef).catch(() => null);
-        if (settingsSnap?.exists()) {
-          setDuesAmount(settingsSnap.data().yearlyDuesAmount);
         }
       } catch (err) {
         console.error("Registry identity fetch failed:", err);
@@ -64,7 +53,6 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
 
     try {
       const html2canvas = (await import("html2canvas")).default;
-
       const canvas = await html2canvas(cardRef.current, {
         scale: 3,
         useCORS: true,
@@ -86,14 +74,14 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   const patriotRank = dbUserData?.role || initialUserData?.role || "Regional Member";
   const isVerified = dbUserData?.isVerified || initialUserData?.isVerified;
   
-  // Dues Logic: Check if user settled dues for the operational year
-  const duesSettled = dbUserData?.lastDuesYearPaid === CURRENT_YEAR;
+  // Dues Compliance Logic: Check if payment was made in the current calendar year
+  const lastPaymentDate = dbUserData?.lastDuesPaymentDate?.toDate ? dbUserData.lastDuesPaymentDate.toDate() : null;
+  const isDuesActive = lastPaymentDate && lastPaymentDate.getFullYear() === new Date().getFullYear();
 
   const getBorderStyles = () => {
     switch (vettingTier) {
       case 'Gold': return "border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.2)]";
       case 'Silver': return "border-slate-300 shadow-md";
-      case 'Bronze':
       default: return "border-slate-100 shadow-sm";
     }
   };
@@ -107,10 +95,10 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         {/* Security Watermark */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <pattern id="id-grid-compact" width="25" height="25" patternUnits="userSpaceOnUse">
+            <pattern id="id-grid-final" width="25" height="25" patternUnits="userSpaceOnUse">
               <path d="M 25 0 L 0 0 0 25" fill="none" stroke="currentColor" strokeWidth="0.5"/>
             </pattern>
-            <rect width="100%" height="100%" fill="url(#id-grid-compact)" />
+            <rect width="100%" height="100%" fill="url(#id-grid-final)" />
           </svg>
         </div>
   
@@ -135,7 +123,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         </div>
   
         {/* Biometric Node */}
-        <div className="flex flex-col items-center justify-center relative z-10 w-full mb-2">
+        <div className="flex flex-col items-center justify-center relative z-10 w-full mb-3">
           <div className="relative">
             <div className={cn(
               "w-[140px] h-[140px] rounded-[24px] overflow-hidden bg-slate-50 border-[4px] transition-all shadow-md",
@@ -152,7 +140,6 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
                   alt={displayName} 
                   className="w-full h-full object-cover object-center"
                   crossOrigin="anonymous"
-                  loading="eager"
                   onError={() => setLoadError(true)}
                 />
               )}
@@ -165,16 +152,20 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           </div>
         </div>
 
-        {/* COMPLIANCE STATUS OVERLAY (Centered) */}
-        <div className="relative z-10 w-full flex justify-center -mt-2 mb-2">
-          {fetching ? null : duesSettled ? (
-            <Badge className="bg-emerald-600 text-white border-white border-2 text-[7px] font-black uppercase tracking-widest shadow-lg py-1 px-3">
-              <CheckCircle2 className="h-2 w-2 mr-1" /> Active Member - {CURRENT_YEAR}
-            </Badge>
+        {/* STATUS BAR: DYNAMIC DUES COMPLIANCE */}
+        <div className="relative z-10 w-full mb-3">
+          {fetching ? (
+            <div className="h-6 w-full bg-slate-50 animate-pulse rounded-lg" />
+          ) : isDuesActive ? (
+            <div className="bg-emerald-600 text-white py-1 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-lg border border-white/20">
+              <CheckCircle2 className="h-2.5 w-2.5" />
+              <span className="text-[8px] font-black uppercase tracking-[0.1em]">Status: Active</span>
+            </div>
           ) : (
-            <Badge variant="destructive" className="border-white border-2 text-[7px] font-black uppercase tracking-widest shadow-lg py-1 px-3 animate-pulse">
-              <AlertCircle className="h-2 w-2 mr-1" /> Payment Required
-            </Badge>
+            <div className="bg-red-600 text-white py-1 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-lg border border-white/20 animate-pulse">
+              <AlertCircle className="h-2.5 w-2.5" />
+              <span className="text-[8px] font-black uppercase tracking-[0.1em]">Status: Pending Dues</span>
+            </div>
           )}
         </div>
   
@@ -213,14 +204,12 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         </div>
       </div>
 
-      <div className="w-full flex flex-col gap-2">
-        <Button 
-          onClick={handleSaveToGallery} 
-          className="w-full h-11 bg-[#002366] hover:bg-[#001a4d] text-white font-black uppercase tracking-widest shadow-md rounded-xl text-[10px]"
-        >
-          <Download className="mr-2 h-4 w-4 text-accent" /> Export Card
-        </Button>
-      </div>
+      <Button 
+        onClick={handleSaveToGallery} 
+        className="w-full h-11 bg-[#002366] hover:bg-[#001a4d] text-white font-black uppercase tracking-widest shadow-md rounded-xl text-[10px]"
+      >
+        <Download className="mr-2 h-4 w-4 text-accent" /> Export Card
+      </Button>
     </div>
   );
 }
