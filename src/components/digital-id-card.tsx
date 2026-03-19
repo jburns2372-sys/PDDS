@@ -8,12 +8,13 @@ import { Download, ShieldCheck, Loader2, AlertCircle, CheckCircle2 } from "lucid
 import { cn } from "@/lib/utils";
 import { useUser, useFirestore } from "@/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { PDDS_LOGO_URL } from "@/lib/data";
+import { PDDS_LOGO_URL, pddsLeadershipRoles } from "@/lib/data";
 import { PayDuesButton } from "./pay-dues-button";
 
 /**
  * @fileOverview Master Patriot Digital ID (Compact Safe Edition).
  * Refined dimensions for standard laptop viewports.
+ * UPDATED: Automatic 'Active' status override for Officers/Leadership.
  */
 export function DigitalIdCard({ userData: initialUserData }: { userData: any }) {
   const { user } = useUser();
@@ -79,8 +80,15 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   const patriotRank = dbUserData?.role || initialUserData?.role || "Regional Member";
   const isVerified = dbUserData?.isVerified || initialUserData?.isVerified;
   
+  // LOGIC: Check if user is an Officer or in a Leadership position
+  const isOfficer = pddsLeadershipRoles.includes(patriotRank) || patriotRank === "Officer" || patriotRank === "Admin" || patriotRank === "System Admin";
+  
   const lastPaymentDate = dbUserData?.lastDuesPaymentDate?.toDate ? dbUserData.lastDuesPaymentDate.toDate() : null;
-  const isDuesActive = lastPaymentDate && lastPaymentDate.getFullYear() === new Date().getFullYear();
+  
+  // LOGIC: Status is ACTIVE if user is an Officer OR has paid current year dues
+  const isDuesActive = isOfficer || (lastPaymentDate && lastPaymentDate.getFullYear() === new Date().getFullYear());
+  
+  // LOGIC: Only show payment button for regular members who haven't paid
   const showPaymentButton = patriotRank === "Official Member" && !isDuesActive && !fetching;
 
   const getBorderStyles = () => {
@@ -157,7 +165,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         <div className="relative z-10 w-full mb-2">
           {fetching ? (
             <div className="h-5 w-full bg-slate-50 animate-pulse rounded-lg" />
-          ) : patriotRank !== "Official Member" ? (
+          ) : patriotRank === "Supporter" ? (
              <div className="bg-slate-200 text-slate-600 py-0.5 px-2 rounded-lg flex items-center justify-center gap-1 border border-slate-300">
               <ShieldCheck className="h-2 w-2" />
               <span className="text-[7px] font-black uppercase tracking-[0.1em]">Status: Supporter</span>
