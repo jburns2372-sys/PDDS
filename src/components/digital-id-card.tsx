@@ -9,11 +9,11 @@ import { cn } from "@/lib/utils";
 import { useUser, useFirestore } from "@/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { PDDS_LOGO_URL } from "@/lib/data";
-import { PayDuesButton } from "./pay-dues-button"; // <-- 1. IMPORT ADDED
+import { PayDuesButton } from "./pay-dues-button";
 
 /**
  * @fileOverview Master Patriot Digital ID (Compact Safe Edition).
- * Features real-time status verification for membership dues compliance.
+ * Refined dimensions for standard laptop viewports.
  */
 export function DigitalIdCard({ userData: initialUserData }: { userData: any }) {
   const { user } = useUser();
@@ -22,7 +22,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
 
   const [idPhoto, setIdPhoto] = useState<string | null>(null);
   const [dbUserData, setDbUserData] = useState<any>(null);
-  const [duesAmount, setDuesAmount] = useState<number>(0); // <-- 2. AMOUNT STATE ADDED
+  const [duesAmount, setDuesAmount] = useState<number>(0);
   const [fetching, setFetching] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
@@ -33,8 +33,6 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
       if (!user?.uid) return;
       try {
         setFetching(true);
-        
-        // Fetch User Data
         const userRef = doc(firestore, "users", user.uid);
         const userSnap = await getDoc(userRef).catch(() => null);
         if (userSnap?.exists()) {
@@ -42,14 +40,11 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           setDbUserData(data);
           setIdPhoto(data.photoURL || null);
         }
-
-        // Fetch Global Dues Amount
         const settingsRef = doc(firestore, "metadata", "settings");
         const settingsSnap = await getDoc(settingsRef).catch(() => null);
         if (settingsSnap?.exists()) {
           setDuesAmount(settingsSnap.data().yearlyDuesAmount || 0);
         }
-
       } catch (err) {
         console.error("Registry identity fetch failed:", err);
       } finally {
@@ -61,7 +56,6 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
 
   const handleSaveToGallery = async () => {
     if (typeof window === "undefined" || !cardRef.current) return;
-
     try {
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(cardRef.current, {
@@ -85,66 +79,61 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   const patriotRank = dbUserData?.role || initialUserData?.role || "Regional Member";
   const isVerified = dbUserData?.isVerified || initialUserData?.isVerified;
   
-  // Dues Compliance Logic: Check if payment was made in the current calendar year
   const lastPaymentDate = dbUserData?.lastDuesPaymentDate?.toDate ? dbUserData.lastDuesPaymentDate.toDate() : null;
   const isDuesActive = lastPaymentDate && lastPaymentDate.getFullYear() === new Date().getFullYear();
-  // Only show the payment button if they are an Official Member and haven't paid
   const showPaymentButton = patriotRank === "Official Member" && !isDuesActive && !fetching;
 
   const getBorderStyles = () => {
     switch (vettingTier) {
-      case 'Gold': return "border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.2)]";
+      case 'Gold': return "border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.2)]";
       case 'Silver': return "border-slate-300 shadow-md";
       default: return "border-slate-100 shadow-sm";
     }
   };
 
   return (
-    <div className="flex flex-col gap-3 items-center w-full max-w-[320px] mx-auto">
+    <div className="flex flex-col gap-2 items-center w-full max-w-[280px] mx-auto">
       <div 
         ref={cardRef} 
-        className="w-full aspect-[1/1.4] overflow-hidden rounded-[20px] shadow-2xl bg-white text-slate-900 relative flex flex-col p-4 border border-slate-100"
+        className="w-full aspect-[1/1.4] overflow-hidden rounded-[16px] shadow-2xl bg-white text-slate-900 relative flex flex-col p-3 border border-slate-100"
       >
-        {/* Security Watermark */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <pattern id="id-grid-final" width="25" height="25" patternUnits="userSpaceOnUse">
-              <path d="M 25 0 L 0 0 0 25" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+            <pattern id="id-grid-compact" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" strokeWidth="0.5"/>
             </pattern>
-            <rect width="100%" height="100%" fill="url(#id-grid-final)" />
+            <rect width="100%" height="100%" fill="url(#id-grid-compact)" />
           </svg>
         </div>
   
-        {/* Header Section */}
-        <div className="flex justify-between items-center relative z-10 w-full mb-2">
-          <div className="flex items-center gap-2">
+        <div className="flex justify-between items-center relative z-10 w-full mb-1">
+          <div className="flex items-center gap-1.5">
             <img 
               src={PDDS_LOGO_URL} 
               alt="PDDS" 
-              className="h-[36px] w-auto object-contain" 
+              className="h-[30px] w-auto object-contain" 
               crossOrigin="anonymous"
               style={{ mixBlendMode: 'multiply' }} 
             />
             <div className="flex flex-col justify-center">
-              <h1 className="text-[7px] font-black uppercase tracking-tighter leading-none text-[#002366]">PEDERALISMO NG DUGONG</h1>
-              <h1 className="text-[7px] font-black uppercase tracking-tighter leading-none text-[#B8860B] mt-0.5">DAKILANG SAMAHAN</h1>
+              <h1 className="text-[6px] font-black uppercase tracking-tighter leading-none text-[#002366]">PEDERALISMO NG DUGONG</h1>
+              <h1 className="text-[6px] font-black uppercase tracking-tighter leading-none text-[#B8860B] mt-0.5">DAKILANG SAMAHAN</h1>
             </div>
           </div>
-          <Badge variant="outline" className="text-[6px] font-black tracking-widest uppercase border-[#B8860B] text-[#B8860B] px-1 py-0 rounded-md">
+          <Badge variant="outline" className="text-[5px] font-black tracking-widest uppercase border-[#B8860B] text-[#B8860B] px-1 py-0 rounded-md">
             OFFICIAL
           </Badge>
         </div>
   
-        {/* Biometric Node */}
-        <div className="flex flex-col items-center justify-center relative z-10 w-full mb-3">
+        <div className="flex flex-col items-center justify-center relative z-10 w-full mb-2">
           <div className="relative">
             <div className={cn(
-              "w-[140px] h-[140px] rounded-[24px] overflow-hidden bg-slate-50 border-[4px] transition-all shadow-md",
+              "w-[110px] h-[110px] rounded-[20px] overflow-hidden bg-slate-50 border-[3px] transition-all shadow-md",
               getBorderStyles()
             )}>
               {fetching ? (
                 <div className="flex items-center justify-center w-full h-full">
-                  <Loader2 className="h-6 w-6 animate-spin text-slate-200" />
+                  <Loader2 className="h-5 w-5 animate-spin text-slate-200" />
                 </div>
               ) : (
                 <img 
@@ -159,70 +148,67 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
             </div>
             {isVerified && (
               <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border-2 border-white shadow-lg z-20">
-                <ShieldCheck className="h-3 w-3 text-white" />
+                <ShieldCheck className="h-2.5 w-2.5 text-white" />
               </div>
             )}
           </div>
         </div>
 
-        {/* STATUS BAR: DYNAMIC DUES COMPLIANCE */}
-        <div className="relative z-10 w-full mb-3">
+        <div className="relative z-10 w-full mb-2">
           {fetching ? (
-            <div className="h-6 w-full bg-slate-50 animate-pulse rounded-lg" />
+            <div className="h-5 w-full bg-slate-50 animate-pulse rounded-lg" />
           ) : patriotRank !== "Official Member" ? (
-             <div className="bg-slate-200 text-slate-600 py-1 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm border border-slate-300">
-              <ShieldCheck className="h-2.5 w-2.5" />
-              <span className="text-[8px] font-black uppercase tracking-[0.1em]">Status: Supporter</span>
+             <div className="bg-slate-200 text-slate-600 py-0.5 px-2 rounded-lg flex items-center justify-center gap-1 border border-slate-300">
+              <ShieldCheck className="h-2 w-2" />
+              <span className="text-[7px] font-black uppercase tracking-[0.1em]">Status: Supporter</span>
             </div>
           ) : isDuesActive ? (
-            <div className="bg-emerald-600 text-white py-1 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-lg border border-white/20">
-              <CheckCircle2 className="h-2.5 w-2.5" />
-              <span className="text-[8px] font-black uppercase tracking-[0.1em]">Status: Active</span>
+            <div className="bg-emerald-600 text-white py-0.5 px-2 rounded-lg flex items-center justify-center gap-1 shadow-lg border border-white/20">
+              <CheckCircle2 className="h-2 w-2" />
+              <span className="text-[7px] font-black uppercase tracking-[0.1em]">Status: Active</span>
             </div>
           ) : (
-            <div className="bg-red-600 text-white py-1 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-lg border border-white/20 animate-pulse">
-              <AlertCircle className="h-2.5 w-2.5" />
-              <span className="text-[8px] font-black uppercase tracking-[0.1em]">Status: Pending Dues</span>
+            <div className="bg-red-600 text-white py-0.5 px-2 rounded-lg flex items-center justify-center gap-1 shadow-lg border border-white/20 animate-pulse">
+              <AlertCircle className="h-2 w-2" />
+              <span className="text-[7px] font-black uppercase tracking-[0.1em]">Status: Pending Dues</span>
             </div>
           )}
         </div>
   
-        {/* Data Section */}
-        <div className="mt-auto flex items-end justify-between relative z-10 border-t border-slate-100 pt-3 w-full">
-          <div className="space-y-1 flex-1 pr-2 min-w-0">
+        <div className="mt-auto flex items-end justify-between relative z-10 border-t border-slate-100 pt-2 w-full">
+          <div className="space-y-0.5 flex-1 pr-2 min-w-0">
             <h2 className={cn(
               "font-black uppercase tracking-tighter leading-[0.9] text-[#002366] break-words",
-              displayName.length > 15 ? "text-lg" : "text-xl"
+              displayName.length > 15 ? "text-base" : "text-lg"
             )}>
               {displayName}
             </h2>
-            <div className="flex flex-col items-start gap-1">
-              <Badge className="bg-[#B8860B] text-white font-black text-[8px] uppercase tracking-widest border-none px-2 py-0.5 rounded-md">
+            <div className="flex flex-col items-start gap-0.5">
+              <Badge className="bg-[#B8860B] text-white font-black text-[7px] uppercase tracking-widest border-none px-1.5 py-0 rounded-sm">
                 {patriotRank}
               </Badge>
-              <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest truncate w-full">
+              <p className="text-[6px] font-bold text-slate-400 uppercase tracking-widest truncate w-full">
                 {dbUserData?.city || initialUserData?.city || 'National'} Hub
               </p>
             </div>
           </div>
           
-          <div className="flex flex-col items-center gap-1 shrink-0">
-            <div className="bg-white p-1 rounded-md shadow-sm border border-slate-100">
+          <div className="flex flex-col items-center gap-0.5 shrink-0">
+            <div className="bg-white p-0.5 rounded-sm shadow-sm border border-slate-100">
               <QRCodeSVG 
                 value={user?.uid || 'PDDS-GUEST'} 
-                size={36} 
-                className="w-[36px] h-[36px]"
+                size={30} 
+                className="w-[30px] h-[30px]"
                 level="M" 
                 fgColor="#002366" 
                 includeMargin={false}
               />
             </div>
-            <p className="text-[5px] font-black uppercase tracking-widest text-slate-300">UID AUTH</p>
+            <p className="text-[4px] font-black uppercase tracking-widest text-slate-300">UID AUTH</p>
           </div>
         </div>
       </div>
 
-      {/* 3. INJECTED PAYMENT BUTTON (OUTSIDE THE ID CARD) */}
       {showPaymentButton && (
         <PayDuesButton 
           userId={user?.uid || ""}
@@ -233,9 +219,9 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
 
       <Button 
         onClick={handleSaveToGallery} 
-        className="w-full h-11 bg-[#002366] hover:bg-[#001a4d] text-white font-black uppercase tracking-widest shadow-md rounded-xl text-[10px]"
+        className="w-full h-9 bg-[#002366] hover:bg-[#001a4d] text-white font-black uppercase tracking-widest shadow-md rounded-lg text-[9px]"
       >
-        <Download className="mr-2 h-4 w-4 text-accent" /> Export Card
+        <Download className="mr-1.5 h-3.5 w-3.5 text-accent" /> Export Card
       </Button>
     </div>
   );

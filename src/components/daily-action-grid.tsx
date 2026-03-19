@@ -7,7 +7,7 @@ import Link from "next/link";
 
 /**
  * @fileOverview Daily Action Center Grid.
- * REFACTORED: Fluid 4-column layout on desktop with enlarged tap targets.
+ * Scaled down for high-density dashboard layouts.
  */
 export function DailyActionGrid() {
   const actions = [
@@ -46,17 +46,17 @@ export function DailyActionGrid() {
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {actions.map((action) => (
-        <Card key={action.label} className="group hover:shadow-2xl transition-all border-none overflow-hidden cursor-pointer bg-white rounded-[32px]">
+        <Card key={action.label} className="group hover:shadow-xl transition-all border-none overflow-hidden cursor-pointer bg-white rounded-[24px]">
           <Link href={action.href}>
             <CardContent className="p-0">
-              <div className={`${action.color} p-10 flex justify-center items-center group-hover:scale-105 transition-transform duration-500`}>
-                <action.icon className={`h-14 w-14 ${action.iconColor} group-hover:animate-pulse`} />
+              <div className={`${action.color} p-6 flex justify-center items-center group-hover:scale-105 transition-transform duration-500`}>
+                <action.icon className={`h-10 w-10 ${action.iconColor} group-hover:animate-pulse`} />
               </div>
-              <div className="p-6 text-center">
-                <p className="font-black text-xl uppercase tracking-tight text-primary leading-none">{action.label}</p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-2 tracking-[0.2em]">{action.desc}</p>
+              <div className="p-4 text-center">
+                <p className="font-black text-base uppercase tracking-tight text-primary leading-none">{action.label}</p>
+                <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1.5 tracking-[0.2em]">{action.desc}</p>
               </div>
             </CardContent>
           </Link>

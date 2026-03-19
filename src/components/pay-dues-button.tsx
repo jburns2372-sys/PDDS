@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
 import { Loader2, CreditCard } from "lucide-react";
 
 interface PayDuesButtonProps {
@@ -13,7 +12,6 @@ interface PayDuesButtonProps {
 
 export function PayDuesButton({ userId, userName, amount }: PayDuesButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const { toast } = useToast();
 
   const handleCheckout = async () => {
     if (!userId || amount <= 0) return;
@@ -36,12 +34,8 @@ export function PayDuesButton({ userId, userName, amount }: PayDuesButtonProps) 
       }
     } catch (error) {
       console.error("Checkout Error:", error);
-      toast({
-        title: "PAYMENT ERROR",
-        description: "Could not connect to the payment gateway. Please try again.",
-        variant: "destructive",
-      });
-      setIsProcessing(false); // Only stop loading if it fails; if success, they are redirecting
+      alert("Could not connect to the payment gateway. Please try again."); // Replaced the toast with a standard alert
+      setIsProcessing(false);
     }
   };
 
