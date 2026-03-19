@@ -13,7 +13,7 @@ service cloud.firestore {
     }
 
     function isExecutive() {
-      return isSignedIn() && getUserData().role in ['President', 'Admin', 'Secretary General', 'System Admin'];
+      return isSignedIn() && getUserData().role in ['President', 'Admin', 'Secretary General', 'System Admin', 'Treasurer'];
     }
 
     function isSecGen() {
@@ -23,6 +23,11 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && (request.auth.uid == userId || isSecGen());
+    }
+
+    match /metadata/{id} {
+      allow read: if isSignedIn();
+      allow write: if isExecutive();
     }
 
     match /donations/{id} {

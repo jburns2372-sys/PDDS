@@ -40,9 +40,19 @@
         },
         "meritPoints": { "type": "number", "default": 0 },
         "referralCount": { "type": "number", "default": 0 },
+        "lastDuesYearPaid": { "type": "number", "description": "The last year for which membership dues were settled." },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "fullName", "role"]
+    },
+    "settings": {
+      "title": "System Settings",
+      "description": "Global application metadata and configuration.",
+      "type": "object",
+      "properties": {
+        "yearlyDuesAmount": { "type": "number", "default": 100 },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      }
     },
     "donation": {
       "title": "PatriotPondo Donation",
@@ -91,6 +101,10 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/user" },
       "description": "Stores user profile information."
+    },
+    "/metadata/{settingId}": {
+      "schema": { "$ref": "#/backend/entities/settings" },
+      "description": "Stores global metadata like dues amount."
     },
     "/donations/{donationId}": {
       "schema": { "$ref": "#/backend/entities/donation" },

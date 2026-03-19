@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useRef, useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, ShieldCheck, Loader2 } from "lucide-react";
+import { Download, ShieldCheck, Loader2, CreditCard, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useFirestore } from "@/firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -12,7 +13,7 @@ import { PDDS_LOGO_URL } from "@/lib/data";
 
 /**
  * @fileOverview Master Patriot Digital ID (Compact Safe Edition).
- * OPTIMIZED: Standardized 1x1 biometric fit with object-cover normalization.
+ * UPDATED: Dynamic Yearly Dues synchronization and compliance status.
  */
 export function DigitalIdCard({ userData: initialUserData }: { userData: any }) {
   const { user } = useUser();
@@ -21,22 +22,33 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
 
   const [idPhoto, setIdPhoto] = useState<string | null>(null);
   const [dbUserData, setDbUserData] = useState<any>(null);
+  const [duesAmount, setDuesAmount] = useState<number | null>(null);
   const [fetching, setFetching] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
   const DEFAULT_SILHOUETTE = "https://firebasestorage.googleapis.com/v0/b/patriot-link-production.firebasestorage.app/o/assets%2Fpatriot-silhouette.png?alt=media";
+  const CURRENT_YEAR = 2026;
 
   useEffect(() => {
     async function forceLoadIdentity() {
       if (!user?.uid) return;
       try {
         setFetching(true);
+        
+        // 1. Fetch User Data
         const userRef = doc(firestore, "users", user.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
+        const userSnap = await getDoc(userRef).catch(() => null);
+        if (userSnap?.exists()) {
           const data = userSnap.data();
           setDbUserData(data);
           setIdPhoto(data.photoURL || null);
+        }
+
+        // 2. Fetch Yearly Dues Protocol
+        const settingsRef = doc(firestore, "metadata", "settings");
+        const settingsSnap = await getDoc(settingsRef).catch(() => null);
+        if (settingsSnap?.exists()) {
+          setDuesAmount(settingsSnap.data().yearlyDuesAmount);
         }
       } catch (err) {
         console.error("Registry identity fetch failed:", err);
@@ -73,6 +85,9 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   const vettingTier = dbUserData?.vettingLevel || initialUserData?.vettingLevel || "Bronze";
   const patriotRank = dbUserData?.role || initialUserData?.role || "Regional Member";
   const isVerified = dbUserData?.isVerified || initialUserData?.isVerified;
+  
+  // Dues Logic: Check if user settled dues for the operational year
+  const duesSettled = dbUserData?.lastDuesYearPaid === CURRENT_YEAR;
 
   const getBorderStyles = () => {
     switch (vettingTier) {
@@ -148,6 +163,19 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
               </div>
             )}
           </div>
+        </div>
+
+        {/* COMPLIANCE STATUS OVERLAY (Centered) */}
+        <div className="relative z-10 w-full flex justify-center -mt-2 mb-2">
+          {fetching ? null : duesSettled ? (
+            <Badge className="bg-emerald-600 text-white border-white border-2 text-[7px] font-black uppercase tracking-widest shadow-lg py-1 px-3">
+              <CheckCircle2 className="h-2 w-2 mr-1" /> Active Member - {CURRENT_YEAR}
+            </Badge>
+          ) : (
+            <Badge variant="destructive" className="border-white border-2 text-[7px] font-black uppercase tracking-widest shadow-lg py-1 px-3 animate-pulse">
+              <AlertCircle className="h-2 w-2 mr-1" /> Payment Required
+            </Badge>
+          )}
         </div>
   
         {/* Data Section */}

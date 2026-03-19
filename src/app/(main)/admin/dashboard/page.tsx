@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -32,10 +33,12 @@ import {
     Smartphone, 
     Home,
     Camera,
-    FileUp
+    FileUp,
+    Landmark
 } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { pddsLeadershipRoles, getZipCode, getIslandGroup } from "@/lib/data";
+import { DuesManagement } from "@/components/admin/dues-management";
 
 const UNLIMITED_ROLES = ['Member', 'Supporter', 'Volunteer', 'Coordinator', 'Moderator'];
 const NCR_CODE = "130000000";
@@ -346,7 +349,7 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div className="lg:col-span-4">
+                <div className="lg:col-span-4 space-y-8">
                     <Card className="shadow-lg border-t-4 border-accent">
                         <form onSubmit={handleFormSubmit} autoComplete="off">
                             <CardHeader>
@@ -500,6 +503,9 @@ export default function AdminDashboard() {
                             </CardFooter>
                         </form>
                     </Card>
+
+                    {/* DYNAMIC DUES MANAGEMENT NODE */}
+                    <DuesManagement />
                 </div>
 
                 <div className="lg:col-span-8 space-y-4">
