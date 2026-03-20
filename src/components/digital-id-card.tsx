@@ -44,7 +44,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         const settingsRef = doc(firestore, "metadata", "settings");
         const settingsSnap = await getDoc(settingsRef).catch(() => null);
         if (settingsSnap?.exists()) {
-          setDuesAmount(settingsSnap.data().yearlyDuesAmount || 0);
+          setDuesAmount(settingsSnap.data().yearlyDuesAmount || 200);
         }
       } catch (err) {
         console.error("Registry identity fetch failed:", err);
@@ -78,17 +78,12 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   const displayName = (dbUserData?.fullName || initialUserData?.fullName || "ANONYMOUS PATRIOT").toUpperCase();
   const vettingTier = dbUserData?.vettingLevel || initialUserData?.vettingLevel || "Bronze";
   const patriotRank = dbUserData?.role || initialUserData?.role || "Member";
-  const isVerified = dbUserData?.isVerified || initialUserData?.isVerified;
   
-  // LOGIC: Check if user is an Officer or in a Leadership position
   const isOfficer = pddsLeadershipRoles?.includes(patriotRank) || patriotRank.includes("Officer") || patriotRank === "Admin" || patriotRank === "System Admin";
   
   const lastPaymentDate = dbUserData?.lastDuesPaymentDate?.toDate ? dbUserData.lastDuesPaymentDate.toDate() : null;
-  
-  // LOGIC: Status is ACTIVE if user is an Officer OR has paid current year dues
   const isDuesActive = isOfficer || (lastPaymentDate && lastPaymentDate.getFullYear() === new Date().getFullYear());
   
-  // THE FIX: Only show payment button if they are NOT active, NOT an officer, and NOT a supporter.
   const showPaymentButton = !isDuesActive && !isOfficer && patriotRank !== "Supporter" && !fetching;
 
   const getBorderStyles = () => {
@@ -100,7 +95,6 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   };
 
   return (
-    // Reduced max-w to 260px to ensure it fits laptop heights perfectly
     <div className="flex flex-col gap-3 items-center w-full max-w-[260px] mx-auto">
       <div 
         ref={cardRef} 
@@ -214,7 +208,6 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
       </div>
 
       <div className="w-full flex flex-col gap-2">
-        {/* The Payment Button will now securely pop up here ONLY if they owe dues */}
         {showPaymentButton && (
           <PayDuesButton 
             userId={user?.uid || ""}
