@@ -3,11 +3,12 @@ import { NextResponse } from "next/server";
 /**
  * @fileOverview PayMongo Checkout Session Creator.
  * Generates secure payment links for Annual Dues.
+ * UPDATED: Dynamic URL handling and metadata enrichment for webhook activation.
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { amount, userId, userName } = body;
+    const { amount, userId, userName, description, paymentType } = body;
 
     if (!amount || !userId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -35,14 +36,19 @@ export async function POST(request: Request) {
                 amount: amountInCentavos,
                 name: 'PDDS Annual Membership Dues',
                 quantity: 1,
-                description: `Official registration dues for ${userName} (UID: ${userId})`
+                description: description || `Official registration dues for ${userName} (UID: ${userId})`
               }
             ],
             payment_method_types: ['gcash', 'paymaya', 'qrph'],
-            reference_number: userId, // CRITICAL: Used by the webhook to activate the user
-            description: 'PDDS PatriotLink Registry Dues',
-            success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/home?payment=success`,
-            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/patriot-pondo?payment=canceled`
+            reference_number: userId,
+            metadata: {
+              userId: userId,
+              userName: userName,
+              paymentType: paymentType || "MEMBERSHIP_DUES"
+            },
+            description: description || 'PDDS PatriotLink Registry Dues',
+            success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/patriot-pondo/success`,
+            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/patriot-pondo`
           }
         }
       })

@@ -15,6 +15,7 @@ interface PayDuesButtonProps {
 /**
  * @fileOverview PayMongo Dues Authorization Button.
  * Handles the secure handshake with the PayMongo API to generate checkout links.
+ * UPDATED: Enriched metadata and description for the checkout session.
  */
 export function PayDuesButton({ userId, userName, amount, variant = "default" }: PayDuesButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -28,7 +29,13 @@ export function PayDuesButton({ userId, userName, amount, variant = "default" }:
       const response = await fetch("/api/paymongo/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, userName, amount }),
+        body: JSON.stringify({ 
+          userId, 
+          userName, 
+          amount,
+          description: "2026 Annual Membership Dues",
+          paymentType: "MEMBERSHIP_DUES"
+        }),
       });
 
       const data = await response.json();
