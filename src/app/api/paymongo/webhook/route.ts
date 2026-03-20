@@ -1,27 +1,30 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { initializeApp, getApps } from "firebase-admin/app"; // Removed 'cert'
+import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
-// The "Zero-Key Bypass"
-// In production, Firebase App Hosting automatically injects its own secure credentials here.
+// Initialize Firebase Admin for background activation
 if (!getApps().length) {
-  initializeApp(); // No manual JSON key needed!
+  initializeApp();
 }
 const db = getFirestore();
 
+/**
+ * @fileOverview PayMongo Webhook Handler.
+ * Security: Verifies the paymongo-signature before processing account activation.
+ */
 export async function POST(request: Request) {
   try {
-    // 1. Get the raw body and signature header for security verification
     const rawBody = await request.text();
     const signatureHeader = request.headers.get("paymongo-signature");
     const webhookSecret = process.env.PAYMONGO_WEBHOOK_SECRET;
 
     if (!signatureHeader || !webhookSecret) {
-      return NextResponse.json({ error: "Missing signature or secret" }, { status: 400 });
+      console.error("Webhook verification failed: Missing signature or secret.");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Security Check: Verify the signature (Prevents fake payments)
+    // 1. Verify PayMongo Signature
     const elements = signatureHeader.split(",");
     const timestampMap = elements[0].split("=");
     const testModeMap = elements[1].split("=");
@@ -38,36 +41,46 @@ export async function POST(request: Request) {
 
     if (signature !== expectedSignature) {
       console.error("Webhook signature mismatch!");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Signature Mismatch" }, { status: 401 });
     }
 
-    // 3. Process the Data
+    // 2. Process Successful Payment
     const event = JSON.parse(rawBody);
-
-    // We only care if the payment was actually successful
     if (event.data.attributes.type === "checkout_session.payment.paid") {
       
-      // Extract the Firebase UID we passed earlier as the reference_number
-      const userId = event.data.attributes.data.attributes.reference_number;
+      const sessionData = event.data.attributes.data.attributes;
+      const userId = sessionData.reference_number;
       
       if (userId) {
-        // 4. Update Firestore directly as the Admin
+        console.log(`[PAYMENT VERIFIED] Activating Patriot UID: ${userId}`);
+        
         const userRef = db.collection("users").doc(userId);
         
+        // Activate the member in the National Registry
         await userRef.update({
-          lastDuesPaymentDate: new Date(), // Sets payment to current date/time
-          membershipStatus: "Active"       // Automatically clears their standing
+          membershipStatus: "Active",
+          lastDuesPaymentDate: new Date(),
+          updatedAt: new Date()
         });
 
-        console.log(`Successfully updated Dues for Patriot: ${userId}`);
+        // Optional: Log to a master collections ledger
+        await db.collection("donations").add({
+          uid: userId,
+          amount: sessionData.amount / 100,
+          status: "Successful",
+          type: "Membership Dues",
+          paymentMethod: sessionData.source?.type || "unknown",
+          timestamp: new Date()
+        });
+
+        console.log(`[REGISTRY SUCCESS] UID ${userId} is now ACTIVE.`);
       }
     }
 
-    // Always return a 200 OK so PayMongo knows you received the message
     return NextResponse.json({ received: true }, { status: 200 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Webhook Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
