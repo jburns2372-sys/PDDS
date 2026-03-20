@@ -116,13 +116,13 @@ export default function AdminDashboard() {
 
     // --- KPI CALCULATIONS ---
     const stats = useMemo(() => {
-        const active = allUsers.filter(u => u.membershipStatus === "Active").length;
-        const pending = allUsers.filter(u => u.role === "Supporter").length;
+        const activeMembers = allUsers.filter(u => u.membershipStatus === "Active").length;
         return {
             total: allUsers.length,
-            active: active,
-            pending: pending,
-            treasury: active * 500
+            active: activeMembers,
+            pending: allUsers.filter(u => u.membershipStatus !== "Active").length,
+            // Update 500 to 200 here:
+            treasury: activeMembers * 200 
         };
     }, [allUsers]);
 
