@@ -25,7 +25,7 @@ import Link from "next/link";
 
 function UserHeader({userData}: {userData: any}) {
   return (
-    <div className="bg-white p-6 md:p-8 border-b-4 border-primary/5 shadow-sm mb-6 rounded-3xl">
+    <div className="bg-white p-6 md:p-8 border-b-4 border-primary/5 shadow-sm mb-6 rounded-3xl relative z-10">
       <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
           <PddsLogo className="h-16 md:h-20 w-auto" />
@@ -44,7 +44,7 @@ function UserHeader({userData}: {userData: any}) {
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Induction Status</p>
               <p className="text-lg font-black text-green-600 uppercase">Registry Verified</p>
            </div>
-           <Button variant="outline" size="icon" className="rounded-2xl h-14 w-14 border-2 relative active:scale-95 transition-all">
+           <Button variant="outline" size="icon" className="rounded-2xl h-14 w-14 border-2 relative active:scale-95 transition-all shadow-sm">
               <Bell className="h-6 w-6 text-primary" />
               <span className="absolute top-2 right-2 h-3 w-3 bg-red-600 rounded-full border-2 border-white" />
            </Button>
@@ -93,10 +93,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-24">
+    <div className="flex flex-col min-h-screen pb-24 relative overflow-hidden">
       <UserHeader userData={userData} />
       
-      <div className="w-full space-y-8">
+      <div className="w-full space-y-8 relative z-10 px-2 md:px-0">
         {/* Launch Special Banner - Fluid 100% Width */}
         <Card className="bg-gradient-to-r from-primary to-blue-900 text-white border-none shadow-2xl overflow-hidden relative group rounded-[32px]">
           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
@@ -116,16 +116,21 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-            <Button 
-              asChild={!userData?.isVerified} 
-              className="h-16 px-12 bg-accent hover:bg-accent/90 text-primary font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0 active:scale-95 transition-all text-xl"
-            >
-              {userData?.isVerified ? (
-                <span>Badge Secured</span>
-              ) : (
+            {userData?.isVerified ? (
+              <Button 
+                className="h-16 px-12 bg-white/10 text-white font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0 border-2 border-white/20"
+                disabled
+              >
+                Badge Secured
+              </Button>
+            ) : (
+              <Button 
+                asChild
+                className="h-16 px-12 bg-accent hover:bg-white text-primary font-black uppercase tracking-widest shadow-xl rounded-xl shrink-0 active:scale-95 transition-all text-xl"
+              >
                 <Link href="/profile">Claim Badge Now</Link>
-              )}
-            </Button>
+              </Button>
+            )}
           </CardContent>
         </Card>
 
@@ -144,7 +149,7 @@ export default function HomePage() {
                   <SkillsProgress />
                 </section>
 
-                <Card className="shadow-2xl border-t-8 border-primary overflow-hidden rounded-[24px]">
+                <Card className="shadow-2xl border-t-8 border-primary overflow-hidden rounded-[24px] bg-white">
                   <CardHeader className="bg-primary/5 pb-4">
                     <CardTitle className="text-base font-black uppercase tracking-widest text-primary flex items-center gap-2">
                       <Share2 className="h-5 w-5 text-accent" />
@@ -159,12 +164,12 @@ export default function HomePage() {
                     <div className="space-y-3 text-left px-4">
                       <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Your Referral Link</Label>
                       <div className="flex gap-2">
-                        <Input value={`${domain}/join?ref=${userData?.uid}`} readOnly className="text-xs bg-muted h-11 font-mono font-bold" />
-                        <Button size="icon" variant="outline" className="h-11 w-11 shrink-0 border-2 active:scale-95 transition-all" onClick={() => {
+                        <Input value={`${domain}/join?ref=${userData?.uid}`} readOnly className="text-xs bg-muted h-11 font-mono font-bold border-2" />
+                        <Button size="icon" variant="outline" className="h-11 w-11 shrink-0 border-2 active:scale-95 transition-all hover:bg-primary hover:text-white" onClick={() => {
                           navigator.clipboard.writeText(`${domain}/join?ref=${userData?.uid}`);
-                          toast({ title: "Copied!", description: "Earn 50 Merit Points per recruit!" });
+                          toast({ title: "Link Copied!", description: "Earn 50 Merit Points per recruit!" });
                         }}>
-                          <CapitalCopy className="h-5 w-5" />
+                          <Copy className="h-5 w-5" />
                         </Button>
                       </div>
                     </div>
@@ -186,13 +191,13 @@ export default function HomePage() {
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="bg-primary/5 p-1 border-2 border-primary/10 h-16 w-full justify-start overflow-x-auto gap-2 rounded-2xl">
-                    <TabsTrigger value="newsfeed" className="px-8 h-full font-black uppercase text-xs tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">
+                    <TabsTrigger value="newsfeed" className="px-8 h-full font-black uppercase text-xs tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl transition-all">
                       <Newspaper className="h-5 w-5 mr-2" /> Bulletin
                     </TabsTrigger>
-                    <TabsTrigger value="missions" className="px-8 h-full font-black uppercase text-xs tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">
+                    <TabsTrigger value="missions" className="px-8 h-full font-black uppercase text-xs tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl transition-all">
                       <Trophy className="h-5 w-5 mr-2" /> Missions
                     </TabsTrigger>
-                    <TabsTrigger value="impact" className="px-8 h-full font-black uppercase text-xs tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl">
+                    <TabsTrigger value="impact" className="px-8 h-full font-black uppercase text-xs tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl transition-all">
                       <Sparkles className="h-5 w-5 mr-2" /> Local Impact
                     </TabsTrigger>
                   </TabsList>
@@ -233,11 +238,5 @@ export default function HomePage() {
         </div>
       </div>
     </div>
-  );
-}
-
-function CapitalCopy({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
   );
 }

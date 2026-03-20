@@ -7,7 +7,7 @@ import Link from "next/link";
 
 /**
  * @fileOverview Daily Action Center Grid.
- * Scaled down for high-density dashboard layouts.
+ * ACTIVATED: Full interactivity with hover feedback and active scaling.
  */
 export function DailyActionGrid() {
   const actions = [
@@ -46,21 +46,21 @@ export function DailyActionGrid() {
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
       {actions.map((action) => (
-        <Card key={action.label} className="group hover:shadow-xl transition-all border-none overflow-hidden cursor-pointer bg-white rounded-[24px]">
-          <Link href={action.href}>
+        <Link key={action.label} href={action.href} className="block group">
+          <Card className="hover:shadow-2xl transition-all duration-300 border-none overflow-hidden cursor-pointer bg-white rounded-[24px] active:scale-95">
             <CardContent className="p-0">
               <div className={`${action.color} p-6 flex justify-center items-center group-hover:scale-105 transition-transform duration-500`}>
                 <action.icon className={`h-10 w-10 ${action.iconColor} group-hover:animate-pulse`} />
               </div>
               <div className="p-4 text-center">
-                <p className="font-black text-base uppercase tracking-tight text-primary leading-none">{action.label}</p>
+                <p className="font-black text-base uppercase tracking-tight text-primary leading-none group-hover:text-accent transition-colors">{action.label}</p>
                 <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1.5 tracking-[0.2em]">{action.desc}</p>
               </div>
             </CardContent>
-          </Link>
-        </Card>
+          </Card>
+        </Link>
       ))}
     </div>
   );

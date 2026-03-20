@@ -77,19 +77,19 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
 
   const displayName = (dbUserData?.fullName || initialUserData?.fullName || "ANONYMOUS PATRIOT").toUpperCase();
   const vettingTier = dbUserData?.vettingLevel || initialUserData?.vettingLevel || "Bronze";
-  const patriotRank = dbUserData?.role || initialUserData?.role || "Regional Member";
+  const patriotRank = dbUserData?.role || initialUserData?.role || "Member";
   const isVerified = dbUserData?.isVerified || initialUserData?.isVerified;
   
   // LOGIC: Check if user is an Officer or in a Leadership position
-  const isOfficer = pddsLeadershipRoles.includes(patriotRank) || patriotRank === "Officer" || patriotRank === "Admin" || patriotRank === "System Admin";
+  const isOfficer = pddsLeadershipRoles?.includes(patriotRank) || patriotRank.includes("Officer") || patriotRank === "Admin" || patriotRank === "System Admin";
   
   const lastPaymentDate = dbUserData?.lastDuesPaymentDate?.toDate ? dbUserData.lastDuesPaymentDate.toDate() : null;
   
   // LOGIC: Status is ACTIVE if user is an Officer OR has paid current year dues
   const isDuesActive = isOfficer || (lastPaymentDate && lastPaymentDate.getFullYear() === new Date().getFullYear());
   
-  // LOGIC: Only show payment button for regular members who haven't paid
-  const showPaymentButton = patriotRank === "Official Member" && !isDuesActive && !fetching;
+  // THE FIX: Only show payment button if they are NOT active, NOT an officer, and NOT a supporter.
+  const showPaymentButton = !isDuesActive && !isOfficer && patriotRank !== "Supporter" && !fetching;
 
   const getBorderStyles = () => {
     switch (vettingTier) {
@@ -100,10 +100,11 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
   };
 
   return (
-    <div className="flex flex-col gap-2 items-center w-full max-w-[280px] mx-auto">
+    // Reduced max-w to 260px to ensure it fits laptop heights perfectly
+    <div className="flex flex-col gap-3 items-center w-full max-w-[260px] mx-auto">
       <div 
         ref={cardRef} 
-        className="w-full aspect-[1/1.4] overflow-hidden rounded-[16px] shadow-2xl bg-white text-slate-900 relative flex flex-col p-3 border border-slate-100"
+        className="w-full aspect-[1/1.4] overflow-hidden rounded-[16px] shadow-xl bg-white text-slate-900 relative flex flex-col p-3 border border-slate-100"
       >
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -119,7 +120,7 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
             <img 
               src={PDDS_LOGO_URL} 
               alt="PDDS" 
-              className="h-[30px] w-auto object-contain" 
+              className="h-[28px] w-auto object-contain" 
               crossOrigin="anonymous"
               style={{ mixBlendMode: 'multiply' }} 
             />
@@ -133,10 +134,10 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           </Badge>
         </div>
   
-        <div className="flex flex-col items-center justify-center relative z-10 w-full mb-2">
+        <div className="flex flex-col items-center justify-center relative z-10 w-full mb-2 mt-2">
           <div className="relative">
             <div className={cn(
-              "w-[110px] h-[110px] rounded-[20px] overflow-hidden bg-slate-50 border-[3px] transition-all shadow-md",
+              "w-[100px] h-[100px] rounded-[16px] overflow-hidden bg-slate-50 border-[3px] transition-all shadow-md",
               getBorderStyles()
             )}>
               {fetching ? (
@@ -154,11 +155,6 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
                 />
               )}
             </div>
-            {isVerified && (
-              <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border-2 border-white shadow-lg z-20">
-                <ShieldCheck className="h-2.5 w-2.5 text-white" />
-              </div>
-            )}
           </div>
         </div>
 
@@ -166,19 +162,19 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           {fetching ? (
             <div className="h-5 w-full bg-slate-50 animate-pulse rounded-lg" />
           ) : patriotRank === "Supporter" ? (
-             <div className="bg-slate-200 text-slate-600 py-0.5 px-2 rounded-lg flex items-center justify-center gap-1 border border-slate-300">
-              <ShieldCheck className="h-2 w-2" />
-              <span className="text-[7px] font-black uppercase tracking-[0.1em]">Status: Supporter</span>
+             <div className="bg-slate-200 text-slate-600 py-1 px-2 rounded-lg flex items-center justify-center gap-1 border border-slate-300">
+              <ShieldCheck className="h-3 w-3" />
+              <span className="text-[8px] font-black uppercase tracking-[0.1em]">Status: Supporter</span>
             </div>
           ) : isDuesActive ? (
-            <div className="bg-emerald-600 text-white py-0.5 px-2 rounded-lg flex items-center justify-center gap-1 shadow-lg border border-white/20">
-              <CheckCircle2 className="h-2 w-2" />
-              <span className="text-[7px] font-black uppercase tracking-[0.1em]">Status: Active</span>
+            <div className="bg-emerald-600 text-white py-1 px-2 rounded-lg flex items-center justify-center gap-1 shadow-lg border border-white/20">
+              <CheckCircle2 className="h-3 w-3" />
+              <span className="text-[8px] font-black uppercase tracking-[0.1em]">Status: Active</span>
             </div>
           ) : (
-            <div className="bg-red-600 text-white py-0.5 px-2 rounded-lg flex items-center justify-center gap-1 shadow-lg border border-white/20 animate-pulse">
-              <AlertCircle className="h-2 w-2" />
-              <span className="text-[7px] font-black uppercase tracking-[0.1em]">Status: Pending Dues</span>
+            <div className="bg-red-600 text-white py-1 px-2 rounded-lg flex items-center justify-center gap-1 shadow-lg border border-white/20 animate-pulse">
+              <AlertCircle className="h-3 w-3" />
+              <span className="text-[8px] font-black uppercase tracking-[0.1em]">Status: Pending Dues</span>
             </div>
           )}
         </div>
@@ -187,12 +183,12 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
           <div className="space-y-0.5 flex-1 pr-2 min-w-0">
             <h2 className={cn(
               "font-black uppercase tracking-tighter leading-[0.9] text-[#002366] break-words",
-              displayName.length > 15 ? "text-base" : "text-lg"
+              displayName.length > 15 ? "text-sm" : "text-base"
             )}>
               {displayName}
             </h2>
-            <div className="flex flex-col items-start gap-0.5">
-              <Badge className="bg-[#B8860B] text-white font-black text-[7px] uppercase tracking-widest border-none px-1.5 py-0 rounded-sm">
+            <div className="flex flex-col items-start gap-1 mt-1">
+              <Badge className="bg-[#B8860B] text-white font-black text-[7px] uppercase tracking-widest border-none px-1.5 py-0.5 rounded-sm">
                 {patriotRank}
               </Badge>
               <p className="text-[6px] font-bold text-slate-400 uppercase tracking-widest truncate w-full">
@@ -205,8 +201,8 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
             <div className="bg-white p-0.5 rounded-sm shadow-sm border border-slate-100">
               <QRCodeSVG 
                 value={user?.uid || 'PDDS-GUEST'} 
-                size={30} 
-                className="w-[30px] h-[30px]"
+                size={26} 
+                className="w-[26px] h-[26px]"
                 level="M" 
                 fgColor="#002366" 
                 includeMargin={false}
@@ -217,20 +213,23 @@ export function DigitalIdCard({ userData: initialUserData }: { userData: any }) 
         </div>
       </div>
 
-      {showPaymentButton && (
-        <PayDuesButton 
-          userId={user?.uid || ""}
-          userName={displayName}
-          amount={duesAmount}
-        />
-      )}
+      <div className="w-full flex flex-col gap-2">
+        {/* The Payment Button will now securely pop up here ONLY if they owe dues */}
+        {showPaymentButton && (
+          <PayDuesButton 
+            userId={user?.uid || ""}
+            userName={displayName}
+            amount={duesAmount}
+          />
+        )}
 
-      <Button 
-        onClick={handleSaveToGallery} 
-        className="w-full h-9 bg-[#002366] hover:bg-[#001a4d] text-white font-black uppercase tracking-widest shadow-md rounded-lg text-[9px]"
-      >
-        <Download className="mr-1.5 h-3.5 w-3.5 text-accent" /> Export Card
-      </Button>
+        <Button 
+          onClick={handleSaveToGallery} 
+          className="w-full h-10 bg-[#002366] hover:bg-[#001a4d] text-white font-black uppercase tracking-widest shadow-md rounded-lg text-[10px]"
+        >
+          <Download className="mr-1.5 h-4 w-4 text-accent" /> Export Card
+        </Button>
+      </div>
     </div>
   );
 }
