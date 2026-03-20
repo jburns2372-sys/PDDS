@@ -55,7 +55,8 @@ import {
     Activity,
     History,
     FileSpreadsheet,
-    ChevronDown
+    ChevronDown,
+    CreditCard
 } from "lucide-react";
 import { collection, onSnapshot, serverTimestamp, doc, setDoc, query, where, getDocs, writeBatch, addDoc, orderBy, limit } from "firebase/firestore";
 import { pddsLeadershipRoles, getZipCode, getIslandGroup } from "@/lib/data";
@@ -121,7 +122,6 @@ export default function AdminDashboard() {
             total: allUsers.length,
             active: activeMembers,
             pending: allUsers.filter(u => u.membershipStatus !== "Active").length,
-            // Update 500 to 200 here:
             treasury: activeMembers * 200 
         };
     }, [allUsers]);
@@ -157,6 +157,41 @@ export default function AdminDashboard() {
         document.body.removeChild(link);
         
         toast({ title: "Intelligence Exported", description: `Downloaded ${dataToExport.length} member records.` });
+    };
+
+    const exportPaidLedgerCSV = () => {
+        // Filter specifically for ACTIVE (Paid) members
+        const paidMembers = allUsers.filter(u => u.membershipStatus === "Active");
+
+        if (paidMembers.length === 0) {
+            return toast({ 
+                variant: "destructive", 
+                title: "Export Failed", 
+                description: "No paid members found in the current registry." 
+            });
+        }
+
+        const headers = ["Full Name", "Email", "Jurisdiction", "Rank", "Payment Date", "Amount"];
+        const rows = paidMembers.map(u => [
+            u.fullName,
+            u.email,
+            `${u.city}, ${u.province}`,
+            u.role,
+            u.lastDuesPaymentDate?.toDate ? u.lastDuesPaymentDate.toDate().toLocaleDateString() : (u.lastDuesPaid?.toDate ? u.lastDuesPaid.toDate().toLocaleDateString() : "Legacy Record"),
+            "200.00" // Hardcoded to your specific 200.00 amount
+        ]);
+
+        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `PDDS_Paid_Ledger_${new Date().toLocaleDateString()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({ title: "Ledger Exported", description: `Downloaded ${paidMembers.length} payment records.` });
     };
 
     // Initial Fetch for Provinces
@@ -447,7 +482,7 @@ export default function AdminDashboard() {
                     <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1">Authorized Executive Oversight • SEC-GEN COMMAND</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* --- NEW: QUICK REPORTS DROPDOWN --- */}
+                    {/* --- QUICK REPORTS DROPDOWN --- */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="border-2 border-slate-200 font-black uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl hover:bg-white shadow-sm transition-all active:scale-95">
@@ -463,6 +498,12 @@ export default function AdminDashboard() {
                           <div className="flex flex-col">
                             <span className="text-[11px] font-black uppercase text-[#002366]">Export National Registry</span>
                             <span className="text-[9px] font-bold text-slate-400 uppercase">Full Database (CSV)</span>
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={exportPaidLedgerCSV} className="rounded-xl p-3 cursor-pointer hover:bg-emerald-50 group">
+                          <div className="flex flex-col">
+                            <span className="text-[11px] font-black uppercase text-emerald-700">Export Paid Ledger</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Active Members Only</span>
                           </div>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-slate-100" />
@@ -593,7 +634,7 @@ export default function AdminDashboard() {
                     </Card>
                 </div>
 
-                {/* --- RIGHT COLUMN: MASTER REGISTRY (WITH WATERMARKED PREVIEW) --- */}
+                {/* --- RIGHT COLUMN: MASTER REGISTRY --- */}
                 <div className="lg:col-span-8 space-y-6">
                     <div className="relative group">
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-300 group-focus-within:text-[#002366] transition-colors" />
@@ -626,8 +667,6 @@ export default function AdminDashboard() {
                                         <TableRow key={member.id} className={cn("hover:bg-slate-50/50 transition-colors border-slate-50", member.isApproved === false ? 'bg-red-50/30' : '')}>
                                             <TableCell className="pl-8 py-5">
                                                 <div className="flex items-center gap-4">
-                                                    
-                                                    {/* --- TACTICAL WATERMARKED HOVER PREVIEW --- */}
                                                     <HoverCard openDelay={200}>
                                                         <HoverCardTrigger asChild>
                                                             <Avatar className="h-12 w-12 border-2 border-white shadow-md cursor-zoom-in transition-transform hover:scale-110 active:scale-95">
@@ -642,15 +681,11 @@ export default function AdminDashboard() {
                                                                     alt={member.fullName}
                                                                     className="object-cover w-full h-full opacity-90"
                                                                 />
-                                                                
-                                                                {/* --- DIAGONAL SECURITY WATERMARK --- */}
                                                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
                                                                     <p className="text-white/[0.07] font-black text-4xl uppercase tracking-[0.3em] rotate-[-35deg] whitespace-nowrap scale-150">
                                                                         AUTHORIZED VETTING ONLY • PDDS CLASSIFIED • AUTHORIZED VETTING ONLY
                                                                     </p>
                                                                 </div>
-
-                                                                {/* --- INFO OVERLAY --- */}
                                                                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#002366] via-[#002366]/80 to-transparent p-6 pt-12">
                                                                     <p className="text-white font-black uppercase tracking-tighter text-xl leading-none drop-shadow-md">{member.fullName}</p>
                                                                     <Badge className="mt-2 bg-[#B8860B] hover:bg-[#B8860B] border-none text-[9px] font-black uppercase shadow-lg">{member.role}</Badge>
@@ -670,7 +705,6 @@ export default function AdminDashboard() {
                                                             </div>
                                                         </HoverCardContent>
                                                     </HoverCard>
-
                                                     <div>
                                                         <div className="font-black text-sm uppercase text-[#002366] leading-none mb-1">{member.fullName}</div>
                                                         <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{member.email}</div>
