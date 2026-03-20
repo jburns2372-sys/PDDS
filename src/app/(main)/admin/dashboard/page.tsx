@@ -610,10 +610,18 @@ export default function AdminDashboard() {
                         </CardHeader>
                         <div className="overflow-x-auto">
                             <Table>
-                                <TableHeader><TableRow className="bg-slate-50 border-none"><TableHead className="pl-8 text-[10px] font-black uppercase h-14">Member Identity</TableHead><TableHead className="text-[10px] font-black uppercase h-14">Official Rank</TableHead><TableHead className="text-[10px] font-black uppercase h-14">Jurisdiction</TableHead><TableHead className="text-right pr-8 text-[10px] font-black uppercase h-14">Actions</TableHead></TableRow></TableHeader>
+                                <TableHeader>
+                                  <TableRow className="bg-slate-50 border-none">
+                                    <TableHead className="pl-8 text-[10px] font-black uppercase h-14">Member Identity</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase h-14">Official Rank</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase h-14">Jurisdiction</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase h-14 text-center">Status</TableHead>
+                                    <TableHead className="text-right pr-8 text-[10px] font-black uppercase h-14">Actions</TableHead>
+                                  </TableRow>
+                                </TableHeader>
                                 <TableBody>
-                                    {usersLoading ? <TableRow><TableCell colSpan={4} className="text-center py-32"><Loader2 className="animate-spin h-10 w-10 mx-auto text-[#002366]" /></TableCell></TableRow> :
-                                     filteredRegistry.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center py-32 text-slate-300 font-black uppercase tracking-widest">Zero Intelligence Found</TableCell></TableRow> :
+                                    {usersLoading ? <TableRow><TableCell colSpan={5} className="text-center py-32"><Loader2 className="animate-spin h-10 w-10 mx-auto text-[#002366]" /></TableCell></TableRow> :
+                                     filteredRegistry.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-300 font-black uppercase tracking-widest">Zero Intelligence Found</TableCell></TableRow> :
                                      filteredRegistry.map(member => (
                                         <TableRow key={member.id} className={cn("hover:bg-slate-50/50 transition-colors border-slate-50", member.isApproved === false ? 'bg-red-50/30' : '')}>
                                             <TableCell className="pl-8 py-5">
@@ -673,6 +681,16 @@ export default function AdminDashboard() {
                                             <TableCell>
                                                 <div className="text-[11px] font-black text-slate-700 uppercase leading-none mb-1">{member.city || "NATIONAL"}</div>
                                                 <div className="text-[9px] font-bold text-slate-300 uppercase">{member.province}</div>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                              <Badge className={cn(
+                                                "text-[9px] font-black uppercase px-3 py-1 border-2",
+                                                member.membershipStatus === "Active" 
+                                                  ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                                                  : "bg-amber-50 text-amber-500 border-amber-100"
+                                              )}>
+                                                {member.membershipStatus === "Active" ? "PAID / ACTIVE" : "PENDING DUES"}
+                                              </Badge>
                                             </TableCell>
                                             <TableCell className="text-right pr-8 space-x-2">
                                                 {hasExecutiveAccess ? <>
