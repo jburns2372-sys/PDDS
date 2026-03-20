@@ -62,6 +62,9 @@ import { collection, onSnapshot, serverTimestamp, doc, setDoc, query, where, get
 import { pddsLeadershipRoles, getZipCode, getIslandGroup } from "@/lib/data";
 import { DuesManagement } from "@/components/admin/dues-management";
 import { cn } from "@/lib/utils";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { IDCardTemplate } from "@/components/admin/id-card-template";
 
 const UNLIMITED_ROLES = ['Member', 'Supporter', 'Volunteer', 'Coordinator', 'Moderator'];
 const NCR_CODE = "130000000";
@@ -126,6 +129,26 @@ export default function AdminDashboard() {
         };
     }, [allUsers]);
 
+    // --- ID GENERATION LOGIC ---
+    const generateMemberID = async (member: any) => {
+        const element = document.getElementById(`id-card-${member.id}`);
+        if (!element) return;
+
+        try {
+            const canvas = await html2canvas(element, { scale: 3, useCORS: true });
+            const imgData = canvas.toDataURL("image/png");
+            const pdf = new jsPDF("p", "mm", "a4");
+            
+            // Center the ID card on an A4 page
+            pdf.addImage(imgData, "PNG", 55, 40, 100, 157);
+            pdf.save(`PDDS_ID_${member.fullName.replace(/\s+/g, '_')}.pdf`);
+            
+            toast({ title: "ID Generated", description: "Official credential has been issued." });
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error", description: "Failed to render ID card." });
+        }
+    };
+
     // --- CSV EXPORT LOGIC ---
     const exportRegistryCSV = (filter?: string) => {
         const dataToExport = filter 
@@ -160,7 +183,6 @@ export default function AdminDashboard() {
     };
 
     const exportPaidLedgerCSV = () => {
-        // Filter specifically for ACTIVE (Paid) members
         const paidMembers = allUsers.filter(u => u.membershipStatus === "Active");
 
         if (paidMembers.length === 0) {
@@ -178,7 +200,7 @@ export default function AdminDashboard() {
             `${u.city}, ${u.province}`,
             u.role,
             u.lastDuesPaymentDate?.toDate ? u.lastDuesPaymentDate.toDate().toLocaleDateString() : (u.lastDuesPaid?.toDate ? u.lastDuesPaid.toDate().toLocaleDateString() : "Legacy Record"),
-            "200.00" // Hardcoded to your specific 200.00 amount
+            "200.00"
         ]);
 
         const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
@@ -728,6 +750,22 @@ export default function AdminDashboard() {
                                             </TableCell>
                                             <TableCell className="text-right pr-8 space-x-2">
                                                 {hasExecutiveAccess ? <>
+                                                    {member.membershipStatus === "Active" && (
+                                                        <>
+                                                            <div className="fixed top-[-9999px] left-[-9999px]">
+                                                                <IDCardTemplate member={member} />
+                                                            </div>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                onClick={() => generateMemberID(member)}
+                                                                className="h-10 w-10 rounded-2xl text-emerald-600 bg-emerald-50 shadow-sm"
+                                                                title="Issue Official ID"
+                                                            >
+                                                                <Shield className="h-5 w-5" />
+                                                            </Button>
+                                                        </>
+                                                    )}
                                                     <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(member)} className={cn("h-10 w-10 rounded-2xl shadow-sm transition-all", member.isApproved === false ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50')}>
                                                         {member.isApproved === false ? <UserCheck className="h-5 w-5" /> : <UserX className="h-5 w-5" />}
                                                     </Button>
