@@ -11,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
-// --- SHADCN COMPONENTS ---
 import {
   HoverCard,
   HoverCardContent,
@@ -139,7 +138,6 @@ export default function AdminDashboard() {
             const imgData = canvas.toDataURL("image/png");
             const pdf = new jsPDF("p", "mm", "a4");
             
-            // Center the ID card on an A4 page
             pdf.addImage(imgData, "PNG", 55, 40, 100, 157);
             pdf.save(`PDDS_ID_${member.fullName.replace(/\s+/g, '_')}.pdf`);
             
@@ -155,7 +153,7 @@ export default function AdminDashboard() {
             ? allUsers.filter(u => u.islandGroup === filter)
             : allUsers;
 
-        if (dataToExport.length === 0) return toast({ title: "Operation Failed", description: "No data found for this region." });
+        if (dataToExport.length === 0) return toast({ title: "Operation Failed", description: "No data found." });
 
         const headers = ["Full Name", "Email", "Phone", "Role", "Province", "City", "Island Group", "Status"];
         const rows = dataToExport.map(u => [
@@ -189,7 +187,7 @@ export default function AdminDashboard() {
             return toast({ 
                 variant: "destructive", 
                 title: "Export Failed", 
-                description: "No paid members found in the current registry." 
+                description: "No paid members found." 
             });
         }
 
@@ -199,7 +197,7 @@ export default function AdminDashboard() {
             u.email,
             `${u.city}, ${u.province}`,
             u.role,
-            u.lastDuesPaymentDate?.toDate ? u.lastDuesPaymentDate.toDate().toLocaleDateString() : (u.lastDuesPaid?.toDate ? u.lastDuesPaid.toDate().toLocaleDateString() : "Legacy Record"),
+            u.lastDuesPaymentDate?.toDate ? u.lastDuesPaymentDate.toDate().toLocaleDateString() : "Legacy Record",
             "200.00"
         ]);
 
@@ -216,7 +214,6 @@ export default function AdminDashboard() {
         toast({ title: "Ledger Exported", description: `Downloaded ${paidMembers.length} payment records.` });
     };
 
-    // Initial Fetch for Provinces
     useEffect(() => {
         const fetchProvinces = async () => {
             try {
@@ -231,7 +228,6 @@ export default function AdminDashboard() {
         fetchProvinces();
     }, []);
 
-    // Fetch Cities and Barangays logic
     useEffect(() => {
         if (!selectedProvince) { setCities([]); return; }
         const fetchCities = async () => {
@@ -265,7 +261,6 @@ export default function AdminDashboard() {
         setZipCode(selectedCity ? getZipCode(selectedCity, selectedBarangay) : "");
     }, [selectedBarangay, selectedCity]);
 
-    // FETCH USERS & LOGS
     useEffect(() => {
         setUsersLoading(true);
         const unsubUsers = onSnapshot(collection(firestore, 'users'), (snapshot) => {
@@ -340,7 +335,6 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             await updateUserDocument(firestore, targetUser.id, { isApproved: newStatus }, userData);
-            
             await addDoc(collection(firestore, "activity_logs"), {
                 adminId: userData?.uid,
                 adminName: userData?.fullName || "Admin",
@@ -350,8 +344,7 @@ export default function AdminDashboard() {
                 timestamp: serverTimestamp(),
                 details: `Changed approval status to: ${newStatus ? 'Approved' : 'Suspended'}`
             });
-
-            toast({ title: "Updated", description: `${targetUser.fullName} status modified.` });
+            toast({ title: "Updated" });
         } catch (error: any) {
              toast({ variant: "destructive", title: "Error", description: error.message });
         } finally {
@@ -361,12 +354,11 @@ export default function AdminDashboard() {
 
     const handleRevoke = async (targetUser: any) => {
         if (!hasExecutiveAccess || targetUser.id === userData?.uid) return;
-        const confirmed = confirm(`Are you sure you want to remove ${targetUser.fullName}?`);
+        const confirmed = confirm(`Are you sure?`);
         if (!confirmed) return;
         setLoading(true);
         try {
             await deleteUserDocument(firestore, targetUser.id, userData);
-            
             await addDoc(collection(firestore, "activity_logs"), {
                 adminId: userData?.uid,
                 adminName: userData?.fullName || "Admin",
@@ -376,8 +368,7 @@ export default function AdminDashboard() {
                 timestamp: serverTimestamp(),
                 details: `Permanently removed from the National Registry.`
             });
-
-            toast({ title: "Removed", description: "Member record deleted." });
+            toast({ title: "Removed" });
         } catch (error: any) {
              toast({ variant: "destructive", title: "Error", description: error.message });
         } finally {
@@ -388,23 +379,15 @@ export default function AdminDashboard() {
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!hasExecutiveAccess) return;
-
-        if (!role) {
-            toast({ variant: "destructive", title: "Role Required" });
-            return;
-        }
+        if (!role) return toast({ variant: "destructive", title: "Role Required" });
 
         const isTaken = !UNLIMITED_ROLES.includes(role) && 
                         takenRoles.includes(role) && 
                         (!isEditMode || selectedUser?.role !== role);
 
-        if (isTaken) {
-          toast({ variant: "destructive", title: "Position Occupied" });
-          return;
-        }
+        if (isTaken) return toast({ variant: "destructive", title: "Position Occupied" });
 
         setLoading(true);
-        
         try {
             let finalPhotoURL = photoURL;
             let finalIdURL = idVerificationUrl;
@@ -438,7 +421,6 @@ export default function AdminDashboard() {
 
             if (isEditMode && selectedUser) {
                 await updateUserDocument(firestore, selectedUser.id, commonData, userData);
-                
                 await addDoc(collection(firestore, "activity_logs"), {
                     adminId: userData?.uid,
                     adminName: userData?.fullName || "Admin",
@@ -448,7 +430,6 @@ export default function AdminDashboard() {
                     timestamp: serverTimestamp(),
                     details: `Updated member profile details.`
                 });
-
                 toast({ title: "Updated" });
                 resetForm();
             } else {
@@ -457,18 +438,11 @@ export default function AdminDashboard() {
                 try {
                     const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
                     const uid = userCredential.user.uid;
-                    
                     await setDoc(doc(firestore, 'users', uid), {
-                        uid,
-                        email: email.toLowerCase(),
-                        ...commonData,
-                        isApproved: true,
-                        membershipStatus: "Pending Dues", 
-                        kartilyaAgreed: true,
-                        createdAt: serverTimestamp(),
-                        lastActive: serverTimestamp(),
+                        uid, email: email.toLowerCase(), ...commonData, isApproved: true,
+                        membershipStatus: "Pending Dues", kartilyaAgreed: true,
+                        createdAt: serverTimestamp(), lastActive: serverTimestamp(),
                     });
-
                     await addDoc(collection(firestore, "activity_logs"), {
                         adminId: userData?.uid,
                         adminName: userData?.fullName || "Admin",
@@ -478,8 +452,7 @@ export default function AdminDashboard() {
                         timestamp: serverTimestamp(),
                         details: `Manually registered new member as ${role}.`
                     });
-
-                    toast({ title: "Registered", description: "Member added to National Registry." });
+                    toast({ title: "Registered" });
                     resetForm();
                 } finally {
                     await deleteTemporaryApp(tempApp);
@@ -494,7 +467,6 @@ export default function AdminDashboard() {
 
     return (
         <div className="p-4 md:p-6 bg-[#F8FAFC] min-h-screen pb-32 space-y-8">
-            {/* --- HEADER --- */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b-2 border-[#002366] pb-6">
                 <div>
                     <h1 className="text-4xl font-black text-[#002366] flex items-center gap-3 uppercase tracking-tighter">
@@ -504,7 +476,6 @@ export default function AdminDashboard() {
                     <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1">Authorized Executive Oversight • SEC-GEN COMMAND</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* --- QUICK REPORTS DROPDOWN --- */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="border-2 border-slate-200 font-black uppercase tracking-widest text-[10px] h-10 px-4 rounded-xl hover:bg-white shadow-sm transition-all active:scale-95">
@@ -513,39 +484,21 @@ export default function AdminDashboard() {
                           <ChevronDown className="ml-2 h-3 w-3 opacity-50" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-56 border-none rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200" align="end">
+                      <DropdownMenuContent className="w-56 border-none rounded-2xl shadow-2xl p-2" align="end">
                         <DropdownMenuLabel className="text-[9px] font-black uppercase tracking-widest text-slate-400 p-3 pb-2">Intelligence Export</DropdownMenuLabel>
                         <DropdownMenuSeparator className="bg-slate-100" />
                         <DropdownMenuItem onClick={() => exportRegistryCSV()} className="rounded-xl p-3 cursor-pointer hover:bg-[#002366]/5 group">
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-black uppercase text-[#002366]">Export National Registry</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">Full Database (CSV)</span>
-                          </div>
+                          <span className="text-[11px] font-black uppercase text-[#002366]">Export National Registry</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={exportPaidLedgerCSV} className="rounded-xl p-3 cursor-pointer hover:bg-emerald-50 group">
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-black uppercase text-emerald-700">Export Paid Ledger</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">Active Members Only</span>
-                          </div>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-slate-100" />
-                        <DropdownMenuItem onClick={() => exportRegistryCSV("Luzon")} className="rounded-xl p-3 cursor-pointer hover:bg-blue-50">
-                          <span className="text-[10px] font-black uppercase text-blue-700">Luzon Dispatch</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => exportRegistryCSV("Visayas")} className="rounded-xl p-3 cursor-pointer hover:bg-emerald-50">
-                          <span className="text-[10px] font-black uppercase text-emerald-700">Visayas Dispatch</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => exportRegistryCSV("Mindanao")} className="rounded-xl p-3 cursor-pointer hover:bg-red-50">
-                          <span className="text-[10px] font-black uppercase text-red-700">Mindanao Dispatch</span>
+                          <span className="text-[11px] font-black uppercase text-emerald-700">Export Paid Ledger</span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-
                     <Badge className="bg-emerald-500 font-black h-6">SYSTEM LIVE</Badge>
                 </div>
             </div>
 
-            {/* --- EXECUTIVE KPI PULSE --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard title="Total Patriots" value={stats.total} icon={Users} color="text-blue-600" />
                 <StatCard title="Active Status" value={stats.active} icon={ShieldCheck} color="text-emerald-600" sub="Verified" />
@@ -554,7 +507,6 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* --- LEFT COLUMN: COMMAND INPUT --- */}
                 <div className="lg:col-span-4 space-y-8">
                     <Card className="shadow-2xl border-none rounded-[32px] overflow-hidden">
                         <form onSubmit={handleFormSubmit} autoComplete="off">
@@ -567,16 +519,16 @@ export default function AdminDashboard() {
                             <CardContent className="space-y-5 pt-6">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-slate-400">Full Name</Label>
-                                    <Input required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="h-12 text-base font-black border-2 rounded-xl" placeholder="JUAN DELA CRUZ" />
+                                    <Input required value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="h-12 text-base font-black border-2 rounded-xl" />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-slate-400">Email Address</Label>
-                                        <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-12 border-2 rounded-xl font-bold" disabled={isEditMode} />
+                                        <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-12 border-2 rounded-xl" disabled={isEditMode} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-slate-400">Phone</Label>
-                                        <Input required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="h-12 border-2 rounded-xl font-bold" placeholder="+63" />
+                                        <Input required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="h-12 border-2 rounded-xl" />
                                     </div>
                                 </div>
                                 {!isEditMode && (
@@ -586,90 +538,47 @@ export default function AdminDashboard() {
                                     </div>
                                 )}
                                 <div className="space-y-4 pt-4 border-t border-dashed">
-                                    <Label className="text-[10px] font-black uppercase text-[#002366] flex items-center gap-2">
-                                        <MapPin className="h-3 w-3" /> Jurisdictional Assignment
-                                    </Label>
+                                    <Label className="text-[10px] font-black uppercase text-[#002366] flex items-center gap-2"><MapPin className="h-3 w-3" /> Jurisdictional Assignment</Label>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-1">
-                                            <Label className="text-[9px] uppercase font-bold text-slate-400">Province</Label>
-                                            <Select onValueChange={(val) => { setSelectedProvince(val); setSelectedCity(""); }} value={selectedProvince}>
-                                                <SelectTrigger className="h-11 border-2 rounded-xl font-bold text-[10px]"><SelectValue placeholder="Select" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {provinces.map(p => <SelectItem key={p.code} value={p.name} className="uppercase font-bold text-[10px]">{p.name}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-[9px] uppercase font-bold text-slate-400">City</Label>
-                                            <Select onValueChange={(val) => { setSelectedCity(val); }} value={selectedCity} disabled={!selectedProvince}>
-                                                <SelectTrigger className="h-11 border-2 rounded-xl font-bold text-[10px]"><SelectValue placeholder="Select" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {cities.map(c => <SelectItem key={c.code} value={c.name} className="uppercase font-bold text-[10px]">{c.name}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                        <Select onValueChange={(val) => { setSelectedProvince(val); setSelectedCity(""); }} value={selectedProvince}>
+                                            <SelectTrigger className="h-11 border-2 rounded-xl font-bold text-[10px]"><SelectValue placeholder="Province" /></SelectTrigger>
+                                            <SelectContent>{provinces.map(p => <SelectItem key={p.code} value={p.name} className="uppercase font-bold text-[10px]">{p.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                        <Select onValueChange={(val) => { setSelectedCity(val); }} value={selectedCity} disabled={!selectedProvince}>
+                                            <SelectTrigger className="h-11 border-2 rounded-xl font-bold text-[10px]"><SelectValue placeholder="City" /></SelectTrigger>
+                                            <SelectContent>{cities.map(c => <SelectItem key={c.code} value={c.name} className="uppercase font-bold text-[10px]">{c.name}</SelectItem>)}</SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
                                 <div className="space-y-2 pt-4 border-t border-dashed">
                                     <Label className="text-[10px] font-black uppercase text-[#002366]">Organizational Rank</Label>
                                     <Select onValueChange={setRole} value={role}>
-                                        <SelectTrigger className="h-12 border-2 rounded-xl font-black text-sm uppercase">
-                                            <SelectValue placeholder="Select Rank..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {allAssignableRoles.map(r => {
-                                              const isTaken = !UNLIMITED_ROLES.includes(r) && takenRoles.includes(r) && (!isEditMode || selectedUser?.role !== r);
-                                              return <SelectItem key={r} value={r} disabled={isTaken} className="font-black uppercase text-[10px]">{r} {isTaken ? '(FILLED)' : ''}</SelectItem>;
-                                            })}
-                                        </SelectContent>
+                                        <SelectTrigger className="h-12 border-2 rounded-xl font-black text-sm uppercase"><SelectValue placeholder="Select Rank..." /></SelectTrigger>
+                                        <SelectContent>{allAssignableRoles.map(r => <SelectItem key={r} value={r} className="font-black uppercase text-[10px]">{r}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
                             </CardContent>
                             <CardFooter className="flex flex-col gap-2 bg-slate-50 p-6">
-                                <Button type="submit" className="w-full h-16 bg-[#002366] hover:bg-[#001a4d] text-lg font-black uppercase tracking-widest shadow-xl rounded-2xl transition-all active:scale-95" disabled={loading || !hasExecutiveAccess}>
+                                <Button type="submit" className="w-full h-16 bg-[#002366] hover:bg-[#001a4d] text-lg font-black uppercase tracking-widest shadow-xl rounded-2xl" disabled={loading}>
                                     {loading ? <Loader2 className="animate-spin h-6 w-6" /> : (isEditMode ? 'Commit Record' : 'Register Member')}
                                 </Button>
-                                {isEditMode && <Button variant="ghost" onClick={resetForm} className="w-full h-12 uppercase font-black text-xs text-slate-400">Cancel Elevation</Button>}
+                                {isEditMode && <Button variant="ghost" onClick={resetForm} className="w-full h-12 uppercase font-black text-xs text-slate-400">Cancel</Button>}
                             </CardFooter>
                         </form>
                     </Card>
                     <DuesManagement />
-                    <Card className="rounded-[32px] border-none shadow-xl overflow-hidden">
-                        <CardHeader className="bg-slate-100 py-3">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                                <Activity className="h-3 w-3" /> Recent Pulses
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <div className="divide-y">
-                                {recentLogs.map(log => (
-                                    <div key={log.id} className="p-3 flex justify-between items-center hover:bg-slate-50 transition-colors">
-                                        <div className="flex flex-col">
-                                            <span className="text-[9px] font-black text-[#002366] uppercase">{log.adminName}</span>
-                                            <span className="text-[8px] font-bold text-slate-400 uppercase">{log.action?.replace(/_/g, ' ')}</span>
-                                        </div>
-                                        <span className="text-[8px] font-black text-[#B8860B] uppercase">{log.targetUserName?.split(' ')[0]}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
                 </div>
 
-                {/* --- RIGHT COLUMN: MASTER REGISTRY --- */}
                 <div className="lg:col-span-8 space-y-6">
                     <div className="relative group">
-                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-300 group-focus-within:text-[#002366] transition-colors" />
-                        <Input className="pl-14 h-16 shadow-2xl uppercase font-black text-sm bg-white border-none rounded-[24px] focus-visible:ring-2 focus-visible:ring-[#002366]" placeholder="Search National Database by Name, Email, or Chapter..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-300" />
+                        <Input className="pl-14 h-16 shadow-2xl uppercase font-black text-sm bg-white border-none rounded-[24px]" placeholder="Search National Database..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     </div>
                     
                     <Card className="shadow-2xl border-none rounded-[40px] overflow-hidden bg-white">
                         <CardHeader className="bg-[#002366] text-white py-5 px-8 border-b flex flex-row items-center justify-between">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-3">
-                                <Users className="h-6 w-6 text-[#B8860B]" />
-                                National Registry Base ({filteredRegistry.length})
-                            </CardTitle>
-                            <Badge variant="outline" className="border-white/20 text-white font-black text-[10px] px-4 py-1 uppercase tracking-widest">AUTHORIZED ACCESS ONLY</Badge>
+                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-3"><Users className="h-6 w-6 text-[#B8860B]" /> National Registry Base ({filteredRegistry.length})</CardTitle>
+                            <Badge variant="outline" className="border-white/20 text-white font-black text-[10px] px-4 py-1 uppercase">AUTHORIZED ACCESS ONLY</Badge>
                         </CardHeader>
                         <div className="overflow-x-auto">
                             <Table>
@@ -684,56 +593,21 @@ export default function AdminDashboard() {
                                 </TableHeader>
                                 <TableBody>
                                     {usersLoading ? <TableRow><TableCell colSpan={5} className="text-center py-32"><Loader2 className="animate-spin h-10 w-10 mx-auto text-[#002366]" /></TableCell></TableRow> :
-                                     filteredRegistry.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-300 font-black uppercase tracking-widest">Zero Intelligence Found</TableCell></TableRow> :
                                      filteredRegistry.map(member => (
                                         <TableRow key={member.id} className={cn("hover:bg-slate-50/50 transition-colors border-slate-50", member.isApproved === false ? 'bg-red-50/30' : '')}>
                                             <TableCell className="pl-8 py-5">
                                                 <div className="flex items-center gap-4">
-                                                    <HoverCard openDelay={200}>
-                                                        <HoverCardTrigger asChild>
-                                                            <Avatar className="h-12 w-12 border-2 border-white shadow-md cursor-zoom-in transition-transform hover:scale-110 active:scale-95">
-                                                                <AvatarImage src={member.photoURL} />
-                                                                <AvatarFallback className="font-black bg-[#002366] text-white">{member.fullName?.charAt(0)}</AvatarFallback>
-                                                            </Avatar>
-                                                        </HoverCardTrigger>
-                                                        <HoverCardContent side="right" className="w-80 p-0 border-none rounded-[32px] overflow-hidden shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-200">
-                                                            <div className="relative aspect-square bg-slate-950 group">
-                                                                <img 
-                                                                    src={member.photoURL || "/api/placeholder/400/400"} 
-                                                                    alt={member.fullName}
-                                                                    className="object-cover w-full h-full opacity-90"
-                                                                />
-                                                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
-                                                                    <p className="text-white/[0.07] font-black text-4xl uppercase tracking-[0.3em] rotate-[-35deg] whitespace-nowrap scale-150">
-                                                                        AUTHORIZED VETTING ONLY • PDDS CLASSIFIED • AUTHORIZED VETTING ONLY
-                                                                    </p>
-                                                                </div>
-                                                                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#002366] via-[#002366]/80 to-transparent p-6 pt-12">
-                                                                    <p className="text-white font-black uppercase tracking-tighter text-xl leading-none drop-shadow-md">{member.fullName}</p>
-                                                                    <Badge className="mt-2 bg-[#B8860B] hover:bg-[#B8860B] border-none text-[9px] font-black uppercase shadow-lg">{member.role}</Badge>
-                                                                </div>
-                                                            </div>
-                                                            <div className="p-4 bg-white flex justify-between items-center border-t border-slate-100">
-                                                                <div className="flex items-center gap-2 text-slate-400">
-                                                                    <MapPin className="h-3 w-3" />
-                                                                    <span className="text-[10px] font-bold uppercase tracking-widest">{member.city || "National"}</span>
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", member.membershipStatus === 'Active' ? 'bg-emerald-500' : 'bg-amber-500')} />
-                                                                    <span className={cn("text-[10px] font-black uppercase", member.membershipStatus === 'Active' ? 'text-emerald-600' : 'text-amber-500')}>
-                                                                        {member.membershipStatus || "Pending"}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </HoverCardContent>
-                                                    </HoverCard>
+                                                    <Avatar className="h-12 w-12 border-2 border-white shadow-md">
+                                                        <AvatarImage src={member.photoURL} />
+                                                        <AvatarFallback className="font-black bg-[#002366] text-white">{member.fullName?.charAt(0)}</AvatarFallback>
+                                                    </Avatar>
                                                     <div>
                                                         <div className="font-black text-sm uppercase text-[#002366] leading-none mb-1">{member.fullName}</div>
-                                                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{member.email}</div>
+                                                        <div className="text-[9px] font-bold text-slate-400 uppercase">{member.email}</div>
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell><Badge className="bg-slate-100 text-[#002366] text-[9px] font-black uppercase border-none px-3 py-1">{member.role}</Badge></TableCell>
+                                            <TableCell><Badge className="bg-slate-100 text-[#002366] text-[9px] font-black uppercase border-none">{member.role}</Badge></TableCell>
                                             <TableCell>
                                                 <div className="text-[11px] font-black text-slate-700 uppercase leading-none mb-1">{member.city || "NATIONAL"}</div>
                                                 <div className="text-[9px] font-bold text-slate-300 uppercase">{member.province}</div>
@@ -749,29 +623,30 @@ export default function AdminDashboard() {
                                               </Badge>
                                             </TableCell>
                                             <TableCell className="text-right pr-8 space-x-2">
-                                                {hasExecutiveAccess ? <>
-                                                    {member.membershipStatus === "Active" && (
-                                                        <>
-                                                            <div className="fixed top-[-9999px] left-[-9999px]">
-                                                                <IDCardTemplate member={member} />
-                                                            </div>
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="icon" 
-                                                                onClick={() => generateMemberID(member)}
-                                                                className="h-10 w-10 rounded-2xl text-emerald-600 bg-emerald-50 shadow-sm"
-                                                                title="Issue Official ID"
-                                                            >
-                                                                <Shield className="h-5 w-5" />
-                                                            </Button>
-                                                        </>
-                                                    )}
-                                                    <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(member)} className={cn("h-10 w-10 rounded-2xl shadow-sm transition-all", member.isApproved === false ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50')}>
-                                                        {member.isApproved === false ? <UserCheck className="h-5 w-5" /> : <UserX className="h-5 w-5" />}
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleEditClick(member)} className="h-10 w-10 rounded-2xl text-[#002366] bg-slate-100 shadow-sm"><Pencil className="h-5 w-5" /></Button>
-                                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl text-red-600 bg-red-50 shadow-sm" onClick={() => handleRevoke(member)} disabled={member.id === userData?.uid}><Trash2 className="h-5 w-5" /></Button>
-                                                </> : <span className="text-[9px] font-black uppercase opacity-40">READ_ONLY</span>}
+                                                {hasExecutiveAccess && (
+                                                    <>
+                                                        {member.membershipStatus === "Active" && (
+                                                            <>
+                                                                <div className="fixed top-[-9999px] left-[-9999px]">
+                                                                    <IDCardTemplate member={member} />
+                                                                </div>
+                                                                <Button 
+                                                                    variant="ghost" size="icon" 
+                                                                    onClick={() => generateMemberID(member)}
+                                                                    className="h-10 w-10 rounded-2xl text-emerald-600 bg-emerald-50 shadow-sm"
+                                                                    title="Issue Official ID"
+                                                                >
+                                                                    <Shield className="h-5 w-5" />
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                        <Button variant="ghost" size="icon" onClick={() => handleToggleStatus(member)} className={cn("h-10 w-10 rounded-2xl shadow-sm transition-all", member.isApproved === false ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50')}>
+                                                            {member.isApproved === false ? <UserCheck className="h-5 w-5" /> : <UserX className="h-5 w-5" />}
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(member)} className="h-10 w-10 rounded-2xl text-[#002366] bg-slate-100 shadow-sm"><Pencil className="h-5 w-5" /></Button>
+                                                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl text-red-600 bg-red-50 shadow-sm" onClick={() => handleRevoke(member)} disabled={member.id === userData?.uid}><Trash2 className="h-5 w-5" /></Button>
+                                                    </>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                      ))}
@@ -785,16 +660,12 @@ export default function AdminDashboard() {
     );
 }
 
-// --- DASHBOARD HELPERS ---
-
 function StatCard({ title, value, icon: Icon, color, sub, alert }: any) {
   return (
-    <Card className={cn("rounded-[32px] border-none shadow-xl transition-all hover:shadow-2xl hover:-translate-y-1 bg-white", alert ? "ring-2 ring-red-100" : "")}>
+    <Card className={cn("rounded-[32px] border-none shadow-xl transition-all hover:shadow-2xl bg-white", alert ? "ring-2 ring-red-100" : "")}>
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-4">
-          <div className={cn("p-3 rounded-2xl bg-slate-50 shadow-inner", color)}>
-            <Icon className="h-6 w-6" />
-          </div>
+          <div className={cn("p-3 rounded-2xl bg-slate-50", color)}><Icon className="h-6 w-6" /></div>
           {alert && <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_red]" />}
         </div>
         <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">{title}</h3>

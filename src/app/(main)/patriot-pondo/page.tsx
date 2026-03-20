@@ -1,31 +1,28 @@
 "use client";
 
-import { useMemo } from "react";
-import { useCollection, useUser } from "@/firebase";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useMemo, useState } from "react";
+import { useCollection, useUser, useFirestore } from "@/firebase";
+import { useUserData } from "@/context/user-data-context";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 import { 
   Landmark, 
   History, 
-  TrendingUp, 
   ShieldCheck, 
   ArrowUpRight, 
-  ArrowDownRight, 
   Loader2, 
-  Wallet,
-  PieChart as PieChartIcon,
-  BarChart3,
   Receipt,
   ExternalLink,
-  Printer,
-  Home,
+  FileBadge,
   HeartHandshake,
-  Megaphone,
-  Package,
-  CheckCircle2
+  Shield,
+  CheckCircle2,
+  PieChart as PieChartIcon,
+  BarChart3
 } from "lucide-react";
-import { PondoDonationCard } from "@/components/pondo-donation-card";
 import { 
   PieChart, 
   Pie, 
@@ -39,218 +36,153 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 
-/**
- * @fileOverview PatriotPondo - National Financial Transparency Dashboard.
- * REFACTORED: Fluid 12-column grid spanning the full screen width.
- */
 export default function PatriotPondoPage() {
   const { user } = useUser();
-  const { data: donations, loading: donLoading } = useCollection('donations', {
+  const { userData } = useUserData();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const { data: allTransactions, loading: donLoading } = useCollection('donations', {
     queries: [{ attribute: 'status', operator: '==', value: 'Successful' }]
   });
   const { data: expenses, loading: expLoading } = useCollection('expenses');
 
   const stats = useMemo(() => {
-    const totalPondo = donations.reduce((acc, d) => acc + (d.amount || 0), 0);
+    const duesPayments = allTransactions.filter(t => t.type === "Membership Dues");
+    const totalDues = duesPayments.reduce((acc, d) => acc + (d.amount || 0), 0);
+    const donations = allTransactions.filter(t => t.type !== "Membership Dues");
+    const totalDonations = donations.reduce((acc, d) => acc + (d.amount || 0), 0);
     const totalSpent = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
-    const balance = totalPondo - totalSpent;
+    const balance = (totalDues + totalDonations) - totalSpent;
 
     const expenseByCategory = expenses.reduce((acc: any, e) => {
       acc[e.category] = (acc[e.category] || 0) + e.amount;
       return acc;
     }, {});
-
     const pieData = Object.entries(expenseByCategory).map(([name, value]) => ({ name, value }));
 
-    const regionalDataMap: Record<string, number> = {};
-    donations.forEach(d => {
-      const region = d.region || "National";
-      regionalDataMap[region] = (regionalDataMap[region] || 0) + d.amount;
-    });
+    return { totalDues, totalDonations, totalSpent, balance, pieData, allTransactions };
+  }, [allTransactions, expenses]);
 
-    const barData = Object.entries(regionalDataMap)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
+  const handlePayment = async (type: "MEMBERSHIP_DUES" | "VOLUNTARY_DONATION", amount: number) => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/paymongo/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: amount,
+          userId: user?.uid,
+          userName: userData?.fullName,
+          description: type === "MEMBERSHIP_DUES" ? "2026 Annual Membership Dues" : "Patriot Movement Donation",
+          paymentType: type,
+          success_url: `${window.location.origin}/patriot-pondo/success`,
+          cancel_url: `${window.location.origin}/patriot-pondo`
+        })
+      });
 
-    return { totalPondo, totalSpent, balance, pieData, barData };
-  }, [donations, expenses]);
+      const { checkoutUrl } = await response.json();
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Payment Portal Error",
+        description: "Could not initialize PayMongo checkout."
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   if (donLoading || expLoading) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Syncing National Ledger...</p>
-        </div>
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
 
-  const COLORS = ['#002366', '#D4AF37', '#dc2626', '#10b981', '#6366f1'];
+  const COLORS = ['#002366', '#B8860B', '#dc2626', '#10b981'];
 
   return (
-    <div className="p-4 md:p-8 lg:p-10 bg-background min-h-screen pb-32">
+    <div className="p-4 md:p-10 bg-background min-h-screen pb-32">
       <div className="w-full space-y-10">
-        
-        {/* Financial Header - Full Width */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-4 border-primary pb-8">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary text-white rounded-xl shadow-xl">
-              <Landmark className="h-8 w-8" />
-            </div>
+            <div className="p-3 bg-primary text-white rounded-xl shadow-xl"><Landmark className="h-8 w-8" /></div>
             <div>
-              <h1 className="text-4xl font-black text-primary font-headline uppercase tracking-tight">PatriotPondo</h1>
+              <h1 className="text-4xl font-black text-primary uppercase tracking-tight italic">PatriotPondo</h1>
               <div className="flex items-center gap-2 mt-1">
-                <Badge className="bg-emerald-100 text-emerald-700 font-black text-[10px] uppercase border-none">Verified Transparency</Badge>
-                <Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20">Audit Trail Active</Badge>
+                <Badge className="bg-emerald-100 text-emerald-700 font-black text-[10px] uppercase">Verified Transparency</Badge>
+                <Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20 tracking-widest">PayMongo Secure</Badge>
               </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-right">
-              <p className="text-2xl md:text-3xl font-black text-primary">₱{stats.totalPondo.toLocaleString()}</p>
-              <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Total Collections</p>
+          <div className="grid grid-cols-3 gap-8">
+            <div className="text-right border-r border-slate-200 pr-8">
+              <p className="text-2xl font-black text-primary">₱{stats.totalDues.toLocaleString()}</p>
+              <p className="text-[8px] font-black uppercase tracking-widest opacity-40 italic">Membership Vault</p>
+            </div>
+            <div className="text-right border-r border-slate-200 pr-8">
+              <p className="text-2xl font-black text-[#B8860B]">₱{stats.totalDonations.toLocaleString()}</p>
+              <p className="text-[8px] font-black uppercase tracking-widest opacity-40 italic">National Pondo</p>
             </div>
             <div className="text-right">
-              <p className={`text-2xl md:text-3xl font-black ${stats.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                ₱{stats.balance.toLocaleString()}
-              </p>
-              <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Vault Balance</p>
+              <p className="text-2xl font-black text-emerald-600">₱{stats.balance.toLocaleString()}</p>
+              <p className="text-[8px] font-black uppercase tracking-widest opacity-40 italic">Available Balance</p>
             </div>
           </div>
         </div>
 
-        {/* 12-Column Responsive Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Main Feed & Analytics (8/12) */}
           <div className="lg:col-span-8 space-y-10">
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="shadow-lg border-t-4 border-primary bg-white">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-primary">
-                    <PieChartIcon className="h-4 w-4 text-accent" />
-                    Allocation breakdown
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="h-[300px] pt-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={stats.pieData} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value">
-                        {stats.pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-lg border-t-4 border-accent bg-white">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-primary">
-                    <BarChart3 className="h-4 w-4 text-primary" />
-                    Regional Strength
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="h-[300px] pt-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.barData}>
-                      <XAxis dataKey="name" tick={{fontSize: 9, fontWeight: 'bold'}} />
-                      <YAxis hide />
-                      <ChartTooltip />
-                      <Bar dataKey="value" fill="#002366" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+               <Card className="shadow-lg border-t-4 border-primary bg-white h-[350px]">
+                  <CardHeader><CardTitle className="text-[10px] font-black uppercase flex items-center gap-2"><PieChartIcon className="h-4 w-4 text-[#B8860B]"/> Expenditure Breakdown</CardTitle></CardHeader>
+                  <CardContent className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={stats.pieData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                          {stats.pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        </Pie>
+                        <ChartTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+               </Card>
+               <Card className="shadow-lg border-t-4 border-[#B8860B] bg-white h-[350px]">
+                  <CardHeader><CardTitle className="text-[10px] font-black uppercase flex items-center gap-2"><BarChart3 className="h-4 w-4 text-primary"/> Top Regional Donors</CardTitle></CardHeader>
+                  <CardContent className="h-[250px] flex items-center justify-center italic text-[10px] text-slate-400 font-bold uppercase">Interactive Regional Data Syncing...</CardContent>
+               </Card>
             </div>
 
-            <Tabs defaultValue="expenses" className="w-full">
-              <TabsList className="bg-primary/5 p-1 border border-primary/10 h-14 w-full justify-start overflow-x-auto">
-                <TabsTrigger value="expenses" className="px-8 h-full font-black uppercase text-[10px] tracking-widest">
-                  <Receipt className="h-4 w-4 mr-2" /> Expenditure Feed
-                </TabsTrigger>
-                <TabsTrigger value="ledger" className="px-8 h-full font-black uppercase text-[10px] tracking-widest">
-                  <History className="h-4 w-4 mr-2" /> Collection Log
-                </TabsTrigger>
+            <Tabs defaultValue="ledger" className="w-full">
+              <TabsList className="bg-slate-100 p-1 h-14 w-full justify-start rounded-2xl">
+                <TabsTrigger value="ledger" className="px-8 h-full font-black uppercase text-[10px] tracking-widest"><History className="h-4 w-4 mr-2" /> Collection Log</TabsTrigger>
+                <TabsTrigger value="expenses" className="px-8 h-full font-black uppercase text-[10px] tracking-widest"><Receipt className="h-4 w-4 mr-2" /> Expenditure Feed</TabsTrigger>
               </TabsList>
-
-              <TabsContent value="expenses" className="pt-6">
-                <div className="space-y-4">
-                  {expenses.length === 0 ? (
-                    <div className="py-12 text-center border-2 border-dashed rounded-2xl bg-muted/20">
-                      <p className="text-xs font-bold text-muted-foreground uppercase">No expenditures logged yet.</p>
-                    </div>
-                  ) : (
-                    expenses.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).map((e: any) => (
-                      <Card key={e.id} className="shadow-lg border-l-4 border-l-red-600 overflow-hidden group hover:shadow-xl transition-all bg-white">
-                        <CardContent className="p-5">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-4">
-                              <div className="h-12 w-12 rounded-xl bg-red-50 flex items-center justify-center border border-red-100 shadow-inner">
-                                <Receipt className="h-5 w-5 text-red-600" />
-                              </div>
-                              <div>
-                                <p className="font-black text-sm uppercase text-primary leading-tight">{e.description}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Badge variant="outline" className="text-[8px] font-black uppercase border-primary/20">{e.category}</Badge>
-                                  <span className="text-[9px] font-bold text-muted-foreground uppercase">{e.timestamp ? format(e.timestamp.toDate(), 'MMM dd, yyyy') : 'Recently'}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-black text-red-600 text-lg">-₱{e.amount.toLocaleString()}</p>
-                              <div className="flex items-center justify-end gap-1 mt-1">
-                                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                                <span className="text-[8px] font-black uppercase text-emerald-600 tracking-widest">VERIFIED</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="pt-4 border-t border-dashed flex items-center justify-between">
-                            <div className="text-[8px] font-black uppercase text-primary/40 tracking-widest">
-                              AUDIT ID: {e.id.substring(0, 12).toUpperCase()}
-                            </div>
-                            {e.receiptUrl && (
-                              <Button variant="outline" size="sm" asChild className="h-9 font-black uppercase text-[9px] tracking-widest border-2 hover:bg-primary hover:text-white transition-all">
-                                <a href={e.receiptUrl} target="_blank" rel="noopener noreferrer">
-                                  <ExternalLink className="h-3 w-3 mr-2" /> View Receipt
-                                </a>
-                              </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  )}
-                </div>
-              </TabsContent>
-
               <TabsContent value="ledger" className="pt-6">
                 <div className="space-y-4">
-                  {donations.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).slice(0, 20).map((d: any) => (
-                    <div key={d.id} className="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                  {stats.allTransactions.map((d: any) => (
+                    <div key={d.id} className="flex items-center justify-between p-5 bg-white border-2 border-slate-50 rounded-2xl hover:border-primary/20 transition-all shadow-sm">
                       <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100">
-                          <ArrowUpRight className="h-5 w-5 text-emerald-600" />
+                        <div className={`h-12 w-12 rounded-xl flex items-center justify-center shadow-inner ${d.type === "Membership Dues" ? "bg-blue-50" : "bg-emerald-50"}`}>
+                          {d.type === "Membership Dues" ? <FileBadge className="h-6 w-6 text-primary" /> : <HeartHandshake className="h-6 w-6 text-emerald-600" />}
                         </div>
                         <div>
-                          <p className="font-black text-sm uppercase text-primary leading-none">
-                            {d.isAnonymous ? "Anonymous Patriot" : d.donorName}
-                          </p>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">
-                            {d.region} • {d.timestamp ? format(d.timestamp.toDate(), 'MMM dd, p') : 'Just now'}
-                          </p>
+                          <p className="font-black text-sm uppercase text-primary leading-none mb-1">{d.fullName || d.donorName || "Patriot Member"}</p>
+                          <div className="flex gap-2">
+                             <Badge variant="outline" className="text-[7px] font-black px-1.5">{d.type === "Membership Dues" ? "VAULT" : "PONDO"}</Badge>
+                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter italic">{d.timestamp ? format(d.timestamp.toDate(), 'MMM dd, p') : 'Just now'}</span>
+                          </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-black text-emerald-600 text-lg">₱{d.amount.toLocaleString()}</p>
-                        <Badge variant="outline" className="text-[7px] font-black uppercase border-emerald-200 text-emerald-700 h-4 px-1">SUCCESSFUL</Badge>
+                        <p className={`font-black text-lg ${d.type === "Membership Dues" ? "text-primary" : "text-emerald-600"}`}>₱{d.amount.toLocaleString()}</p>
+                        <div className="flex items-center justify-end gap-1"><CheckCircle2 className="h-3 w-3 text-emerald-500" /><span className="text-[8px] font-black text-emerald-500 uppercase">Settled</span></div>
                       </div>
                     </div>
                   ))}
@@ -259,32 +191,42 @@ export default function PatriotPondoPage() {
             </Tabs>
           </div>
 
-          {/* Donation Sidebar (4/12) */}
           <div className="lg:col-span-4 space-y-6">
-            <PondoDonationCard />
-            
-            <Card className="bg-primary text-white shadow-2xl overflow-hidden relative border-none">
-              <div className="absolute inset-0 opacity-10 pointer-events-none">
-                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                  <pattern id="pondo-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#pondo-grid)" />
-                </svg>
-              </div>
-              <CardContent className="p-6 space-y-4 relative z-10">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-accent animate-pulse" />
-                  <h3 className="font-black uppercase text-sm tracking-tight">Financial Sovereignty</h3>
+            <Card className="border-4 border-primary bg-white shadow-2xl rounded-[32px] overflow-hidden">
+                <div className="bg-primary p-4 flex justify-between items-center">
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-2"><Shield className="h-4 w-4 text-[#B8860B]" /> Official Requirement</span>
+                    <Badge className="bg-[#B8860B] text-black text-[9px] font-black">CYCLE 2026</Badge>
                 </div>
-                <p className="text-[11px] font-medium leading-relaxed italic opacity-80">
-                  "Every centavo fuels our national mobilization. By maintaining a public ledger, we ensure that the resources of the movement are utilized with absolute integrity and transparency."
-                </p>
-                <div className="pt-2 border-t border-white/10 flex justify-between items-center">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-accent">Office of the Treasurer</p>
-                  <CheckCircle2 className="h-3 w-3 text-accent" />
-                </div>
-              </CardContent>
+                <CardContent className="p-8 text-center space-y-6">
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Annual Membership Dues</p>
+                        <h3 className="text-4xl font-black text-primary tracking-tighter italic">₱200.00</h3>
+                    </div>
+                    <Button 
+                        disabled={isProcessing}
+                        onClick={() => handlePayment("MEMBERSHIP_DUES", 200)}
+                        className="w-full h-14 bg-primary hover:bg-[#001a4d] text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl active:scale-95 transition-all"
+                    >
+                        {isProcessing ? <Loader2 className="animate-spin h-5 w-5" /> : "Settle 2026 Dues (₱200)"}
+                    </Button>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase leading-relaxed">
+                        Authorized payment updates your status to <span className="text-emerald-600 font-black">ACTIVE</span> in the National Registry.
+                    </p>
+                </CardContent>
+            </Card>
+
+            <Card className="border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-[32px]">
+                <CardContent className="p-8 space-y-6">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 bg-white rounded-xl shadow-sm flex items-center justify-center"><HeartHandshake className="h-5 w-5 text-[#B8860B]" /></div>
+                        <h3 className="font-black uppercase text-xs text-primary">Voluntary Pondo</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        {[50, 100, 500, 1000].map(amt => (
+                            <Button key={amt} variant="outline" onClick={() => handlePayment("VOLUNTARY_DONATION", amt)} className="h-12 border-2 font-black text-primary hover:bg-primary hover:text-white transition-all rounded-xl">₱{amt}</Button>
+                        ))}
+                    </div>
+                </CardContent>
             </Card>
           </div>
         </div>
