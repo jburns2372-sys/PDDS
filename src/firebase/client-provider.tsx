@@ -6,7 +6,8 @@ import { Auth } from "firebase/auth";
 import { Firestore } from "firebase/firestore";
 import { FirebaseStorage } from "firebase/storage";
 import { Messaging } from "firebase/messaging";
-import { initializeFirebase, FirebaseProvider } from "@/firebase";
+import { initializeFirebase } from "./init";
+import { FirebaseProvider } from "./provider";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type FirebaseClientProviderProps = {
