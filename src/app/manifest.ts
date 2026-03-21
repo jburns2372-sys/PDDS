@@ -1,7 +1,12 @@
 import { MetadataRoute } from 'next'
-import { PDDS_LOGO_URL } from '@/lib/data'
 
+/**
+ * @fileOverview Web Manifest Configuration.
+ * Hardcoded values to prevent module resolution errors during manifest generation.
+ */
 export default function manifest(): MetadataRoute.Manifest {
+  const PDDS_LOGO_URL = "https://firebasestorage.googleapis.com/v0/b/patriot-link-production.firebasestorage.app/o/PDDS_1024x1024.png?alt=media";
+  
   return {
     name: 'PatriotLink | PDDS Official',
     short_name: 'PatriotLink',
